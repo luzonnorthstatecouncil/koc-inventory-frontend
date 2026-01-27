@@ -1,0 +1,59 @@
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-ExtraLight.ttf") format("woff2");
+	font-weight: 200;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-Light.ttf") format("woff2");
+	font-weight: 300;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-Regular.ttf") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-Medium.ttf") format("woff2");
+	font-weight: 500;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-SemiBold.ttf") format("woff2");
+	font-weight: 600;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-Bold.ttf") format("woff2");
+	font-weight: 700;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-ExtraBold.ttf") format("woff2");
+	font-weight: 800;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Inter Tight";
+	src: url("/src/assets/fonts/InterTight-Black.ttf") format("woff2");
+	font-weight: 900;
+	font-style: normal;
+}
+
+body {
+	font-family: "Inter Tight", sans-serif;
+}

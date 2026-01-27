@@ -1,0 +1,31 @@
+export const INVENTORY_TAGS = {
+   LIST: "INVENTORY_LIST",
+   DETAIL: "INVENTORY_DETAIL",
+};
+
+export const STOCKS_TAGS = {
+   LIST: "STOCKS_LIST",
+   DETAIL: "STOCKS_DETAIL",
+};
+
+export const ORDER_TAGS = "ORDER";
+
+export const CATEGORY_TAGS = "CATEGORY";
+
+export const USER_TAGS = {
+   LIST: "USER_LIST",
+   DETAIL: "USER_DETAIL",
+   PROFILE: "USER_PROFILE",
+};
+
+export const ACTIVITY_LOG_TAGS = "ACTIVITY_LOG";
+
+export const SUPPLIER_TAGS = {
+   LIST: "SUPPLIER_LIST",
+   DETAIL: "SUPPLIER_DETAIL",
+};
+
+export const APPROVAL_TAGS = {
+   LIST: "APPROVAL_LIST",
+   DETAIL: "APPROVAL_DETAIL",
+};

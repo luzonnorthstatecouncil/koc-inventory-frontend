@@ -1,0 +1,16 @@
+export const ALPHABETS_ONLY = /[^a-zA-Z]/g;
+export const ALPHANUMERIC_ONLY = /[^a-zA-Z0-9]/g;
+export const NUMERIC_ONLY = /[^\d.-]/g;
+export const ALPHABETS_WS_ONLY = /[^a-zA-Z\s]/g;
+export const ALPHANUMERIC_WS_ONLY = /[^a-zA-Z0-9\s]/g;
+export const NUMERIC_WS_ONLY = /[^\d\s.-]/g;
+export const DEFAULT_TEXT_INPUT = /[^a-zA-Z0-9 .,_\-@]/g;
+export const USERNAME_INPUT = /[^a-zA-Z0-9._\-]/g;
+export const PASSWORD_INPUT = /[^a-zA-Z0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/g;
+export const FULLNAME_INPUT = /[^a-zA-Z .,\-']/g;
+export const ADDRESS_INPUT = /[^a-zA-Z0-9 .,#\-\n]/g;
+export const CONTACT_NUMBER_INPUT = /^\d{10,15}$/g;
+export const EMAIL_INPUT = /[^a-zA-Z0-9@._\-+]/g;
+export const PRICE_INPUT = /[^0-9.-]/g;
+export const STRING_NUMBER_INPUT = /^\d*\.?\d+$/g;
+export const REFERENCE_NUMBER_INPUT = /[^a-zA-Z0-9\-]/g;
