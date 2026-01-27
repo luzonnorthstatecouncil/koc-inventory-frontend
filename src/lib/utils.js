@@ -9,7 +9,7 @@ export function cn(...inputs) {
 }
 
 const rawBaseQuery = fetchBaseQuery({
-   baseUrl: "koc-inventory-backend-production.up.railway.app",
+   baseUrl: "https://api-koc-inventory.up.railway.app",
    prepareHeaders: (headers, { getState }) => {
       const token = localStorage.getItem("token");
       if (token) {
