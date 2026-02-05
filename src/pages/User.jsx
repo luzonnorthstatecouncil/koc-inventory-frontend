@@ -133,7 +133,10 @@ export default function UserManagement() {
       const id = toast.loading("Resetting password...");
       const { success, message } = await exec(resetPassword, selectedUser.id);
 
-      if (!success) return;
+      if (!success) {
+         toast.dismiss(id);
+         return;
+      }
 
       toast.success(message, { id });
    };
