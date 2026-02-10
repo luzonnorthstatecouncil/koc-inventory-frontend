@@ -11,9 +11,6 @@ const initialState = {
    openCreateModal: false,
    openEditModal: false,
    selectedUser: null,
-   
-   credentials: null,
-   showCredentialsModal: false,
 };
 
 const userSlice = createSlice({
@@ -26,12 +23,10 @@ const userSlice = createSlice({
       setOpenCreateModal: setState("openCreateModal"),
       setOpenEditModal: setState("openEditModal"),
       setSelectedUser: setState("selectedUser"),
-      setCredentials: setState("credentials"),
-      setShowCredentialsModal: setState("showCredentialsModal"),
       logout: clearStates(initialState),
    },
 });
 
-export const { setUser, setSession, setOpenViewModal, setOpenCreateModal, setOpenEditModal, setSelectedUser, setCredentials, setShowCredentialsModal, logout } =
+export const { setUser, setSession, setOpenViewModal, setOpenCreateModal, setOpenEditModal, setSelectedUser, logout } =
    userSlice.actions;
 export default userSlice.reducer;

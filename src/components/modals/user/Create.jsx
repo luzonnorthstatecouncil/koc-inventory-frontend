@@ -12,16 +12,11 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { createUserDefaultValues, createUserSchema } from "@/lib/zod/schema/createUser";
 import { useCallback } from "react";
 import { toast } from "sonner";
-import UserCredentialsModal from "./UserCredentialsModal";
-import { useDispatch, useSelector } from "react-redux";
-import { setCredentials, setShowCredentialsModal } from "@/features/slice/userSlice";
 
 export default function CreateUser({ isOpen, onClose }) {
    const exec = useCatchQuery();
    const { confirm } = useConfirmation();
    const [createUser] = useCreateUserMutation();
-   const dispatch = useDispatch();
-   const { credentials, showCredentialsModal } = useSelector((state) => state.user);
 
    const onSubmit = useCallback(async (data) => {
       const confirmed = await confirm({
@@ -39,7 +34,7 @@ export default function CreateUser({ isOpen, onClose }) {
 
       const id = toast.loading("Creating new user...");
 
-      const { success, message, result: responseData } = await exec(createUser, payload);
+      const { success, message } = await exec(createUser, payload);
 
       if (!success) {
          toast.dismiss(id);
@@ -47,30 +42,20 @@ export default function CreateUser({ isOpen, onClose }) {
       }
 
       toast.success(message, { id });
-      
-      if (responseData?.username && responseData?.password) {
-         dispatch(setCredentials({
-            username: responseData.username,
-            password: responseData.password,
-         }));
-         dispatch(setShowCredentialsModal(true));
-      }
-      
       onClose();
    }, []);
 
    return (
-      <>
-         <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            contentClassName='my-0'
-            className='pb-0'
-            title='Create New User'
-            description='Fill out the form below to create a new user.'
-            secondaryAction={null}
-            primaryAction={null}
-         >
+      <Modal
+         isOpen={isOpen}
+         onClose={onClose}
+         contentClassName='my-0'
+         className='pb-0'
+         title='Create New User'
+         description='Fill out the form below to create a new user.'
+         secondaryAction={null}
+         primaryAction={null}
+      >
          <Form
             className='flex flex-col gap-4'
             onSubmit={onSubmit}
@@ -98,18 +83,5 @@ export default function CreateUser({ isOpen, onClose }) {
             </div>
          </Form>
       </Modal>
-      
-      {showCredentialsModal && credentials && (
-         <UserCredentialsModal
-            isOpen={showCredentialsModal}
-            onClose={() => {
-               dispatch(setShowCredentialsModal(false));
-               dispatch(setCredentials(null));
-            }}
-            username={credentials.username}
-            password={credentials.password}
-         />
-      )}
-      </>
    );
 }

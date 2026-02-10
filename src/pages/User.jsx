@@ -6,14 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDeleteUserMutation, useGetUserListQuery, useResetPasswordMutation } from "@/features/api/users";
 import ViewUser from "@/components/modals/user/View";
 import { useDispatch, useSelector } from "react-redux";
-import {
-   setOpenCreateModal,
-   setOpenEditModal,
-   setOpenViewModal,
-   setSelectedUser,
-   setCredentials,
-   setShowCredentialsModal,
-} from "@/features/slice/userSlice";
+import { setOpenCreateModal, setOpenEditModal, setOpenViewModal, setSelectedUser } from "@/features/slice/userSlice";
 import EditUser from "@/components/modals/user/Edit";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { toast } from "sonner";
@@ -21,7 +14,6 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import CreateUser from "@/components/modals/user/Create";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Paragraph from "@/components/custom/Paragraph";
-import UserCredentialsModal from "@/components/modals/user/UserCredentialsModal";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: USER_MANAGEMENT.title }];
 
@@ -82,9 +74,7 @@ export default function UserManagement() {
    const exec = useCatchQuery();
    const [resetPassword] = useResetPasswordMutation();
    const [deleteUser] = useDeleteUserMutation();
-   const { openViewModal, openEditModal, openCreateModal, credentials, showCredentialsModal } = useSelector(
-      (state) => state.user,
-   );
+   const { openViewModal, openEditModal, openCreateModal } = useSelector((state) => state.user);
 
    const onViewClose = () => {
       dispatch(setOpenViewModal(false));
@@ -141,7 +131,7 @@ export default function UserManagement() {
       if (!confirmed) return;
 
       const id = toast.loading("Resetting password...");
-      const { success, message, result: responseData } = await exec(resetPassword, selectedUser.id);
+      const { success, message } = await exec(resetPassword, selectedUser.id);
 
       if (!success) {
          toast.dismiss(id);
@@ -149,16 +139,6 @@ export default function UserManagement() {
       }
 
       toast.success(message, { id });
-
-      if (responseData?.username && responseData?.password) {
-         dispatch(
-            setCredentials({
-               username: responseData.username,
-               password: responseData.password,
-            }),
-         );
-         dispatch(setShowCredentialsModal(true));
-      }
    };
 
    const actions = [
@@ -216,18 +196,6 @@ export default function UserManagement() {
             {openViewModal && <ViewUser isOpen={openViewModal} onClose={onViewClose} />}
             {openEditModal && <EditUser isOpen={openEditModal} onClose={onEditClose} />}
             {openCreateModal && <CreateUser isOpen={openCreateModal} onClose={onCreateClose} />}
-
-            {showCredentialsModal && credentials && (
-               <UserCredentialsModal
-                  isOpen={showCredentialsModal}
-                  onClose={() => {
-                     dispatch(setShowCredentialsModal(false));
-                     dispatch(setCredentials(null));
-                  }}
-                  username={credentials.username}
-                  password={credentials.password}
-               />
-            )}
          </main>
       </PageLayout>
    );

@@ -19,7 +19,6 @@ export default function Title({ children, size = "lg", variant = "default", clas
       success: "text-green-600",
       danger: "text-red-600",
       warning: "text-yellow-600",
-      light: "text-white",
    };
 
    return <h1 className={`${sizes[size]} ${variants[variant]} font-bold ${className}`}>{children}</h1>;
