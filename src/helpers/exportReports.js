@@ -14,7 +14,6 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
       return;
    }
 
-   // Group data by item_name
    const groupedData = data.reduce((acc, row) => {
       const itemName = row.item_name || "Unknown";
       if (!acc[itemName]) {
@@ -24,35 +23,27 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
       return acc;
    }, {});
 
-   // Create worksheet data array
    const wsData = [];
 
-   // Add title row (extract from filename or use default)
    const title = filename.replace(".csv", "").toUpperCase();
    const titleRow = [title];
    columns.slice(1).forEach(() => titleRow.push(""));
    wsData.push(titleRow);
 
-   // Add empty row
    wsData.push([]);
 
-   // Add header row
    wsData.push(columns.map((col) => col.label));
 
-   // Track row indices for styling
    const categoryRowIndices = [];
-   let currentRow = 3; // Starting after title, empty row, and header
+   let currentRow = 3;
 
-   // Add data rows with category headers
    Object.entries(groupedData).forEach(([itemName, items]) => {
-      // Add category header row
       const categoryRow = [itemName];
       columns.slice(1).forEach(() => categoryRow.push(""));
       wsData.push(categoryRow);
       categoryRowIndices.push(currentRow);
       currentRow++;
 
-      // Add variant rows
       items.forEach((row) => {
          const rowData = columns.map((col) => {
             const value = col.accessor ? col.accessor(row) : row[col.key];
@@ -63,28 +54,22 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
       });
    });
 
-   // Create worksheet from array of arrays
    const worksheet = XLSX.utils.aoa_to_sheet(wsData);
 
-   // Set column widths
    const colWidths = columns.map((col) => ({ wch: 25 }));
    worksheet["!cols"] = colWidths;
 
-   // Merge cells for title and category headers
    const merges = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: columns.length - 1 } }, // Title row
+      { s: { r: 0, c: 0 }, e: { r: 0, c: columns.length - 1 } },
    ];
 
-   // Add merges for category headers
    categoryRowIndices.forEach((rowIndex) => {
       merges.push({ s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: columns.length - 1 } });
    });
    worksheet["!merges"] = merges;
 
-   // Apply styles
    const range = XLSX.utils.decode_range(worksheet["!ref"]);
 
-   // Define border style
    const borderStyle = {
       top: { style: "thin", color: { rgb: "000000" } },
       bottom: { style: "thin", color: { rgb: "000000" } },
@@ -92,7 +77,6 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
       right: { style: "thin", color: { rgb: "000000" } },
    };
 
-   // Style title row (row 0)
    for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
       if (!worksheet[cellAddress]) continue;
@@ -104,19 +88,17 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
       };
    }
 
-   // Style header row (row 2)
    for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: 2, c: col });
       if (!worksheet[cellAddress]) continue;
       worksheet[cellAddress].s = {
          font: { bold: true },
          alignment: { horizontal: "center", vertical: "center" },
-         fill: { fgColor: { rgb: "FFFF00" } }, // Yellow
+         fill: { fgColor: { rgb: "FFFF00" } },
          border: borderStyle,
       };
    }
 
-   // Style category rows
    categoryRowIndices.forEach((rowIndex, index) => {
       const isFirstCategory = index === 0;
       for (let col = range.s.c; col <= range.e.c; col++) {
@@ -125,15 +107,13 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
          worksheet[cellAddress].s = {
             font: { bold: true },
             alignment: { horizontal: "left", vertical: "center" },
-            fill: { fgColor: { rgb: isFirstCategory ? "00B0F0" : "FFC000" } }, // Blue for first, orange for rest
+            fill: { fgColor: { rgb: isFirstCategory ? "00B0F0" : "FFC000" } },
             border: borderStyle,
          };
       }
    });
 
-   // Style data rows (all remaining rows)
    for (let row = range.s.r; row <= range.e.r; row++) {
-      // Skip title, empty, header, and category rows
       if (row === 0 || row === 1 || row === 2 || categoryRowIndices.includes(row)) continue;
 
       for (let col = range.s.c; col <= range.e.c; col++) {
@@ -146,22 +126,13 @@ export const exportToCSV = (data, columns, filename = "report.csv") => {
       }
    }
 
-   // Create workbook
    const workbook = XLSX.utils.book_new();
    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
 
-   // Download file (change extension to xlsx to support styles)
    const xlsxFilename = filename.replace(".csv", ".xlsx");
    XLSX.writeFile(workbook, xlsxFilename);
 };
 
-/**
- * Export data to PDF format
- * @param {Array} data - Array of data objects
- * @param {Array} columns - Array of column definitions
- * @param {string} title - Title of the report
- * @param {string} filename - Name of the file to download
- */
 export const exportToPDF = (data, columns, title = "Report", filename = "report.pdf") => {
    if (!data || data.length === 0) {
       alert("No data to export");
