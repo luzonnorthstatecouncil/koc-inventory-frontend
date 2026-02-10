@@ -14,13 +14,16 @@ import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { editUserSchema } from "@/lib/zod/schema/editUser";
 import { useCallback } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { toast } from "sonner";
+import UserCredentialsModal from "./UserCredentialsModal";
+import { setCredentials, setShowCredentialsModal } from "@/features/slice/userSlice";
 
 export default function EditUser({ isOpen, onClose }) {
    const exec = useCatchQuery();
    const { confirm } = useConfirmation();
-   const { selectedUser } = useSelector((state) => state.user);
+   const { selectedUser, credentials, showCredentialsModal } = useSelector((state) => state.user);
+   const dispatch = useDispatch();
 
    const [resetPassword] = useResetPasswordMutation();
    const [updateUser] = useUpdateUserMutation();
@@ -58,79 +61,103 @@ export default function EditUser({ isOpen, onClose }) {
 
       if (!confirmed) return;
 
-      const { success, message } = await exec(resetPassword, selectedUser.id);
+      const { success, message, result: responseData } = await exec(resetPassword, selectedUser.id);
 
       if (!success) {
          return;
       }
 
       toast.success(message);
+
+      if (responseData?.username && responseData?.password) {
+         dispatch(
+            setCredentials({
+               username: responseData.username,
+               password: responseData.password,
+            }),
+         );
+         dispatch(setShowCredentialsModal(true));
+      }
    }, [selectedUser]);
 
    return (
-      <Modal
-         isOpen={isOpen}
-         onClose={onClose}
-         contentClassName='my-0'
-         className='pb-0'
-         isLoading={!selectedUser}
-         title='Edit User Details'
-         description='Modify the details of the selected user.'
-         secondaryAction={null}
-         primaryAction={null}
-      >
-         <Form
-            className='flex flex-col gap-4'
-            onSubmit={onSubmit}
-            schema={editUserSchema}
-            defaultValues={{
-               id: selectedUser?.id || null,
-               full_name: selectedUser?.full_name || "",
-               username: selectedUser?.username || "",
-               email: selectedUser?.email || "",
-               role: selectedUser?.role || "user",
-               status: selectedUser?.status == "active",
-            }}
+      <>
+         <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            contentClassName='my-0'
+            className='pb-0'
+            isLoading={!selectedUser}
+            title='Edit User Details'
+            description='Modify the details of the selected user.'
+            secondaryAction={null}
+            primaryAction={null}
          >
-            <IInput name='full_name' label='Full Name' placeholder='e.g. John Doe' />
-            <IInput name='username' label='Username' placeholder='e.g. johndoe123' />
-            <IInput name='email' label='Email' placeholder='e.g. john.doe@example.com' />
-            <ISelect name='role' label='Role' options={ROLE_OPTIONS} showAll={false} />
-            <ICheckbox name='status' label='Is this user active?' />
+            <Form
+               className='flex flex-col gap-4'
+               onSubmit={onSubmit}
+               schema={editUserSchema}
+               defaultValues={{
+                  id: selectedUser?.id || null,
+                  full_name: selectedUser?.full_name || "",
+                  username: selectedUser?.username || "",
+                  email: selectedUser?.email || "",
+                  role: selectedUser?.role || "user",
+                  status: selectedUser?.status == "active",
+               }}
+            >
+               <IInput name='full_name' label='Full Name' placeholder='e.g. John Doe' />
+               <IInput name='username' label='Username' placeholder='e.g. johndoe123' />
+               <IInput name='email' label='Email' placeholder='e.g. john.doe@example.com' />
+               <ISelect name='role' label='Role' options={ROLE_OPTIONS} showAll={false} />
+               <ICheckbox name='status' label='Is this user active?' />
 
-            <Separator />
+               <Separator />
 
-            <section>
-               <Title>Reset Password</Title>
-               <Paragraph className='mb-3'>
-                  Upon successful update, the user's password will be reset to a default password that will be sent to
-                  their registered email address.
-               </Paragraph>
+               <section>
+                  <Title>Reset Password</Title>
+                  <Paragraph className='mb-3'>
+                     Upon successful update, the user's password will be reset to a default password that will be sent
+                     to their registered email address.
+                  </Paragraph>
 
-               <IButton
-                  variant='outline'
-                  className='w-full border-orange-600 text-orange-600 bg-orange-50'
-                  type='button'
-                  onClick={onResetPassword}
-               >
-                  Reset Password
-               </IButton>
-            </section>
+                  <IButton
+                     variant='outline'
+                     className='w-full border-orange-600 text-orange-600 bg-orange-50'
+                     type='button'
+                     onClick={onResetPassword}
+                  >
+                     Reset Password
+                  </IButton>
+               </section>
 
-            <div className='flex items-center justify-end gap-2 mt-4'>
-               <IButtonConfirm
-                  title='Cancel Editing'
-                  message='Are you sure you want to cancel? All unsaved changes will be lost.'
-                  asButton
-                  onConfirm={onClose}
-               >
-                  Cancel
-               </IButtonConfirm>
-               <IButton type='submit' variant='default'>
-                  Save Changes
-               </IButton>
-            </div>
-         </Form>
-      </Modal>
+               <div className='flex items-center justify-end gap-2 mt-4'>
+                  <IButtonConfirm
+                     title='Cancel Editing'
+                     message='Are you sure you want to cancel? All unsaved changes will be lost.'
+                     asButton
+                     onConfirm={onClose}
+                  >
+                     Cancel
+                  </IButtonConfirm>
+                  <IButton type='submit' variant='default'>
+                     Save Changes
+                  </IButton>
+               </div>
+            </Form>
+         </Modal>
+
+         {showCredentialsModal && credentials && (
+            <UserCredentialsModal
+               isOpen={showCredentialsModal}
+               onClose={() => {
+                  dispatch(setShowCredentialsModal(false));
+                  dispatch(setCredentials(null));
+               }}
+               username={credentials.username}
+               password={credentials.password}
+            />
+         )}
+      </>
    );
 }
