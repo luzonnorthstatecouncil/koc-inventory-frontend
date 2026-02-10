@@ -22,6 +22,11 @@ export default function Login() {
    const navigate = useNavigate();
    const dispatch = useDispatch();
 
+   const [form, setForm] = useState({
+      username: "",
+      password: "",
+   });
+
    const exec = useCatchQuery();
    const [signIn] = useSignInUserMutation();
 
