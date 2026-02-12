@@ -13,7 +13,7 @@ export default defineConfig({
    },
    server: {
       proxy: {
-         "/api": {
+         "/": {
             target: "https://inventory-api.knightstech.org/",
             changeOrigin: true,
             secure: false,
