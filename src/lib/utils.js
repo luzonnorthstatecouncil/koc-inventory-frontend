@@ -9,7 +9,7 @@ export function cn(...inputs) {
 }
 
 const rawBaseQuery = fetchBaseQuery({
-   baseUrl: "/",
+   baseUrl: "/api",
    prepareHeaders: (headers, { getState }) => {
       const token = localStorage.getItem("token");
       if (token) {
