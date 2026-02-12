@@ -11,13 +11,13 @@ export default defineConfig({
          "@": path.resolve(__dirname, "./src"),
       },
    },
-   server: {
-      proxy: {
-         "/api": {
-            target: "https://inventory-api.knightstech.org/",
-            changeOrigin: true,
-            secure: true,
-         },
-      },
-   },
+   // server: {
+   //    proxy: {
+   //       "/api": {
+   //          target: "https://inventory-api.knightstech.org/",
+   //          changeOrigin: true,
+   //          secure: true,
+   //       },
+   //    },
+   // },
 });

@@ -9,7 +9,7 @@ export function cn(...inputs) {
 }
 
 const rawBaseQuery = fetchBaseQuery({
-   baseUrl: "/api",
+   baseUrl: import.meta.env.VITE_API_URL,
    prepareHeaders: (headers, { getState }) => {
       const token = localStorage.getItem("token");
       if (token) {
