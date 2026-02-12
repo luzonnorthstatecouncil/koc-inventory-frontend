@@ -16,7 +16,7 @@ export default defineConfig({
          "/": {
             target: "https://inventory-api.knightstech.org/",
             changeOrigin: true,
-            secure: false,
+            secure: true,
          },
       },
    },
