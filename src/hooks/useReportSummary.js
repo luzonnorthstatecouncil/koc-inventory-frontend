@@ -33,7 +33,7 @@ export function useReportSummary(inventoryData) {
             title: "Total Inventory Items",
             value: summaryStats.totalInventoryItems.count.toLocaleString(),
             subtitle: "Number of unique items",
-            change: `+${summaryStats.totalInventoryItems.newItemsThisMonth} items`,
+            change: `+${summaryStats.totalInventoryItems.newItemsThisMonth} items this month`,
             icon: Package,
             trend: "up",
             color: "text-blue-600",
