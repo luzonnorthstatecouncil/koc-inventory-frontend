@@ -121,6 +121,14 @@ export const inventoryApi = createApi({
          }),
          invalidatesTags: [INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST],
       }),
+      bulkCreateStocks: builder.mutation({
+         query: (data) => ({
+            url: "/v1/stocks/bulk-import",
+            method: "POST",
+            body: data,
+         }),
+         invalidatesTags: [INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST],
+      }),
       removeStock: builder.mutation({
          query: (data) => ({
             url: `/v1/stocks/${data.inventory_stock_id}`,
@@ -183,6 +191,13 @@ export const inventoryApi = createApi({
          },
          providesTags: [APPROVAL_TAGS.LIST],
       }),
+      getInventoryAuditTrails: builder.query({
+         query: ({ id, ...params }) => {
+            const queryParams = urlParams(params);
+            return `/v1/inventory/${id}/audit-trails?${queryParams}`;
+         },
+         providesTags: [INVENTORY_TAGS.DETAIL],
+      }),
    }),
 });
 
@@ -204,6 +219,7 @@ export const {
    useGetInventoryStocksQuery,
    useGetInventoryStockByIdQuery,
    useCreateStockMutation,
+   useBulkCreateStocksMutation,
    useRemoveStockMutation,
    useFlushExpiredStocksMutation,
    useAdjustStocksMutation,
@@ -212,4 +228,5 @@ export const {
    useApproveStockApprovalMutation,
    useRejectStockApprovalMutation,
    useGetUserStockRequestsQuery,
+   useGetInventoryAuditTrailsQuery,
 } = inventoryApi;

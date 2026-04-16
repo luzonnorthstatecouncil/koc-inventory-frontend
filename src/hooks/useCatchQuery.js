@@ -22,6 +22,7 @@ export const useCatchQuery = () => {
             return {
                success: false,
                message: result?.error?.data?.message || "Something went wrong.",
+               errors: result?.error?.data?.errors ?? null,
             };
          }
 

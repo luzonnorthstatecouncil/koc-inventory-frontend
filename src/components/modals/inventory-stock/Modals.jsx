@@ -1,7 +1,9 @@
 import { useDispatch, useSelector } from "react-redux";
 import Modal from "@/components/custom/Modal";
 import Create from "./Create";
-import { setOpenCreateModal, setOpenEditModal, setOpenViewModal, setOpenAdjustExpiryModal } from "@/features/slice/inventoryStockSlice";
+import BulkCreate from "./BulkCreate";
+import BulkImportFailures from "./BulkImportFailures";
+import { setOpenCreateModal, setOpenEditModal, setOpenViewModal, setOpenAdjustExpiryModal, setOpenBulkCreateModal, setOpenBulkImportFailuresModal, setBulkImportFailures } from "@/features/slice/inventoryStockSlice";
 import { useGetInventoryAsOptionsQuery, useGetInventoryStockByIdQuery } from "@/features/api/inventory";
 import View from "./View";
 import Edit from "./Edit";
@@ -10,7 +12,7 @@ import UserStockRequests from "./UserStockRequests";
 import { setOpenUserStockRequestsModal, setSelectedUserId, setSelectedUserName } from "@/features/slice/inventorySlice";
 
 export default function InventoryStockModals() {
-   const { openViewModal, openCreateModal, openEditModal, openAdjustExpiryModal, selectedStock } = useSelector(
+   const { openViewModal, openCreateModal, openEditModal, openAdjustExpiryModal, openBulkCreateModal, openBulkImportFailuresModal, bulkImportFailures, selectedStock } = useSelector(
       (state) => state.inventoryStock,
    );
 
@@ -53,6 +55,15 @@ export default function InventoryStockModals() {
 
    const onAdjustExpiryClose = () => {
       dispatch(setOpenAdjustExpiryModal(false));
+   };
+
+   const onBulkCreateClose = () => {
+      dispatch(setOpenBulkCreateModal(false));
+   };
+
+   const onBulkImportFailuresClose = () => {
+      dispatch(setOpenBulkImportFailuresModal(false));
+      dispatch(setBulkImportFailures(null));
    };
 
    const handleUserRequestsClose = () => {
@@ -125,6 +136,36 @@ export default function InventoryStockModals() {
                primaryAction={null}
             >
                <AdjustExpiry onClose={onAdjustExpiryClose} item={selectedStock} />
+            </Modal>
+         )}
+
+         {openBulkCreateModal && (
+            <Modal
+               size='lg'
+               isOpen={openBulkCreateModal}
+               title='Bulk Import Stocks'
+               description='Import multiple stock entries from an Excel file.'
+               secondaryAction={null}
+               contentClassName='my-0'
+               className='gap-4 pb-0'
+               primaryAction={null}
+            >
+               <BulkCreate onClose={onBulkCreateClose} />
+            </Modal>
+         )}
+
+         {openBulkImportFailuresModal && (
+            <Modal
+               size='lg'
+               isOpen={openBulkImportFailuresModal}
+               title='Bulk Import Results'
+               description='Summary of the bulk stock import, including any entries that failed to import.'
+               secondaryAction={null}
+               contentClassName='my-0'
+               className='gap-4 pb-0'
+               primaryAction={null}
+            >
+               <BulkImportFailures data={bulkImportFailures} onClose={onBulkImportFailuresClose} />
             </Modal>
          )}
 

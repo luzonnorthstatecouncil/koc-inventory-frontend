@@ -19,6 +19,7 @@ export default function AccountSection({
    onSubmit,
    defaultValues,
    schema,
+   icon = null,
 }) {
    const dispatch = useDispatch();
    const { editableSections } = useSelector((state) => state.account);
@@ -38,56 +39,69 @@ export default function AccountSection({
    );
 
    return (
-      <section className={cn("rounded-md border border-outline p-4 mb-4 w-full", className)}>
+      <section className={cn("w-full", className)}>
          <Form onSubmit={onSubmit} schema={schema} defaultValues={defaultValues}>
             {(form) => (
                <>
-                  <header>
-                     {editable &&
-                        (editableSections[sectionKey] ? (
-                           <IButton
-                              type='button'
-                              variant='outline'
-                              size='sm'
-                              onClick={() => onEdit(form)}
-                              className='px-2 py-1 float-right border-red-500 text-red-500 hover:bg-red-500/10'
-                           >
-                              <PencilOff className='size-4' />
-                              Close
-                           </IButton>
-                        ) : (
-                           <IButton
-                              type='button'
-                              variant='outline'
-                              size='sm'
-                              onClick={() => onEdit(form)}
-                              className='px-2 py-1 float-right'
-                           >
-                              <Pencil className='size-4' />
-                              Edit
-                           </IButton>
-                        ))}
+                  {/* Header strip: icon + title/desc + edit controls */}
+                  {(title || description || editable) && (
+                     <div className='flex items-center justify-between gap-4 px-6 py-3 bg-muted/30 border-y border-outline'>
+                        <div className='flex items-center gap-3'>
+                           {icon && (
+                              <div className='rounded-lg bg-background border border-outline p-1.5 shrink-0'>
+                                 {icon}
+                              </div>
+                           )}
+                           <div>
+                              {title && (
+                                 <Paragraph
+                                    size='lg'
+                                    variant='default'
+                                    className='max-md:text-sm! max-lg:text-base! font-semibold'
+                                 >
+                                    {title}
+                                 </Paragraph>
+                              )}
+                              {description && (
+                                 <Paragraph size='sm' className='max-md:text-xs! text-muted-foreground'>
+                                    {description}
+                                 </Paragraph>
+                              )}
+                           </div>
+                        </div>
 
-                     {title && (
-                        <Title size='lg' className='font-semibold'>
-                           {title}
-                        </Title>
-                     )}
-
-                     {description && (
-                        <Paragraph className='mb-4' size='sm'>
-                           {description}
-                        </Paragraph>
-                     )}
-                  </header>
-
-                  <div className={contentClassName}>{children}</div>
-
-                  {editable && editableSections[sectionKey] && (
-                     <IButton variant='default' className='ms-auto w-40 mt-4' type='submit'>
-                        Save Changes
-                     </IButton>
+                        {editable && (
+                           <div className='flex items-center gap-2 shrink-0'>
+                              {editableSections[sectionKey] ? (
+                                 <>
+                                    <IButton
+                                       type='button'
+                                       variant='ghost'
+                                       size='sm'
+                                       onClick={() => onEdit(form)}
+                                       className='text-red-500 hover:text-red-500 hover:bg-red-500/10'
+                                    >
+                                       Cancel
+                                    </IButton>
+                                    <IButton type='submit' size='sm' className='w-28'>
+                                       Save Changes
+                                    </IButton>
+                                 </>
+                              ) : (
+                                 <IButton type='button' variant='outline' size='sm' onClick={() => onEdit(form)}>
+                                    <Pencil className='size-3.5' />
+                                    Edit
+                                 </IButton>
+                              )}
+                           </div>
+                        )}
+                     </div>
                   )}
+
+                  {/* Fields */}
+                  <div className='px-6 py-5'>
+                     <div className={contentClassName}>{children}</div>
+                  </div>
                </>
             )}
          </Form>

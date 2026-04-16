@@ -238,7 +238,10 @@ export default function POS() {
          const id = toast.loading("Processing transaction...");
          const { success, message, data } = await exec(checkourOrder, payload);
 
-         if (!success) return;
+         if (!success) {
+            toast.dismiss(id);
+            return;
+         }
 
          // Prepare invoice data with full cart details (not just id and quantity)
          const invoiceInfo = {
@@ -280,7 +283,7 @@ export default function POS() {
    return (
       <PageLayout breadcrumbItems={breadcrumbItems} route={POINT_OF_SALE}>
          <main className='flex flex-col lg:flex-row items-start gap-3 w-full h-full relative'>
-            <section className='w-full h-full lg:pr-88'>
+            <section className='w-full h-full lg:py-6'>
                <header className='flex flex-col lg:flex-row items-start lg:items-center gap-2 mb-4'>
                   <Form
                      onSubmit={onSubmit}
@@ -355,7 +358,7 @@ export default function POS() {
                </div>
             </section>
 
-            <div className='bg-sidebar text-primary-foreground w-full lg:max-w-90 lg:w-1/3 lg:h-[97vh] lg:fixed lg:top-0 lg:bottom-0 lg:right-0 flex flex-col border-t lg:border-l lg:border-t-0 px-3 sm:px-4 py-4 sm:py-6 border-outline/50 mt-4 lg:mt-0'>
+            <div className='bg-sidebar text-primary-foreground w-full lg:max-w-90 lg:w-1/3 lg:h-screen lg:sticky! lg:top-0 lg:bottom-0 lg:right-0 flex flex-col border-t lg:border-l lg:border-t-0 px-3 sm:px-4 py-4 sm:py-6 border-outline/50 mt-4 lg:mt-0'>
                <header className='flex items-center justify-between mb-2'>
                   <Title className='mb-2 select-none flex items-center gap-2 text-xl sm:text-2xl'>
                      Cart

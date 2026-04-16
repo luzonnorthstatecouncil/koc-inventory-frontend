@@ -7,6 +7,8 @@ import {
    setOpenStocksModal,
    setOpenViewModal,
    setSelectedStock,
+   setOpenBulkImportFailuresModal,
+   setBulkImportFailures,
 } from "@/features/slice/inventorySlice";
 import { useGetInventoryByIdQuery, useGetInventoryStocksQuery } from "@/features/api/inventory";
 import Modal from "@/components/custom/Modal";
@@ -17,12 +19,15 @@ import Stocks from "./Stocks";
 import Orders from "./Orders";
 import { useGetOrdersByInventoryIdQuery } from "@/features/api/order";
 import BulkCreate from "./BulkCreate";
+import BulkImportFailures from "../inventory-stock/BulkImportFailures";
 
 export default function InventoryModals() {
    const {
       openViewModal,
       openCreateModal,
       openBulkCreateModal,
+      openBulkImportFailuresModal,
+      bulkImportFailures,
       openEditModal,
       openStocksModal,
       openOrdersModal,
@@ -66,6 +71,11 @@ export default function InventoryModals() {
 
    const onBulkCreateClose = () => {
       dispatch(setOpenBulkCreateModal(false));
+   };
+
+   const onBulkImportFailuresClose = () => {
+      dispatch(setOpenBulkImportFailuresModal(false));
+      dispatch(setBulkImportFailures(null));
    };
 
    const onEditClose = () => {
@@ -128,6 +138,21 @@ export default function InventoryModals() {
                primaryAction={null}
             >
                <BulkCreate onClose={onBulkCreateClose} />
+            </Modal>
+         )}
+
+         {openBulkImportFailuresModal && (
+            <Modal
+               size='lg'
+               isOpen={openBulkImportFailuresModal}
+               title='Bulk Import Results'
+               description='Summary of the bulk item import, including any entries that failed to import.'
+               secondaryAction={null}
+               contentClassName='my-0'
+               className='gap-4 pb-0'
+               primaryAction={null}
+            >
+               <BulkImportFailures data={bulkImportFailures} onClose={onBulkImportFailuresClose} />
             </Modal>
          )}
 

@@ -160,16 +160,19 @@ export function AppSidebar({ user }) {
                <SidebarGroupContent>
                   <SidebarMenuItem className='flex items-center justify-between'>
                      <SidebarMenuButton asChild>
-                        <div className='flex items-center justify-between'>
+                        <div
+                           className={cn(
+                              `flex items-center justify-between gap-2 sm:gap-3 w-full text-sidebar-foreground hover:bg-secondary/5! rounded p-1 sm:p-1.5 hover:text-secondary! transition-all text-sm sm:text-base cursor-pointer select-none`,
+                              location.pathname === ACCOUNT.path && "bg-secondary/5 font-semibold text-secondary",
+                           )}
+                           onClick={() => navigate(ACCOUNT.path)}
+                        >
                            <span className='flex items-center gap-1.5 sm:gap-2'>
                               <User2 className='size-3.5 sm:size-4' />
                               <span className='text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none'>
                                  {user.username}
                               </span>
                            </span>
-                           <IDropdown className='w-auto' options={FOOTER_ITEMS} placement='bottom'>
-                              <MoreHorizontal className='cursor-pointer size-3.5 sm:size-4 text-gray-500' />
-                           </IDropdown>
                         </div>
                      </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -177,6 +180,16 @@ export function AppSidebar({ user }) {
             </SidebarGroup>
          </SidebarContent>
          <SidebarFooter className='bg-sidebar p-1.5 sm:p-2'>
+            <IButtonConfirm
+               asButton
+               triggerClassName='hover:text-white text-destructive mb-2 text-start w-full flex items-center border border-destructive justify-center bg-red-100 hover:bg-red-600 gap-2 group'
+               title='Sign Out'
+               message='Are you sure you want to sign out?'
+               onConfirm={onSignOut}
+            >
+               <LogOutIcon className='text-inherit size-4' />
+               Sign Out
+            </IButtonConfirm>
             <SidebarMenu>
                <p className='text-gray-400 text-[10px] sm:text-xs'>Version {import.meta.env.VITE_APP_VERSION}</p>
             </SidebarMenu>

@@ -18,9 +18,10 @@ export const useLogout = () => {
          const id = toast.loading("Signing you out...");
          const { success, message } = await exec(signOutUser, { token });
 
-         if (!success) return;
-
-         toast.dismiss(id);
+         if (!success) {
+            toast.dismiss(id);
+            return;
+         }
       } finally {
          localStorage.removeItem("token");
          dispatch(setUser({ user: null, token: null }));

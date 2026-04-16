@@ -246,13 +246,15 @@ export default function InventoryItems() {
                actions={actions}
                actionButtons={[
                   {
-                     label: "Add Product",
-                     onClick: onCreate,
+                     label: "Bulk Add",
+                     onClick: onBulkCreate,
+                     variant: "ghost",
+                     className: "text-primary",
                      roles: ["admin", "supervisor"],
                   },
                   {
-                     label: <Upload className='size-5' />,
-                     onClick: onBulkCreate,
+                     label: "Add Product",
+                     onClick: onCreate,
                      roles: ["admin", "supervisor"],
                   },
                ]}

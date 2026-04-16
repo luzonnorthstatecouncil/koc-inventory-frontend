@@ -138,7 +138,7 @@ const InvoiceTemplate = ({ transactionData, transactionId, timestamp }) => {
             <div className='text-center text-xs'>
                <p className='font-semibold mb-2'>THANK YOU FOR YOUR PURCHASE!</p>
                <p>This is not an official receipt.</p>
-               <p className='mt-2'>For inquiries or concerns, please contact us.</p>
+               {/* <p className='mt-2'>For inquiries or concerns, please contact us.</p> */}
                <p className='mt-3 text-xs'>{businessName}</p>
             </div>
          </div>

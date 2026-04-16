@@ -127,7 +127,10 @@ export default function Orders() {
 
       const { success, result, message } = await exec(refundOrder, data);
 
-      if (!success) return;
+      if (!success) {
+         toast.dismiss(id);
+         return;
+      }
 
       toast.success(message || `Order #${padwithZero(data.id)} refunded successfully`, { id });
    }, []);
@@ -147,7 +150,10 @@ export default function Orders() {
 
       const { success, result, message } = await exec(voidRefundOrder, data?.id);
 
-      if (!success) return;
+      if (!success) {
+         toast.dismiss(id);
+         return;
+      }
 
       toast.success(message || `Order #${padwithZero(data.id)} voided refund successfully`, { id });
    }, []);

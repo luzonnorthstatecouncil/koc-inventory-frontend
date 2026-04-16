@@ -7,6 +7,9 @@ const initialState = {
    openEditModal: false,
    openStocksModal: false,
    openAdjustExpiryModal: false,
+   openBulkCreateModal: false,
+   openBulkImportFailuresModal: false,
+   bulkImportFailures: null,
    selectedItem: null,
    selectedStock: null,
 };
@@ -20,6 +23,9 @@ const inventoryStockSlice = createSlice({
       setOpenEditModal: setState("openEditModal"),
       setOpenStocksModal: setState("openStocksModal"),
       setOpenAdjustExpiryModal: setState("openAdjustExpiryModal"),
+      setOpenBulkCreateModal: setState("openBulkCreateModal"),
+      setOpenBulkImportFailuresModal: setState("openBulkImportFailuresModal"),
+      setBulkImportFailures: setState("bulkImportFailures"),
 
       setSelectedItem: setState("selectedItem"),
       setSelectedStock: setState("selectedStock"),
@@ -34,6 +40,9 @@ export const {
    setOpenEditModal,
    setOpenStocksModal,
    setOpenAdjustExpiryModal,
+   setOpenBulkCreateModal,
+   setOpenBulkImportFailuresModal,
+   setBulkImportFailures,
 
    setSelectedItem,
    setSelectedStock,

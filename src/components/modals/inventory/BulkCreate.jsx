@@ -7,12 +7,15 @@ import { useConfirmation } from "@/helpers/confirmAction";
 import { useBulkCreateItemsMutation } from "@/features/api/inventory";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { downloadBulkImportTemplate } from "@/helpers/downloadExcelTemplate";
+import { setBulkImportFailures, setOpenBulkImportFailuresModal } from "@/features/slice/inventorySlice";
+import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { useCallback, useState, useRef } from "react";
 import { FileSpreadsheet, Upload, X, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export default function BulkCreate({ onClose }) {
+   const dispatch = useDispatch();
    const { confirm } = useConfirmation();
    const [bulkCreateItems] = useBulkCreateItemsMutation();
    const exec = useCatchQuery();
@@ -31,6 +34,11 @@ export default function BulkCreate({ onClose }) {
          return;
       }
 
+      if (selectedFile.size > 5 * 1024 * 1024) {
+         toast.error("File size must not exceed 5MB");
+         return;
+      }
+
       setFile(selectedFile);
       parseExcelFile(selectedFile);
    }, []);
@@ -46,15 +54,8 @@ export default function BulkCreate({ onClose }) {
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-            // Transform Excel data to match schema
             const items = transformExcelData(jsonData);
             setParsedData(items);
-
-            if (items.length === 0) {
-               toast.warning("No valid items found in the Excel file");
-            } else {
-               toast.success(`Successfully parsed ${items.length} item(s)`);
-            }
          } catch (error) {
             toast.error("Failed to parse Excel file: " + error.message);
             setFile(null);
@@ -74,7 +75,6 @@ export default function BulkCreate({ onClose }) {
 
       data.forEach((row) => {
          const itemName = row["Item Name"] || row["item_name"] || row["name"];
-         if (!itemName) return;
 
          const item = {
             item_name: itemName,
@@ -92,7 +92,7 @@ export default function BulkCreate({ onClose }) {
          const stocks = row["Stocks"] || row["stocks"];
          if (stocks !== undefined && stocks !== null && stocks !== "") {
             item.stocks = parseInt(stocks);
-            
+
             // Add expiration date only when stocks are provided
             const expirationDate = row["Expiration Date"] || row["expiration_date"] || row["expires_at"];
             if (expirationDate) {
@@ -107,11 +107,6 @@ export default function BulkCreate({ onClose }) {
    }, []);
 
    const handleBulkImport = useCallback(async () => {
-      if (parsedData.length === 0) {
-         toast.error("No items to import");
-         return;
-      }
-
       const confirmed = await confirm({
          title: "Confirm Bulk Import",
          message: `Are you sure you want to import ${parsedData.length} item(s)?`,
@@ -123,14 +118,51 @@ export default function BulkCreate({ onClose }) {
       const id = toast.loading(`Importing ${parsedData.length} item(s)...`);
 
       const payload = { items: parsedData };
-      const { success, message } = await exec(bulkCreateItems, payload);
+      const { success, message, result, errors } = await exec(bulkCreateItems, payload);
 
       setIsProcessing(false);
 
-      if (success) {
-         toast.success(`Successfully imported ${parsedData.length} item(s)`, { id });
+      if (!success) {
+         if (errors?.length) {
+            toast.warning(message ?? "Some entries failed validation.", { id });
+            const importData = {
+               failed: errors.map((err) => ({ error: err })),
+               summary: { total: parsedData.length, successful: 0, failed: errors.length },
+            };
+            dispatch(setBulkImportFailures(importData));
+            dispatch(setOpenBulkImportFailuresModal(true));
+         } else {
+            toast.dismiss(id);
+         }
          onClose();
+         return;
       }
+
+      const { data: importData } = result ?? {};
+      const failedCount = importData?.summary?.failed ?? 0;
+      const successfulCount = importData?.summary?.successful ?? 0;
+
+      if (failedCount === 0) {
+         toast.success(
+            message ?? `All ${successfulCount} item${successfulCount === 1 ? "" : "s"} imported successfully.`,
+            { id },
+         );
+      }
+
+      if (failedCount > 0 && successfulCount > 0) {
+         toast.warning(message ?? `Import completed. ${successfulCount} succeeded, ${failedCount} failed.`, { id });
+      }
+
+      if (failedCount > 0 && successfulCount === 0) {
+         toast.warning(message ?? `All ${failedCount} item${failedCount === 1 ? "" : "s"} failed to import.`, { id });
+      }
+
+      if (failedCount > 0) {
+         dispatch(setBulkImportFailures(importData));
+         dispatch(setOpenBulkImportFailuresModal(true));
+      }
+
+      onClose();
    }, [parsedData, confirm, exec, bulkCreateItems, onClose]);
 
    const handleRemoveFile = useCallback(() => {
@@ -221,12 +253,7 @@ export default function BulkCreate({ onClose }) {
             >
                Cancel
             </IButtonConfirm>
-            <IButton
-               type='button'
-               variant='default'
-               onClick={handleBulkImport}
-               disabled={parsedData.length === 0 || isProcessing}
-            >
+            <IButton type='button' variant='default' onClick={handleBulkImport} disabled={!file || isProcessing}>
                {isProcessing ? "Importing..." : `Import ${parsedData.length} Item(s)`}
             </IButton>
          </div>

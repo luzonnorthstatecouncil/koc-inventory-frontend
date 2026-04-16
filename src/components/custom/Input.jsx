@@ -6,7 +6,7 @@ import { useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { nestedObjParser } from "@/helpers/parser";
-import { ALPHABETS_ONLY, ALPHANUMERIC_ONLY, NUMERIC_ONLY, REFERENCE_NUMBER_INPUT } from "@/constants/regex";
+import { ALPHABETS_ONLY, ALPHANUMERIC_ONLY, NUMERIC_ONLY, PRICE_INPUT, REFERENCE_NUMBER_INPUT } from "@/constants/regex";
 import { cn } from "@/lib/utils";
 import Paragraph from "./Paragraph";
 
@@ -73,7 +73,7 @@ export default function IInput({
 
             <Input
                {...(useForm && name
-                  ? register(name, { valueAsNumber: props.type === "number" || parse === "numeric" })
+                  ? register(name, { valueAsNumber: props.type === "number" || parse === "numeric" || parse === "price" })
                   : {})}
                {...props}
                type={isPassword && !passwordVisible ? "password" : isPassword ? "text" : props.type}
@@ -90,7 +90,10 @@ export default function IInput({
                   props.className,
                )}
                onInput={(e) => {
-                  if (props.type === "number" || parse === "numeric") {
+                  if (parse === "price") {
+                     const cleaned = e.target.value.replace(PRICE_INPUT, "");
+                     e.target.value = cleaned;
+                  } else if (props.type === "number" || parse === "numeric") {
                      const cleaned = e.target.value.replace(NUMERIC_ONLY, "");
                      e.target.value = parseInt(cleaned) || 0;
                   } else if (parse === "uppercase") {

@@ -575,7 +575,7 @@ const DataTable = ({
                      ))
                   ) : tableData?.length > 0 ? (
                      tableData?.map((item, index) => (
-                        <React.Fragment key={item.id || item.key || index}>
+                        <React.Fragment key={`${Date.now()}-${index}`}>
                            <TableRow onClick={() => onRowClick?.(item)} className={onRowClick && "cursor-pointer"}>
                               {columnsWithActions.map((column, index) => (
                                  <TableCell

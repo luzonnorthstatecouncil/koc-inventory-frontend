@@ -105,7 +105,6 @@ export const REPORTS = {
 export const ACCOUNT = {
    path: "/account",
    title: "Account",
-   roles: ["admin", "user"],
    icon: User2,
 };
 

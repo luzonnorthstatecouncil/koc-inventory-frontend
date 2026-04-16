@@ -110,6 +110,89 @@ export const downloadBulkImportTemplate = (filename = "bulk_import_template.xlsx
    unitSheet["!cols"] = [{ wch: 15 }];
    XLSX.utils.book_append_sheet(workbook, unitSheet, "Units");
 
+   const suppliers = [
+      { ID: "1", Name: "Supplier A", Status: "active" },
+      { ID: "2", Name: "Supplier B", Status: "active" },
+      { ID: "3", Name: "Supplier C", Status: "inactive" },
+   ];
+
+   const suppliersSheet = XLSX.utils.json_to_sheet(suppliers);
+   suppliersSheet["!cols"] = [{ wch: 10 }, { wch: 30 }, { wch: 12 }];
+   XLSX.utils.book_append_sheet(workbook, suppliersSheet, "Suppliers");
+
    // Download file
+   XLSX.writeFile(workbook, filename);
+};
+
+/**
+ * Downloads an Excel template for bulk stock import
+ * @param {Array} suppliers - List of supplier objects with id, name, status
+ * @param {string} filename - Name of the file to download
+ */
+export const downloadBulkStockImportTemplate = (suppliers = [], filename = "bulk_stock_import_template.xlsx") => {
+   const sampleData = [
+      {
+         SKU: "ITEM-001",
+         "Variant Name": "Default",
+         "Supplier ID": "1",
+         Quantity: 50,
+         "Invoice No": "INV-001",
+         "Received Date": "2026-04-16",
+         "Expiration Date": "2027-12-31",
+         Remarks: "Initial stock",
+      },
+      {
+         SKU: "ITEM-002",
+         "Variant Name": "Large",
+         "Supplier ID": "2",
+         Quantity: 100,
+         "Invoice No": "INV-002",
+         "Received Date": "2026-04-16",
+         "Expiration Date": "",
+         Remarks: "",
+      },
+   ];
+
+   const worksheet = XLSX.utils.json_to_sheet(sampleData);
+   worksheet["!cols"] = [
+      { wch: 15 }, // SKU
+      { wch: 20 }, // Variant Name
+      { wch: 12 }, // Supplier ID
+      { wch: 12 }, // Quantity
+      { wch: 18 }, // Invoice No
+      { wch: 15 }, // Received Date
+      { wch: 15 }, // Expiration Date
+      { wch: 30 }, // Remarks
+   ];
+
+   const workbook = XLSX.utils.book_new();
+   XLSX.utils.book_append_sheet(workbook, worksheet, "Stocks");
+
+   const instructions = [
+      { Instruction: "1. Fill in the stock details in the 'Stocks' sheet" },
+      { Instruction: "2. Each row represents one stock batch entry" },
+      { Instruction: "3. SKU and Variant Name are used to identify the inventory item" },
+      { Instruction: "4. SKU, Variant Name, Supplier ID, Quantity, and Received Date are required fields" },
+      { Instruction: "5. Quantity must be a positive integer" },
+      { Instruction: "6. Received Date must be in YYYY-MM-DD format (e.g., 2026-04-16)" },
+      { Instruction: "7. Expiration Date is optional - leave empty for non-expiring items" },
+      { Instruction: "8. Expiration Date must be in YYYY-MM-DD format when provided" },
+      { Instruction: "9. Invoice No is optional" },
+      { Instruction: "10. Remarks is optional" },
+      { Instruction: "11. Save the file and upload it in the Bulk Import dialog" },
+   ];
+
+   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
+   instructionsSheet["!cols"] = [{ wch: 80 }];
+   XLSX.utils.book_append_sheet(workbook, instructionsSheet, "Instructions");
+
+   const suppliersSheet = XLSX.utils.json_to_sheet(
+      suppliers.length > 0
+         ? suppliers.map((s) => ({ ID: s.id, Name: s.name, Status: s.status }))
+         : [{ ID: "", Name: "No suppliers found", Status: "" }]
+   );
+   suppliersSheet["!cols"] = [{ wch: 10 }, { wch: 30 }, { wch: 12 }];
+   XLSX.utils.book_append_sheet(workbook, suppliersSheet, "Suppliers");
+
    XLSX.writeFile(workbook, filename);
 };

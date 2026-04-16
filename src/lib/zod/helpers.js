@@ -29,6 +29,19 @@ export const numberRequired = (field = "This field") =>
 
 export const positiveNumber = (field = "This field") => numberRequired(field).positive(`${field} must be positive`);
 
+export const priceOptional = (field = "This field") =>
+   numberOptional().refine((val) => val === null || val >= 0, `${field} must be a positive number`);
+
+export const priceRequired = (field = "This field") =>
+   z
+      .coerce
+      .number({
+         required_error: `${field} is required`,
+         invalid_type_error: `${field} must be a number`,
+      })
+      .nonnegative(`${field} must be a positive number`)
+      .multipleOf(0.01, `${field} must have at most 2 decimal places`);
+
 export const intRequired = (field = "This field") => numberRequired(field).int(`${field} must be an integer`);
 
 // 📅 Dates
@@ -60,8 +73,7 @@ export const stringNumberRequired = (field = "This field") =>
       })
       .refine((val) => !isNaN(val) && isFinite(val), `${field} must be a valid number`);
 
-export const stringOrNumberOptional = () =>
-   z.union([z.string(), z.number()]).optional().nullable();
+export const stringOrNumberOptional = () => z.union([z.string(), z.number()]).optional().nullable();
 
 export const alphaNumericRequired = (field = "This field") =>
    z
@@ -92,7 +104,4 @@ export const referenceNumberOptional = () =>
       .string()
       .optional()
       .nullable()
-      .refine(
-         (val) => !val || /^[a-zA-Z0-9-]+$/.test(val),
-         "This field contains invalid characters"
-      );
+      .refine((val) => !val || /^[a-zA-Z0-9-]+$/.test(val), "This field contains invalid characters");

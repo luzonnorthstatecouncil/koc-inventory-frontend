@@ -1,6 +1,6 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, INVENTORY, INVENTORY_STOCKS } from "@/constants/routes";
-import { ArrowRight, EditIcon, EyeIcon, History, Shovel, Trash2, TrashIcon, TriangleAlert } from "lucide-react";
+import { ArrowRight, EditIcon, EyeIcon, History, Shovel, Trash2, TrashIcon, TriangleAlert, Upload } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
 import { Badge } from "@/components/ui/badge";
 import { useFlushExpiredStocksMutation, useGetInventoryStockListQuery } from "@/features/api/inventory";
@@ -11,6 +11,7 @@ import {
    setOpenViewModal,
    setSelectedStock,
    setOpenAdjustExpiryModal,
+   setOpenBulkCreateModal,
 } from "@/features/slice/inventoryStockSlice";
 import { useCallback, useMemo } from "react";
 import { isPast } from "date-fns";
@@ -139,6 +140,10 @@ export default function InventoryStocks() {
       dispatch(setOpenCreateModal(true));
    }, [dispatch]);
 
+   const onBulkCreate = useCallback(() => {
+      dispatch(setOpenBulkCreateModal(true));
+   }, [dispatch]);
+
    const onEdit = useCallback(
       (item) => {
          dispatch(setOpenEditModal(true));
@@ -248,17 +253,26 @@ export default function InventoryStocks() {
                filters={stockFilters}
                actionButtons={[
                   {
+                     label: "Bulk Add",
+                     onClick: onBulkCreate,
+                     variant: "ghost",
+                     className: "text-primary",
+                     roles: ["admin", "supervisor"],
+                  },
+                  {
+                     label: "View Stock Requests",
+                     onClick: onViewUserRequests,
+                     variant: "ghost",
+                     className: "text-primary",
+                     icon: <Shovel className='mr-2 h-4 w-4' />,
+                     roles: ["admin", "supervisor"],
+                     hidden: user?.role !== "supervisor",
+                  },
+                  {
                      label: "Create New Stock",
                      onClick: onCreate,
                      icon: <EditIcon className='mr-2 h-4 w-4' />,
                      roles: ["admin", "supervisor"],
-                  },
-                  {
-                     label: <History className='size-5' />,
-                     onClick: onViewUserRequests,
-                     icon: <Shovel className='mr-2 h-4 w-4' />,
-                     roles: ["admin", "supervisor"],
-                     hidden: user?.role !== "supervisor",
                   },
                ]}
             />

@@ -1,6 +1,7 @@
 import ModalSkeleton from "@/components/custom/ModalSkeleton";
 import ISidebar from "@/components/custom/Sidebar";
 import { useState } from "react";
+import ViewAuditTrails from "./View/AuditTrails";
 import ViewDetails from "./View/Details";
 import ViewStocks from "./View/Stocks";
 import ViewVariants from "./View/Variants";
@@ -28,6 +29,12 @@ export default function View({ item: inventoryItem, isLoading }) {
          label: "Variants",
          content: <ViewVariants variants={inventoryItem?.variants} />,
          action: () => setSelectedTab("variants"),
+      },
+      {
+         key: "audit-trails",
+         label: "Audit Trails",
+         content: <ViewAuditTrails item={inventoryItem} />,
+         action: () => setSelectedTab("audit-trails"),
       },
    ];
 

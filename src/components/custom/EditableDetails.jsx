@@ -1,7 +1,7 @@
 import Details from "./Details";
 import IInput from "./Input";
 
-export default function EditableDetails({ label, description, isEdit = false, name, value }) {
+export default function EditableDetails({ label, description, isEdit = false, name, value, icon }) {
    return isEdit ? (
       <IInput
          inputWrapperClassName='w-1/3'
@@ -10,6 +10,6 @@ export default function EditableDetails({ label, description, isEdit = false, na
          placeholder={`Enter ${label.toLowerCase()}`}
       />
    ) : (
-      <Details label={label} description={description} />
+      <Details label={label} description={description} icon={icon} />
    );
 }

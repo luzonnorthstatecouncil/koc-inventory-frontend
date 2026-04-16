@@ -21,7 +21,7 @@ export default function PointOfSaleItem(props) {
       <ICard
          cardClassName={cn(
             "transition-colors duration-300 group bg-card w-full md:w-55 lg:w-57 h-36 sm:h-40 p-2 sm:p-3 border-outline",
-            props.included ? "border-l-3 border-l-emphasis bg-white!" : "hover:border-primary",
+            props.included ? "border-l-3 border-l-emphasis bg-white!" : "hover:ring-2 ring-primary/30",
          )}
          cardContentClassName='flex flex-col h-full p-0'
       >

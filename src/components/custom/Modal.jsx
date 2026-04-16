@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import Suspense from "./Suspense";
 import ModalSkeleton from "./ModalSkeleton";
+import { ScrollArea } from "../ui/scroll-area";
 
 const Modal = ({
    isOpen = false,
@@ -53,9 +54,11 @@ const Modal = ({
 
    return (
       <AlertDialog open={isOpen} closeOnOverlayClick={closeOnOverlayClick} onOpenChange={onClose}>
-         <AlertDialogContent className={cn("p-3 sm:p-4 md:p-6 max-h-[90vh] overflow-y-auto", sizeClasses[size], className)}>
+         <AlertDialogContent className={cn("p-3 sm:p-4 md:p-6 pb-3!", sizeClasses[size], className)}>
             <AlertDialogHeader className={cn("gap-0", headerClassName)}>
-               {title && <AlertDialogTitle className='text-primary text-base sm:text-lg md:text-xl'>{title}</AlertDialogTitle>}
+               {title && (
+                  <AlertDialogTitle className='text-primary text-base sm:text-lg md:text-xl'>{title}</AlertDialogTitle>
+               )}
                {description && (
                   <AlertDialogDescription>
                      {description || "Are you sure you want to proceed with this action?"}
@@ -68,7 +71,11 @@ const Modal = ({
                   {isLoading ? (
                      <ModalSkeleton />
                   ) : (
-                     children && <div className={cn("my-4", contentClassName)}>{children}</div>
+                     children && (
+                        <div className={cn("my-4", contentClassName)}>
+                           <ScrollArea className=' max-h-[90vh]'>{children}</ScrollArea>
+                        </div>
+                     )
                   )}
                </Suspense>
             )}
