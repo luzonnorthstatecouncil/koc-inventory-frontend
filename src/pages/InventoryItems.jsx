@@ -20,8 +20,38 @@ import ITooltip from "@/components/custom/Tooltip";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import VariantsAccordion from "@/components/custom/VariantsAccordion";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: INVENTORY_ITEMS.title }];
+
+const CATEGORY_COLORS = [
+   "bg-violet-100 text-violet-700 border-violet-200",
+   "bg-blue-100 text-blue-700 border-blue-200",
+   "bg-emerald-100 text-emerald-700 border-emerald-200",
+   "bg-amber-100 text-amber-700 border-amber-200",
+   "bg-rose-100 text-rose-700 border-rose-200",
+   "bg-cyan-100 text-cyan-700 border-cyan-200",
+   "bg-orange-100 text-orange-700 border-orange-200",
+];
+
+function categoryColor(name = "") {
+   let hash = 0;
+   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+   return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length];
+}
+
+function StockBar({ value, reorder, safe, max }) {
+   const ceiling = Math.max(max || 0, value || 0, 1);
+   const pct = Math.min(((value || 0) / ceiling) * 100, 100);
+   const barColor =
+      value <= reorder ? "bg-red-500" : value >= safe ? "bg-emerald-500" : "bg-orange-400";
+   return (
+      <div className='w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden'>
+         <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
+      </div>
+   );
+}
 
 const columns = [
    {
@@ -29,58 +59,76 @@ const columns = [
       title: "Product",
       cellClassName: "font-medium",
       render: (value, item) => (
-         <div className='flex flex-col'>
-            <span>{item.name}</span>
-            <span className='text-xs text-muted-foreground'>{value}</span>
+         <div className='flex flex-col gap-0.5'>
+            <span className='font-semibold text-foreground'>{item.name}</span>
+            <span className='text-sm text-muted-foreground font-mono tracking-wide'>{value}</span>
          </div>
       ),
    },
    {
       key: "category_name",
       title: "Category",
-      width: "170px",
+      width: "160px",
       render: (value) => (
-         <Badge variant='outline' className='text-gray-400'>
+         <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border", categoryColor(value || ""))}>
+            <span className='size-1.5 rounded-full bg-current opacity-60 flex-shrink-0' />
             {value || "Uncategorized"}
-         </Badge>
+         </span>
       ),
    },
    {
       key: "current_qty",
       title: "Current Stock",
-      width: "150px",
+      width: "170px",
       render: (value, item) => {
-         const variant = value <= item.reorder_level ? "danger" : value >= item.safe_qty_level ? "success" : "default";
+         const isLow = value <= item.reorder_level;
+         const isGood = value >= item.safe_qty_level;
          return (
-            <span className='mb-0.5 flex items-center gap-2'>
-               {value} unit{value > 1 ? "s" : ""}
-               {item.has_expiry && item.has_expired_stock && (
-                  <ITooltip label='Has Expired Stock'>
-                     <AlertCircle className='text-destructive size-4' />
-                  </ITooltip>
-               )}
-            </span>
+            <div className='flex flex-col gap-1'>
+               <div className='flex items-center gap-1.5'>
+                  <span className={cn("text-sm font-bold tabular-nums", isLow ? "text-red-600" : isGood ? "text-emerald-600" : "text-orange-500")}>
+                     {value}
+                  </span>
+                  <span className='text-xs text-muted-foreground'>unit{value !== 1 ? "s" : ""}</span>
+                  {item.has_expiry && item.has_expired_stock && (
+                     <ITooltip label='Has Expired Stock'>
+                        <AlertCircle className='text-destructive size-3.5' />
+                     </ITooltip>
+                  )}
+               </div>
+               <StockBar value={value} reorder={item.reorder_level} safe={item.safe_qty_level} max={item.max_qty_level} />
+            </div>
          );
       },
    },
    {
       key: "price",
-      width: "120px",
+      width: "130px",
       title: "Unit Price",
-      render: (value) => `PHP ${parseFloat(value).toFixed(2)}`,
+      render: (value) => (
+         <span className='font-semibold text-foreground tabular-nums'>
+            PHP {parseFloat(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+         </span>
+      ),
    },
    {
       key: "status",
       title: "Status",
-      width: "120px",
-      render: (value, item) => (
-         <Badge
-            className='capitalize'
-            variant={value === "active" ? "success" : value === "out of stock" ? "destructive" : "secondary"}
-         >
-            {value}
-         </Badge>
-      ),
+      width: "130px",
+      render: (value) => {
+         const cfg =
+            value === "active"
+               ? { label: "Active", className: "bg-emerald-50 text-emerald-700 border-emerald-200 border", dot: "bg-emerald-500" }
+               : value === "out of stock"
+               ? { label: "Out of Stock", className: "bg-red-50 text-red-700 border-red-200 border", dot: "bg-red-500" }
+               : { label: value, className: "bg-gray-100 text-gray-600 border-gray-200 border", dot: "bg-gray-400" };
+         return (
+            <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full capitalize", cfg.className)}>
+               <span className={cn("size-1.5 rounded-full flex-shrink-0 animate-pulse", cfg.dot)} />
+               {cfg.label}
+            </span>
+         );
+      },
    },
 ];
 
@@ -229,6 +277,7 @@ export default function InventoryItems() {
       <PageLayout
          breadcrumbItems={breadcrumbItems}
          pageTitle={`Inventory ${INVENTORY_ITEMS.title}`}
+         pageDescription='Manage your inventory items. View details, adjust stock levels, and keep track of orders all in one place.'
          route={INVENTORY_ITEMS}
       >
          <main className='p-1 sm:p-2 w-full'>

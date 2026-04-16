@@ -1,59 +1,82 @@
-import { ShoppingCart } from "lucide-react";
-import { Separator } from "../ui/separator";
+import { CheckCircle2, ShoppingCart } from "lucide-react";
 import IButton from "./Button";
-import ICard from "./Card";
-import Paragraph from "./Paragraph";
-import Title from "./Title";
 import { useMemo } from "react";
 import { priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 
-export default function PointOfSaleItem(props) {
-   const stockLevel = useMemo(() => {
-      return props.current_qty < props.reorder_level
-         ? "!text-red-500"
-         : props.current_qty > props.safe_qty_level
-           ? "!text-green-500"
-           : "!text-gray-500";
-   }, [props.current_qty, props.reorder_level, props.safe_qty_level]);
+function StockPill({ current, reorder, safe }) {
+   const { label, bar, text, bg } = useMemo(() => {
+      if (current <= 0) return { label: "Out of stock", bar: "bg-gray-300", text: "text-gray-500", bg: "bg-gray-50" };
+      if (current < reorder) return { label: "Critical", bar: "bg-red-500", text: "text-red-600", bg: "bg-red-50" };
+      if (current < safe) return { label: "Low", bar: "bg-orange-400", text: "text-orange-600", bg: "bg-orange-50" };
+      return { label: "In stock", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" };
+   }, [current, reorder, safe]);
 
    return (
-      <ICard
-         cardClassName={cn(
-            "transition-colors duration-300 group bg-card w-full md:w-55 lg:w-57 h-36 sm:h-40 p-2 sm:p-3 border-outline",
-            props.included ? "border-l-3 border-l-emphasis bg-white!" : "hover:ring-2 ring-primary/30",
-         )}
-         cardContentClassName='flex flex-col h-full p-0'
-      >
-         <main className='flex items-start gap-2 mb-2 sm:mb-3'>
-            <label className='w-full h-full flex flex-col justify-start items-start'>
-               <Title
-                  size='sm'
-                  className='select-none mb-0.5 sm:mb-1 leading-4 sm:leading-5 line-clamp-2 sm:line-clamp-3'
-               >
-                  {props.name}
-               </Title>
-               <Paragraph className='text-gray-600 !font-medium text-xs sm:text-sm'>{props.sku}</Paragraph>
-            </label>
-         </main>
-         <section className='mt-auto flex items-center justify-between w-full pt-2'>
-            <span>
-               <Title size='xs' className='sm:text-sm'>
-                  {priceParser(props.price)}
-               </Title>
-               <Paragraph className={`font-medium text-xs sm:text-sm ${stockLevel}`}>
-                  Stocks: {props.current_qty}
-               </Paragraph>
-            </span>
-            <IButton
-               variant='default'
-               className='flex items-center gap-1 sm:gap-2 text-xs border border-outline px-2 sm:px-3'
-               onClick={props.onClick}
-            >
-               <ShoppingCart className='size-3 sm:size-3.5' /> <span className='hidden sm:inline'>Add to Cart</span>
-               <span className='sm:hidden'>Add</span>
-            </IButton>
-         </section>
-      </ICard>
+      <span className={cn("inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full", bg, text)}>
+         <span className={cn("size-1.5 rounded-full flex-shrink-0", bar)} />
+         {current} · {label}
+      </span>
    );
 }
+
+export default function PointOfSaleItem(props) {
+   const outOfStock = props.current_qty <= 0;
+
+   return (
+      <button
+         onClick={!outOfStock ? props.onClick : undefined}
+         disabled={outOfStock}
+         className={cn(
+            "group relative w-full md:w-55 lg:w-57 text-left rounded-xl border bg-white transition-all duration-200 overflow-hidden",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+            props.included
+               ? "border-primary ring-2 ring-primary/30 shadow-md"
+               : outOfStock
+               ? "opacity-50 cursor-not-allowed border-gray-200"
+               : "hover:shadow-md hover:border-primary/40 border-gray-200 cursor-pointer",
+         )}
+      >
+         <div className='p-3'>
+            {/* In-cart badge */}
+            {props.included && (
+               <div className='absolute top-2 right-2'>
+                  <CheckCircle2 className='size-4 text-primary fill-primary/10' />
+               </div>
+            )}
+
+            {/* Name & SKU */}
+            <p className='text-sm font-bold text-foreground leading-snug line-clamp-2 pr-5 mb-1'>{props.name}</p>
+            {props.sku && (
+               <p className='text-xs text-muted-foreground font-mono tracking-wide mb-2'>{props.sku}</p>
+            )}
+
+            {/* Price */}
+            <p className={cn("text-lg font-extrabold tabular-nums leading-none mb-3", props.included ? "text-primary" : "text-foreground")}>
+               {priceParser(props.price)}
+            </p>
+
+            {/* Footer: stock pill + add button */}
+            <div className='flex items-center justify-between gap-2'>
+               <StockPill
+                  current={props.current_qty}
+                  reorder={props.reorder_level}
+                  safe={props.safe_qty_level}
+               />
+               <div
+                  className={cn(
+                     "flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition-colors",
+                     props.included
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-gray-100 text-gray-600 group-hover:bg-primary group-hover:text-primary-foreground",
+                  )}
+               >
+                  <ShoppingCart className='size-3' />
+                  {props.included ? "Added" : "Add"}
+               </div>
+            </div>
+         </div>
+      </button>
+   );
+}
+

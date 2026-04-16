@@ -1,22 +1,14 @@
-import Details from "@/components/custom/Details";
 import Each from "@/components/custom/Each";
 import Modal from "@/components/custom/Modal";
-import Paragraph from "@/components/custom/Paragraph";
-import Title from "@/components/custom/Title";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { dateParser, padwithZero } from "@/helpers/parser";
+import { padwithZero, priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
-import { Barcode } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
+import { AlertTriangle, RefreshCcw } from "lucide-react";
+import { useSelector } from "react-redux";
 import OrderItem from "./ui/OrderItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCallback, useState } from "react";
 import ISelect from "@/components/custom/Select";
 import { REFUND_REASONS_OPTIONS } from "@/constants/options";
-import { setOrderRefundDetails, setOrderRefundReason } from "@/features/slice/orderSlice";
 import ITextarea from "@/components/custom/Textarea";
-import { toast } from "sonner";
 import Form from "@/components/custom/Form";
 import { refundOrderDefaultValues, refundOrderSchema } from "@/lib/zod/schema/refundOrder";
 import { useWatch } from "react-hook-form";
@@ -24,7 +16,6 @@ import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import IButton from "@/components/custom/Button";
 
 export default function RefundOrder({ isOpen, onClose, onConfirm }) {
-   const dispatch = useDispatch();
    const { selectedOrder } = useSelector((state) => state.order);
 
    return (
@@ -36,41 +27,48 @@ export default function RefundOrder({ isOpen, onClose, onConfirm }) {
          secondaryAction={null}
          primaryAction={null}
          title={`Refund Order #${padwithZero(selectedOrder?.id)}`}
-         description={<Paragraph>Reference Number: {selectedOrder?.order_number}</Paragraph>}
       >
-         <Paragraph className='bg-red-100 text-secondary border border-secondary p-3 rounded-md text-sm'>
-            Refunding this order will create a refund record and update the order status accordingly. This will also
-            automatically adjust the inventory stocks for the refunded items and void the payment associated with this
-            order.
-         </Paragraph>
+         {/* Ref number banner */}
+         <div className='flex items-center gap-2 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 mb-4'>
+            <RefreshCcw className='size-3.5 text-primary flex-shrink-0' />
+            <span className='font-mono text-xs font-semibold text-primary tracking-wider'>{selectedOrder?.order_number}</span>
+         </div>
 
-         <Separator className='my-3' />
+         {/* Warning alert */}
+         <div className='flex gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mb-4'>
+            <AlertTriangle className='size-4 text-red-500 flex-shrink-0 mt-0.5' />
+            <p className='text-xs text-red-700 leading-relaxed'>
+               Refunding this order will create a refund record and update the order status accordingly. This will also
+               automatically adjust the inventory stocks for the refunded items and void the payment associated with this
+               order.
+            </p>
+         </div>
 
-         <ScrollArea className='space-y-1 pb-2 h-30'>
-            <Paragraph>Items</Paragraph>
-            <Each
-               of={selectedOrder?.items}
-               render={(item) => (
-                  <OrderItem
-                     key={item.id}
-                     name={`${item.product.inventory.name} - ${item.product.variant_name}`}
-                     quantity={item.quantity !== 0 ? item.quantity : null}
-                     price={item.product.inventory.price}
-                  />
-               )}
-            />
+         {/* Items */}
+         <p className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>Items</p>
+         <ScrollArea className='h-32 mb-3'>
+            <div className='rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-0.5'>
+               <Each
+                  of={selectedOrder?.items}
+                  render={(item) => (
+                     <OrderItem
+                        key={item.id}
+                        name={`${item.product.inventory.name} - ${item.product.variant_name}`}
+                        quantity={item.quantity !== 0 ? item.quantity : null}
+                        price={item.product.inventory.price}
+                     />
+                  )}
+               />
+            </div>
          </ScrollArea>
 
-         <section className='p-3 rounded-lg bg-gray-200 space-y-0.5 mt-3'>
-            <article className='flex items-center justify-between gap-3'>
-               <Paragraph size='sm' className='text-black'>
-                  Amount to Refund
-               </Paragraph>
-               <Title className={Number(selectedOrder?.order_total) <= 0 ? "!text-destructive" : "!text-black"}>
-                  PHP {selectedOrder?.order_total}
-               </Title>
-            </article>
-         </section>
+         {/* Total refund amount */}
+         <div className='rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-3 mb-4'>
+            <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wide'>Amount to Refund</p>
+            <p className={cn("text-xl font-extrabold tabular-nums", Number(selectedOrder?.order_total) <= 0 ? "text-destructive" : "text-foreground")}>
+               {priceParser(selectedOrder?.order_total)}
+            </p>
+         </div>
 
          <Form
             className='flex flex-col'
@@ -88,7 +86,6 @@ export default function RefundOrder({ isOpen, onClose, onConfirm }) {
                   <>
                      <ISelect
                         showAll={false}
-                        className='mt-4'
                         name='reason'
                         label='Why are you refunding this order?'
                         placeholder='Select a reason'
@@ -124,3 +121,4 @@ export default function RefundOrder({ isOpen, onClose, onConfirm }) {
       </Modal>
    );
 }
+

@@ -191,7 +191,7 @@ export function AppSidebar({ user }) {
                Sign Out
             </IButtonConfirm>
             <SidebarMenu>
-               <p className='text-gray-400 text-[10px] sm:text-xs'>Version {import.meta.env.VITE_APP_VERSION}</p>
+               <p className='text-gray-400 text-xs sm:text-xs'>Version {import.meta.env.VITE_APP_VERSION}</p>
             </SidebarMenu>
          </SidebarFooter>
       </Sidebar>

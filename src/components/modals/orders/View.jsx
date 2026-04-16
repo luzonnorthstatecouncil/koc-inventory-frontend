@@ -1,18 +1,20 @@
-import Details from "@/components/custom/Details";
 import Each from "@/components/custom/Each";
 import Modal from "@/components/custom/Modal";
-import Paragraph from "@/components/custom/Paragraph";
-import Title from "@/components/custom/Title";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { dateParser, padwithZero } from "@/helpers/parser";
+import { dateParser, padwithZero, priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
-import { Barcode } from "lucide-react";
+import { Banknote, Barcode, CalendarDays, CreditCard, RefreshCcw, ShoppingBag } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import OrderItem from "./ui/OrderItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { setSelectedOrder } from "@/features/slice/orderSlice";
 import { useState } from "react";
+
+const PAYMENT_METHOD_ICONS = {
+   cash: Banknote,
+   card: CreditCard,
+   gcash: ShoppingBag,
+};
 
 export default function ViewOrder({ isOpen, onClose }) {
    const dispatch = useDispatch();
@@ -31,6 +33,8 @@ export default function ViewOrder({ isOpen, onClose }) {
 
    const refundedOrder = selectedOrder.refundedOrder;
    const isOrderRefunded = Boolean(refundedOrder);
+   const isCompleted = selectedOrder?.payments?.status === "Completed";
+   const PayIcon = PAYMENT_METHOD_ICONS[selectedOrder?.payments?.payment_method?.toLowerCase()] ?? CreditCard;
 
    return (
       <Modal
@@ -40,57 +44,50 @@ export default function ViewOrder({ isOpen, onClose }) {
          isLoading={!selectedOrder}
          secondaryAction={
             isOrderRefunded
-               ? {
-                    label: "Close",
-                    onCancel: () => {
-                       setTempOrder(null);
-                       onClose();
-                    },
-                 }
+               ? { label: "Close", onCancel: () => { setTempOrder(null); onClose(); } }
                : null
          }
          primaryAction={
             isOrderRefunded
-               ? {
-                    label: "View Original Order",
-                    autoClose: false,
-                    onConfirm: onViewRefundedOrder,
-                 }
+               ? { label: "View Original Order", autoClose: false, onConfirm: onViewRefundedOrder }
                : tempOrder
-                 ? {
-                      label: "View Refund Order",
-                      autoClose: false,
-                      onConfirm: onViewRefundOrder,
-                   }
-                 : {
-                      label: "Close",
-                      onConfirm: onClose,
-                   }
+                 ? { label: "View Refund Order", autoClose: false, onConfirm: onViewRefundOrder }
+                 : { label: "Close", onConfirm: onClose }
          }
          title={`Order #${padwithZero(selectedOrder?.id)}`}
-         description={<Paragraph>Date Ordered: {dateParser(selectedOrder?.created_at)}</Paragraph>}
       >
          <ScrollArea className='max-h-120'>
-            <Details
-               label='Order Number'
-               labelClassName='text-white'
-               className='mb-2 bg-primary rounded-md py-2 px-3'
-               description={
-                  <span className='flex items-center justify-between gap-1 font-medium font-mono text-lg'>
-                     <span className='flex items-center gap-1 text-primary-foreground!'>
-                        <Barcode className='size-5' /> {selectedOrder?.order_number}
-                     </span>
-                     {Boolean(selectedOrder.is_refund) && <Badge variant='warning'>Refunded Order</Badge>}
+            {/* Order ref banner */}
+            <div className='flex items-center justify-between gap-3 bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 mb-4'>
+               <div className='flex items-center gap-2 min-w-0'>
+                  <Barcode className='size-4 text-primary flex-shrink-0' />
+                  <span className='font-mono font-bold text-sm text-foreground tracking-wider truncate'>
+                     {selectedOrder?.order_number}
                   </span>
-               }
-            />
+               </div>
+               <div className='flex items-center gap-2 flex-shrink-0'>
+                  <CalendarDays className='size-3.5 text-muted-foreground' />
+                  <span className='text-xs text-muted-foreground'>{dateParser(selectedOrder?.created_at)}</span>
+               </div>
+            </div>
 
-            {selectedOrder?.refund_reason && (
-               <Details label='Refund Reason' description={selectedOrder?.refund_reason} />
+            {/* Refund badge */}
+            {Boolean(selectedOrder?.is_refund) && (
+               <div className='flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 mb-3 text-xs font-semibold'>
+                  <RefreshCcw className='size-3.5' /> Refunded Order
+               </div>
             )}
 
-            <section className='space-y-1 py-2'>
-               <Paragraph>Items</Paragraph>
+            {selectedOrder?.refund_reason && (
+               <div className='bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4'>
+                  <p className='text-sm font-semibold text-red-500 uppercase tracking-wide mb-0.5'>Refund Reason</p>
+                  <p className='text-xs text-red-700'>{selectedOrder?.refund_reason}</p>
+               </div>
+            )}
+
+            {/* Items */}
+            <p className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>Items</p>
+            <div className='space-y-1 rounded-xl border border-gray-100 bg-gray-50/50 p-3 mb-3'>
                <Each
                   of={selectedOrder?.items}
                   render={(item) => (
@@ -102,44 +99,36 @@ export default function ViewOrder({ isOpen, onClose }) {
                      />
                   )}
                />
+            </div>
 
-               <Separator className='mt-2 mb-3' />
-
-               <OrderItem
-                  name='Transaction Ref'
-                  parsePrice={false}
-                  price={selectedOrder?.payments.transaction_reference}
-                  nameClassName='font-normal'
-               />
-               <OrderItem
-                  name='Amount Tendered'
-                  price={selectedOrder?.payments.amount_tendered}
-                  nameClassName='font-normal'
-               />
-               <OrderItem name='Subtotal' price={selectedOrder.subtotal} nameClassName='font-normal' />
+            {/* Payment breakdown */}
+            <p className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>Payment Breakdown</p>
+            <div className='rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-1.5 mb-4'>
+               <OrderItem name='Transaction Ref' parsePrice={false} price={selectedOrder?.payments.transaction_reference} nameClassName='font-normal' />
+               <OrderItem name='Amount Tendered' price={selectedOrder?.payments.amount_tendered} nameClassName='font-normal' />
+               <OrderItem name='Subtotal' price={selectedOrder?.subtotal} nameClassName='font-normal' />
                <OrderItem name='Change' price={selectedOrder?.payments.change_given} nameClassName='font-normal' />
-            </section>
+            </div>
 
-            <section className='p-3 rounded-lg bg-gray-200 mt-4 space-y-0.5'>
-               <article className='flex items-center justify-between gap-3'>
-                  <Badge
-                     className={cn(
-                        "flex items-center gap-1",
-                        selectedOrder?.payments.status === "Completed"
-                           ? "text-green-600 border-green-600 font-semibold"
-                           : "text-yellow-600 border-yellow-600",
-                     )}
-                     variant='outline'
-                  >
-                     {selectedOrder?.payments.status} via
-                     <span className='capitalize'>{selectedOrder?.payments.payment_method}</span>
-                  </Badge>
-                  <Title className={Number(selectedOrder?.order_total) <= 0 ? "!text-destructive" : "!text-black"}>
-                     PHP {selectedOrder?.order_total}
-                  </Title>
-               </article>
-            </section>
+            {/* Total footer */}
+            <div className='rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-3'>
+               <div className='flex items-center gap-2'>
+                  <div className={cn("p-1.5 rounded-lg", isCompleted ? "bg-emerald-50" : "bg-amber-50")}>
+                     <PayIcon className={cn("size-3.5", isCompleted ? "text-emerald-600" : "text-amber-600")} />
+                  </div>
+                  <div>
+                     <p className='text-xs font-semibold text-foreground capitalize'>{selectedOrder?.payments.payment_method}</p>
+                     <p className={cn("text-xs font-semibold", isCompleted ? "text-emerald-600" : "text-amber-600")}>
+                        {selectedOrder?.payments.status}
+                     </p>
+                  </div>
+               </div>
+               <p className={cn("text-xl font-extrabold tabular-nums", Number(selectedOrder?.order_total) <= 0 ? "text-destructive" : "text-foreground")}>
+                  {priceParser(selectedOrder?.order_total)}
+               </p>
+            </div>
          </ScrollArea>
       </Modal>
    );
 }
+

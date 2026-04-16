@@ -13,20 +13,9 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { cn } from "@/lib/utils";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { isPast } from "date-fns";
-import {
-   Minus,
-   Package2,
-   Plus,
-   ShieldCheck,
-   Trash,
-   Trash2,
-   TrendingDown,
-   TrendingUp,
-   TrendingUpDown,
-   TriangleAlert,
-} from "lucide-react";
+import { Package2, Trash2, TrendingDown, TrendingUp, TrendingUpDown, TriangleAlert } from "lucide-react";
 import { useCallback, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 
 const batchColumns = [
@@ -90,31 +79,29 @@ const movementColumns = [
    },
    {
       key: "quantity",
-      title: "Quantity",
-      cellClassName: "text-xs",
-      render: (value, item) => (
-         <Paragraph
-            size='sm'
-            className={cn(
-               "font-semibold flex items-center gap-1",
-               item?.type === "in"
-                  ? "!text-green-600"
-                  : item?.type === "out"
-                    ? "!text-destructive"
-                    : "!text-orange-500",
-            )}
-         >
-            {item?.type === "in" ? (
-               <TrendingUp className='size-4' />
-            ) : item?.type === "out" ? (
-               <TrendingDown className='size-4' />
-            ) : (
-               <TrendingUpDown className='size-4' />
-            )}
-
-            {value}
-         </Paragraph>
-      ),
+      title: "Qty",
+      width: "80px",
+      render: (value, item) => {
+         const isIn = item?.type === "in";
+         const isOut = item?.type === "out";
+         const Icon = isIn ? TrendingUp : isOut ? TrendingDown : TrendingUpDown;
+         const style = isIn
+            ? "bg-emerald-50 text-emerald-700"
+            : isOut
+              ? "bg-red-50 text-red-600"
+              : "bg-amber-50 text-amber-600";
+         return (
+            <span
+               className={cn(
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums",
+                  style,
+               )}
+            >
+               <Icon className='size-3' />
+               {value}
+            </span>
+         );
+      },
    },
    {
       key: "created_at",
@@ -189,15 +176,39 @@ export default function ViewStocks({ item }) {
 
    return (
       <ScrollArea className='w-full flex flex-col relative max-h-130'>
-         <Title className='flex items-center gap-2' size='2xl' variant={stockLevel.variant}>
-            {stockLevel.icon} {stockLevel.label}
-         </Title>
+         {/* Stock level banner */}
+         <div
+            className={cn(
+               "flex items-center gap-2 rounded-xl border px-3 py-2 mb-3",
+               stockLevel.variant === "danger"
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700",
+            )}
+         >
+            <span
+               className={cn(
+                  "size-2 rounded-full flex-shrink-0",
+                  stockLevel.variant === "danger" ? "bg-red-500" : "bg-emerald-500 animate-pulse",
+               )}
+            />
+            <span className='text-xs font-bold'>{stockLevel.label}</span>
+         </div>
 
-         <section className='grid grid-cols-3 gap-3 mt-3'>
-            <Details label='Current Stocks' description={item?.current_qty || "0"} />
-            <Details label='Lowest Reorder Level' description={lowestReorderLevel} />
-            <Details label='Highest Max Stock Level' description={highestMaxStockLevel} />
-         </section>
+         {/* Stats grid */}
+         <div className='grid grid-cols-3 gap-px bg-gray-100 border border-gray-100 rounded-xl overflow-hidden mb-3'>
+            {[
+               { label: "Current Stocks", value: item?.current_qty || 0, valueClass: "text-primary" },
+               { label: "Min Reorder Lvl", value: lowestReorderLevel, valueClass: "text-amber-600" },
+               { label: "Max Stock Lvl", value: highestMaxStockLevel, valueClass: "text-blue-600" },
+            ].map(({ label, value, valueClass }) => (
+               <div key={label} className='bg-white px-3 py-2.5'>
+                  <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-0.5'>
+                     {label}
+                  </p>
+                  <p className={cn("text-xl font-extrabold tabular-nums", valueClass)}>{value}</p>
+               </div>
+            ))}
+         </div>
 
          {item.stocks.length > 0 && (
             <>

@@ -1,6 +1,18 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, INVENTORY, INVENTORY_STOCKS } from "@/constants/routes";
-import { ArrowRight, EditIcon, EyeIcon, History, Shovel, Trash2, TrashIcon, TriangleAlert, Upload } from "lucide-react";
+import {
+   ArrowRight,
+   CalendarClock,
+   EditIcon,
+   EyeIcon,
+   History,
+   Package,
+   Shovel,
+   Trash2,
+   TrashIcon,
+   TriangleAlert,
+   Upload,
+} from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
 import { Badge } from "@/components/ui/badge";
 import { useFlushExpiredStocksMutation, useGetInventoryStockListQuery } from "@/features/api/inventory";
@@ -14,7 +26,7 @@ import {
    setOpenBulkCreateModal,
 } from "@/features/slice/inventoryStockSlice";
 import { useCallback, useMemo } from "react";
-import { isPast } from "date-fns";
+import { isPast, differenceInDays } from "date-fns";
 import { dateParser, padwithZero } from "@/helpers/parser";
 import ITooltip from "@/components/custom/Tooltip";
 import { cn } from "@/lib/utils";
@@ -31,77 +43,164 @@ const columns = [
    {
       key: "id",
       title: "ID",
-      render: (value) => padwithZero(value, 3),
+      render: (value) => (
+         <span className='font-mono text-xs font-bold text-muted-foreground tracking-wider'>
+            #{padwithZero(value, 3)}
+         </span>
+      ),
    },
    {
       key: "inventory.sku",
       width: "35%",
       title: "Product",
       cellClassName: "font-medium",
-      render: (value, item) => (
-         <div className='flex flex-col'>
-            <span className='flex items-center gap-1'>
-               {item.inventory?.name} - {item.variant?.variant_name}{" "}
-               {item?.archived_at && <Trash2 className='text-muted-foreground size-4' />}
-            </span>
-            <span className='text-xs text-muted-foreground'>{value}</span>
-         </div>
-      ),
+      render: (value, item) => {
+         const initials = (item.inventory?.name || "?")
+            .split(" ")
+            .slice(0, 2)
+            .map((w) => w[0])
+            .join("")
+            .toUpperCase();
+
+         return (
+            <div className='flex items-center gap-3'>
+               <div className='flex gap-0.5 min-w-0'>
+                  {/* Name + archived badge */}
+                  <div className='flex flex-col items-center flex-wrap'>
+                     <span className='font-semibold text-sm text-foreground leading-snug'>{item.inventory?.name}</span>
+                     {item?.archived_at && (
+                        <span className='inline-flex items-center gap-1 text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full'>
+                           <Trash2 className='size-2.5' /> Archived
+                        </span>
+                     )}
+                     <span className='text-sm text-muted-foreground font-mono tracking-wide'>{value}</span>
+                  </div>
+
+                  {/* SKU + variant on the same row */}
+                  <div className='flex items-center gap-1.5 flex-wrap'>
+                     {item.variant?.variant_name && (
+                        <>
+                           <span className='text-muted-foreground/40 text-xs'>·</span>
+                           <span className='text-sm font-semibold bg-violet-50 text-violet-600 border border-violet-200 px-1.5 py-0.5 rounded-md'>
+                              {item.variant.variant_name}
+                           </span>
+                        </>
+                     )}
+                  </div>
+               </div>
+            </div>
+         );
+      },
    },
    {
       key: "reference_no",
-      title: "Reference Number",
-      width: "170px",
+      title: "Reference No.",
+      width: "160px",
       render: (value) => (
-         <Badge variant='outline' className='font-mono'>
+         <span className='inline-flex items-center gap-1.5 font-mono text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700 px-2.5 py-1 rounded-lg tracking-wider'>
             {value}
-         </Badge>
+         </span>
       ),
    },
    {
       key: "batch_quantity",
-      title: "Batch Quantity",
-      width: "150px",
-      render: (value, item) => (
-         <div className='py-1'>
-            <span className='font-semibold'>
-               {value} {item.inventory?.unit}
-            </span>
-            <div className='grid grid-cols-3 w-15 items-center justify-center font-semibold text-xs'>
-               <span className='text-gray-400 line-through'>{item.inventory_current}</span>
-               <ArrowRight className='size-3' />
-               <span className='text-green-600'>{value + item.inventory_current}</span>
+      title: "Batch Qty",
+      width: "160px",
+      render: (value, item) => {
+         const before = item.inventory_current ?? 0;
+         const after = value + before;
+         return (
+            <div className='flex flex-col gap-1'>
+               <span className='inline-flex items-center gap-1 text-sm font-bold tabular-nums px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 w-fit'>
+                  +{value} <span className='text-xs font-normal text-emerald-500'>{item.inventory?.unit}</span>
+               </span>
+               <div className='flex items-center gap-1 text-sm'>
+                  <span className='text-muted-foreground tabular-nums line-through'>{before}</span>
+                  <ArrowRight className='size-2.5 text-muted-foreground' />
+                  <span className='font-bold text-emerald-600 tabular-nums'>{after}</span>
+               </div>
             </div>
+         );
+      },
+   },
+   {
+      key: "current_quantity",
+      title: "Current Qty",
+      width: "120px",
+      render: (value, item) => {
+         const isEmpty = value <= 0;
+         const isLow = value > 0 && value <= 5;
+         return (
+            <span
+               className={cn(
+                  "inline-flex items-center gap-1 text-sm font-bold tabular-nums px-2 py-0.5 rounded-md w-fit",
+                  isEmpty
+                     ? "bg-red-50 text-red-600"
+                     : isLow
+                       ? "bg-orange-50 text-orange-600"
+                       : "bg-blue-50 text-blue-700",
+               )}
+            >
+               {value}
+               <span
+                  className={cn(
+                     "text-xs font-normal",
+                     isEmpty ? "text-red-400" : isLow ? "text-orange-400" : "text-blue-400",
+                  )}
+               >
+                  {item.inventory?.unit}
+               </span>
+            </span>
+         );
+      },
+   },
+   {
+      key: "received_at",
+      title: "Received",
+      width: "140px",
+      render: (value) => (
+         <div className='flex flex-col gap-0.5'>
+            <span className='text-xs font-semibold text-foreground'>{dateParser(value, "PP")}</span>
          </div>
       ),
    },
    {
-      key: "current_quantity",
-      title: "Current Quantity",
-      render: (value, item) => `${value} ${item.inventory?.unit}`,
-   },
-   {
-      key: "received_at",
-      title: "Received Date",
-      width: "200px",
-      render: (value) => dateParser(value, "PP"),
-   },
-   {
       key: "expires_at",
-      title: "Expiration Date",
-      width: "150px",
+      title: "Expiration",
+      width: "160px",
       render: (value, item) => {
-         const isExpired =
-            item.expires_at && isPast(item.expires_at) && !item.archived_at && Boolean(item.inventory.has_expiry);
+         const hasExpiry = Boolean(item.inventory?.has_expiry);
+         const isExpired = hasExpiry && value && isPast(value) && !item.archived_at;
+         const daysLeft = hasExpiry && value && !isExpired ? differenceInDays(new Date(value), new Date()) : null;
+         const isExpiringSoon = daysLeft !== null && daysLeft <= 30;
+
+         if (!hasExpiry || !value) {
+            return <span className='text-xs text-muted-foreground'>No expiry</span>;
+         }
 
          return (
-            <div className='flex items-center gap-2'>
-               <ITooltip label={isExpired ? "Expired" : ""}>
-                  <span className={cn(isExpired && "text-destructive font-semibold", "flex items-center gap-1")}>
-                     {dateParser(value, "PP")}
-                     {isExpired && <TriangleAlert className='size-4 text-destructive' />}
+            <div className='flex flex-col gap-1'>
+               <span
+                  className={cn(
+                     "text-xs font-semibold",
+                     isExpired ? "text-red-600" : isExpiringSoon ? "text-orange-500" : "text-foreground",
+                  )}
+               >
+                  {dateParser(value, "PP")}
+               </span>
+               {isExpired ? (
+                  <span className='inline-flex items-center gap-1 text-xs font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full w-fit'>
+                     <TriangleAlert className='size-2.5' /> Expired
                   </span>
-               </ITooltip>
+               ) : isExpiringSoon ? (
+                  <span className='inline-flex items-center gap-1 text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full w-fit'>
+                     <CalendarClock className='size-2.5' /> {daysLeft}d left
+                  </span>
+               ) : (
+                  <span className='inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full w-fit'>
+                     <CalendarClock className='size-2.5' /> {daysLeft}d left
+                  </span>
+               )}
             </div>
          );
       },
@@ -236,6 +335,7 @@ export default function InventoryStocks() {
       <PageLayout
          breadcrumbItems={breadcrumbItems}
          pageTitle={`Inventory ${INVENTORY_STOCKS.title}`}
+         pageDescription='Manage the stock levels of your inventory items. View details, adjust quantities, and keep track of expiration dates all in one place.'
          route={INVENTORY_STOCKS}
       >
          <main className='p-1 sm:p-2 w-full'>

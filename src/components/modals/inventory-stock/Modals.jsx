@@ -3,7 +3,15 @@ import Modal from "@/components/custom/Modal";
 import Create from "./Create";
 import BulkCreate from "./BulkCreate";
 import BulkImportFailures from "./BulkImportFailures";
-import { setOpenCreateModal, setOpenEditModal, setOpenViewModal, setOpenAdjustExpiryModal, setOpenBulkCreateModal, setOpenBulkImportFailuresModal, setBulkImportFailures } from "@/features/slice/inventoryStockSlice";
+import {
+   setOpenCreateModal,
+   setOpenEditModal,
+   setOpenViewModal,
+   setOpenAdjustExpiryModal,
+   setOpenBulkCreateModal,
+   setOpenBulkImportFailuresModal,
+   setBulkImportFailures,
+} from "@/features/slice/inventoryStockSlice";
 import { useGetInventoryAsOptionsQuery, useGetInventoryStockByIdQuery } from "@/features/api/inventory";
 import View from "./View";
 import Edit from "./Edit";
@@ -12,9 +20,16 @@ import UserStockRequests from "./UserStockRequests";
 import { setOpenUserStockRequestsModal, setSelectedUserId, setSelectedUserName } from "@/features/slice/inventorySlice";
 
 export default function InventoryStockModals() {
-   const { openViewModal, openCreateModal, openEditModal, openAdjustExpiryModal, openBulkCreateModal, openBulkImportFailuresModal, bulkImportFailures, selectedStock } = useSelector(
-      (state) => state.inventoryStock,
-   );
+   const {
+      openViewModal,
+      openCreateModal,
+      openEditModal,
+      openAdjustExpiryModal,
+      openBulkCreateModal,
+      openBulkImportFailuresModal,
+      bulkImportFailures,
+      selectedStock,
+   } = useSelector((state) => state.inventoryStock);
 
    const { openUserStockRequestsModal, selectedUserId, selectedUserName } = useSelector((state) => state.inventory);
 
@@ -173,7 +188,7 @@ export default function InventoryStockModals() {
             <Modal
                isOpen={openUserStockRequestsModal}
                onClose={handleUserRequestsClose}
-               title={`Stock Requests`}
+               title='Stock Requests'
                description='View all stock requests made by this user'
                size='4xl'
                contentClassName='my-0'

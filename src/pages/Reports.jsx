@@ -1,8 +1,6 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, REPORTS } from "@/constants/routes";
-import { Download, FileText } from "lucide-react";
-import Title from "@/components/custom/Title";
-import Paragraph from "@/components/custom/Paragraph";
+import { BarChart3, Download, FileText } from "lucide-react";
 import IButton from "@/components/custom/Button";
 import ITabs from "@/components/custom/Tabs";
 import StatCard from "@/components/custom/StatCard";
@@ -10,8 +8,6 @@ import ReorderReportTab from "@/components/custom/reports/ReorderReportTab";
 import VelocityReportTab from "@/components/custom/reports/VelocityReportTab";
 import { useState } from "react";
 import { useGetInventoryStatusReportQuery, useGetReportDashboardStatusQuery } from "@/features/api/inventory";
-import ISelect from "@/components/custom/Select";
-import { REPORTS_DATE_RANGE_OPTIONS } from "@/constants/options";
 import { useReportSummary } from "@/hooks/useReportSummary";
 import { exportToCSV, getInventoryStatusColumns } from "@/helpers/exportReports";
 import { toast } from "sonner";
@@ -22,28 +18,15 @@ export default function Reports() {
    const [dateRange, setDateRange] = useState("7");
 
    const { data: inventoryData } = useGetInventoryStatusReportQuery(
-      {
-         page: 1,
-         pageSize: 1000,
-         show_low_stock: true,
-      },
-      {
-         refetchOnMountOrArgChange: true,
-      },
+      { page: 1, pageSize: 1000, show_low_stock: true },
+      { refetchOnMountOrArgChange: true },
    );
 
    const { data: dashboardData } = useGetReportDashboardStatusQuery(
-      {
-         page: 1,
-         pageSize: 1000,
-         show_low_stock: true,
-      },
-      {
-         refetchOnMountOrArgChange: true,
-      },
+      { page: 1, pageSize: 1000, show_low_stock: true },
+      { refetchOnMountOrArgChange: true },
    );
 
-   const { outOfStock, stockHealthScore, totalInventoryItems, totalInventoryValue } = dashboardData || {};
    const { summaryCards } = useReportSummary(dashboardData);
 
    const handleExport = () => {
@@ -54,36 +37,44 @@ export default function Reports() {
 
       const columns = getInventoryStatusColumns();
       const filename = `inventory-summary-report-${new Date().toISOString().split("T")[0]}.xlsx`;
-      const title = "Inventory Summary Report";
-
       exportToCSV(inventoryData, columns, filename);
-
-      toast.success(`${title} exported successfully`);
+      toast.success("Inventory Summary Report exported successfully");
    };
 
    return (
       <PageLayout breadcrumbItems={breadcrumbItems} route={REPORTS}>
-         <div className='space-y-4 sm:space-y-6 w-full'>
-            <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4'>
-               <div>
-                  <Title className='text-xl sm:text-2xl'>Inventory Reports & Analytics</Title>
-                  <Paragraph className='text-muted-foreground text-sm sm:text-base'>
-                     Answer in 10 seconds: What's low? What's not moving? How much money is on shelves?
-                  </Paragraph>
+         <div className='space-y-5 w-full'>
+            {/* Page header */}
+            <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-primary/5 via-primary/[0.03] to-transparent border border-primary/10 rounded-2xl px-5 py-4'>
+               <div className='flex items-center gap-3'>
+                  <div className='p-2.5 bg-primary/10 rounded-xl flex-shrink-0'>
+                     <BarChart3 className='size-5 text-primary' />
+                  </div>
+                  <div>
+                     <h2 className='text-base font-bold text-foreground leading-tight'>Inventory Reports & Analytics</h2>
+                     <p className='text-xs text-muted-foreground mt-0.5'>
+                        Answer in 10 seconds: What's low? What's not moving? How much money is on shelves?
+                     </p>
+                  </div>
                </div>
-               <IButton variant='outline' icon={Download} onClick={handleExport} className='text-xs sm:text-sm'>
-                  <FileText className='size-4' /> <span className='hidden sm:inline'>Export Summary Report</span><span className='sm:hidden'>Export</span>
+               <IButton variant='outline' onClick={handleExport} className='text-xs sm:text-sm flex-shrink-0'>
+                  <FileText className='size-4' />
+                  <span className='hidden sm:inline'>Export Summary Report</span>
+                  <span className='sm:hidden'>Export</span>
                </IButton>
             </div>
 
+            {/* Stat cards */}
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                {summaryCards.map((card, index) => (
                   <StatCard key={index} {...card} />
                ))}
             </div>
 
+            {/* Report tabs */}
             <ITabs
                defaultValue='reorder'
+               tabListClassName='h-12 p-1.5'
                items={[
                   {
                      value: "reorder",

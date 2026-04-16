@@ -1,45 +1,45 @@
-import ICard from "./Card";
-import Paragraph from "./Paragraph";
-import Title from "./Title";
 import { cn } from "@/lib/utils";
+import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 
 const StatCard = ({ title, subtitle, value, change, icon: Icon, trend, color, bgColor, priority, onClick }) => {
-   const cardTitle = (
-      <div className='flex flex-row items-center justify-between w-full'>
-         <div className='flex'>
-            <span className='text-xs sm:text-sm font-medium'>{title}</span>
-         </div>
-         <div className={cn("rounded-lg", bgColor)}>
-            <Icon className={cn("size-4 sm:size-5", color)} />
-         </div>
-      </div>
-   );
+   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+   const trendStyle =
+      trend === "up"
+         ? "text-emerald-600 bg-emerald-50"
+         : trend === "down"
+           ? "text-red-600 bg-red-50"
+           : "text-amber-600 bg-amber-50";
 
    return (
-      <ICard
-         title={cardTitle}
-         description={subtitle}
-         onClick={onClick}
-         cardClassName={cn(
-            "hover:shadow-lg transition-all p-3 sm:p-4 gap-2 md:gap-6",
+      <div
+         className={cn(
+            "bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-3 hover:shadow-md transition-all",
             onClick && "cursor-pointer",
-            priority === "critical" && "border-2 border-orange-500 shadow-md",
+            priority === "critical" && "border-2 border-orange-400 shadow-md",
          )}
-         cardContentClassName='p-0'
-         cardHeaderClassName='gap-0 p-0'
-         cardTitleClassName='text-xs sm:text-sm font-medium'
+         onClick={onClick}
       >
-         <div>
-            <Title className='text-2xl! md:text-2xl font-bold'>{value}</Title>
-            <Paragraph
-               variant={trend === "up" ? "success" : trend === "down" ? "danger" : "warning"}
-               className='text-xs font-medium'
-            >
-               {change}
-            </Paragraph>
+         <div className='flex items-start justify-between gap-2'>
+            <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-snug'>{title}</p>
+            <div className={cn("p-2 rounded-lg flex-shrink-0", bgColor)}>
+               <Icon className={cn("size-4", color)} />
+            </div>
          </div>
-      </ICard>
+
+         <div>
+            <p className='text-2xl font-extrabold text-foreground tabular-nums leading-none'>{value}</p>
+            {subtitle && <p className='text-xs text-muted-foreground mt-1'>{subtitle}</p>}
+         </div>
+
+         {change && (
+            <div className={cn("inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-full text-xs font-semibold", trendStyle)}>
+               <TrendIcon className='size-3' />
+               {change}
+            </div>
+         )}
+      </div>
    );
 };
 
 export default StatCard;
+

@@ -12,8 +12,9 @@ import PageTransition from "@/components/custom/PageTransition";
 import LoadingState from "@/components/custom/LoadingState";
 import EmptyLayout from "./EmptyLayout";
 import { useLocation } from "react-router-dom";
+import Paragraph from "@/components/custom/Paragraph";
 
-export default function PageLayout({ children, pageTitle, breadcrumbItems, route }) {
+export default function PageLayout({ children, pageTitle, pageDescription, route }) {
    const user = useUser();
    const location = useLocation();
    const isSales = location.pathname?.includes("/sales");
@@ -38,9 +39,11 @@ export default function PageLayout({ children, pageTitle, breadcrumbItems, route
             </header>
 
             {/* {breadcrumbItems && <IBreadcrumb items={breadcrumbItems} />} */}
-            {pageTitle && <h1 className='text-base md:text-3xl font-bold sm:mb-2 md:mb-0'>{pageTitle}</h1>}
+            {pageTitle && <Title className='text-base md:text-3xl font-bold sm:mb-2 md:mb-0'>{pageTitle}</Title>}
 
-            <PageTransition className={!isSales && "lg:mt-4 lg:px-24"}>
+            {pageDescription && <Paragraph className='text-sm md:text-base! text-muted-foreground mb-2'>{pageDescription}</Paragraph>}
+
+            <PageTransition>
                {!user?.role ? (
                   <LoadingState />
                ) : route?.roles && !route?.roles.includes(user?.role) && user ? (

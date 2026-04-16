@@ -95,7 +95,7 @@ export default function RejectStockApproval({ isOpen, onClose, onSubmit }) {
 
                      <div className='flex items-center gap-3 px-4 py-2.5'>
                         <Avatar className='size-5 shrink-0'>
-                           <AvatarFallback className='bg-primary/10 text-[10px] font-semibold text-primary'>
+                           <AvatarFallback className='bg-primary/10 text-xs font-semibold text-primary'>
                               {initials || <User className='size-3' />}
                            </AvatarFallback>
                         </Avatar>

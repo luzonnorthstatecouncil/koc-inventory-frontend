@@ -108,7 +108,7 @@ export default function Account() {
             {/* ── Profile Hero ── */}
             <div className='rounded-xl border border-outline bg-white shadow-sm overflow-hidden mb-6'>
                {/* Gradient banner */}
-               <div className='h-20 bg-gradient-to-br from-primary to-primary/70' />
+               <div className='h-15 bg-gradient-to-br from-primary to-primary/70' />
 
                {/* Avatar + name row */}
                <div className='px-6 pb-4 -mt-10 flex flex-col sm:flex-row sm:items-end gap-3 pt-6'>

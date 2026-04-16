@@ -1,8 +1,7 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, USER_MANAGEMENT } from "@/constants/routes";
-import { EditIcon, EyeIcon, Lock, Plus, TrashIcon, User2, Warehouse } from "lucide-react";
+import { EditIcon, EyeIcon, Lock, TrashIcon } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
-import { Badge } from "@/components/ui/badge";
 import { useDeleteUserMutation, useGetUserListQuery, useResetPasswordMutation } from "@/features/api/users";
 import ViewUser from "@/components/modals/user/View";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,49 +18,81 @@ import { useConfirmation } from "@/helpers/confirmAction";
 import { toast } from "sonner";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import CreateUser from "@/components/modals/user/Create";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Paragraph from "@/components/custom/Paragraph";
 import UserCredentialsModal from "@/components/modals/user/UserCredentialsModal";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: USER_MANAGEMENT.title }];
+
+const ROLE_STYLES = {
+   admin: "bg-primary/10 text-primary",
+   cashier: "bg-violet-50 text-violet-700",
+   staff: "bg-blue-50 text-blue-700",
+};
+
+function avatarColor(name = "") {
+   const palette = [
+      "bg-rose-100 text-rose-700",
+      "bg-orange-100 text-orange-700",
+      "bg-amber-100 text-amber-700",
+      "bg-emerald-100 text-emerald-700",
+      "bg-cyan-100 text-cyan-700",
+      "bg-blue-100 text-blue-700",
+      "bg-violet-100 text-violet-700",
+      "bg-pink-100 text-pink-700",
+   ];
+   let hash = 0;
+   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+   return palette[Math.abs(hash) % palette.length];
+}
 
 const columns = [
    {
       key: "full_name",
       title: "User",
-      render: (value, item) => (
-         <div className='flex items-center gap-3'>
-            <Avatar>
-               <AvatarImage src={null} />
-               <AvatarFallback>
-                  {value?.charAt(0).toUpperCase()}
-                  {value?.split(" ")[1]?.charAt(0).toUpperCase()}
-               </AvatarFallback>
-            </Avatar>
-            <div>
-               <p>{value}</p>
-               <Paragraph>{item.user?.email}</Paragraph>
+      render: (value, item) => {
+         const initials = `${value?.charAt(0) ?? ""}${value?.split(" ")[1]?.charAt(0) ?? ""}`.toUpperCase();
+         return (
+            <div className='flex items-center gap-3'>
+               <div
+                  className={`flex-shrink-0 size-9 rounded-full flex items-center justify-center text-xs font-bold ${avatarColor(value)}`}
+               >
+                  {initials}
+               </div>
+               <div className='min-w-0'>
+                  <p className='font-semibold text-sm text-foreground leading-tight truncate'>{value}</p>
+                  <p className='text-sm text-muted-foreground truncate'>{item.user?.email}</p>
+               </div>
             </div>
-         </div>
-      ),
+         );
+      },
    },
    {
       key: "role",
       title: "Role",
-      render: (value) => (
-         <Badge variant='outline' className='capitalize'>
-            {value}
-         </Badge>
-      ),
+      render: (value) => {
+         const style = ROLE_STYLES[value?.toLowerCase()] ?? "bg-gray-100 text-gray-600";
+         return (
+            <span
+               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${style}`}
+            >
+               {value}
+            </span>
+         );
+      },
    },
    {
       key: "status",
       title: "Status",
-      render: (value) => (
-         <Badge variant={value === "active" ? "success" : "secondary"}>
-            {value === "active" ? "Active" : "Inactive"}
-         </Badge>
-      ),
+      render: (value) => {
+         const isActive = value === "active";
+         return (
+            <span
+               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}
+            >
+               <span className={`size-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-gray-400"}`} />
+               {isActive ? "Active" : "Inactive"}
+            </span>
+         );
+      },
    },
 ];
 
@@ -191,7 +222,12 @@ export default function UserManagement() {
    ];
 
    return (
-      <PageLayout breadcrumbItems={breadcrumbItems} pageTitle={USER_MANAGEMENT.title} route={USER_MANAGEMENT}>
+      <PageLayout
+         breadcrumbItems={breadcrumbItems}
+         pageTitle={USER_MANAGEMENT.title}
+         pageDescription='Manage users and their permissions within the inventory system. Create new accounts, edit existing ones, and reset passwords as needed to ensure smooth operations.'
+         route={USER_MANAGEMENT}
+      >
          <main className='p-1 sm:p-2 w-full'>
             <DataTable
                query={{

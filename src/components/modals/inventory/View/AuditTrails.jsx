@@ -1,32 +1,21 @@
-import Paragraph from "@/components/custom/Paragraph";
 import Pagination from "@/components/custom/Pagination";
+import Paragraph from "@/components/custom/Paragraph";
 import Title from "@/components/custom/Title";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetInventoryAuditTrailsQuery } from "@/features/api/inventory";
 import { dateParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
-import { User } from "lucide-react";
+import { ClipboardList, User } from "lucide-react";
 import { useState } from "react";
 
 const CHANGE_TYPE_CONFIG = {
-   variant_added: { label: "Variant Added", variant: "success" },
-   variant_deleted: { label: "Variant Deleted", variant: "destructive" },
-   variant_updated: { label: "Variant Updated", variant: "warning" },
-   inventory_updated: { label: "Item Updated", variant: "default" },
-   inventory_created: { label: "Item Created", variant: "success" },
-   inventory_deleted: { label: "Item Deleted", variant: "destructive" },
-};
-
-const CHANGE_TYPE_BORDER = {
-   variant_added: "border-l-green-500",
-   variant_deleted: "border-l-destructive",
-   variant_updated: "border-l-yellow-500",
-   inventory_updated: "border-l-primary",
-   inventory_created: "border-l-green-500",
-   inventory_deleted: "border-l-destructive",
+   variant_added:      { label: "Variant Added",   pill: "bg-emerald-50 text-emerald-700",  dot: "bg-emerald-500",  border: "border-l-emerald-400" },
+   variant_deleted:    { label: "Variant Deleted", pill: "bg-red-50 text-red-600",          dot: "bg-red-500",      border: "border-l-red-400" },
+   variant_updated:    { label: "Variant Updated", pill: "bg-amber-50 text-amber-700",      dot: "bg-amber-400",    border: "border-l-amber-400" },
+   inventory_updated:  { label: "Item Updated",    pill: "bg-blue-50 text-blue-700",        dot: "bg-blue-500",     border: "border-l-blue-400" },
+   inventory_created:  { label: "Item Created",    pill: "bg-emerald-50 text-emerald-700",  dot: "bg-emerald-500",  border: "border-l-emerald-400" },
+   inventory_deleted:  { label: "Item Deleted",    pill: "bg-red-50 text-red-600",          dot: "bg-red-500",      border: "border-l-red-400" },
 };
 
 function formatValue(value) {
@@ -126,27 +115,30 @@ function ChangeDiff({ changedFields: rawChangedFields, oldValues: rawOldValues, 
 }
 
 function AuditTrailEntry({ entry }) {
-   const config = CHANGE_TYPE_CONFIG[entry.change_type] ?? { label: entry.change_type, variant: "secondary" };
-   const borderColor = CHANGE_TYPE_BORDER[entry.change_type] ?? "border-l-muted";
+   const config = CHANGE_TYPE_CONFIG[entry.change_type] ?? {
+      label: entry.change_type,
+      pill: "bg-gray-100 text-gray-600",
+      dot: "bg-gray-400",
+      border: "border-l-gray-300",
+   };
 
    return (
-      <div className={cn("border-l-2 pl-4 py-1", borderColor)}>
+      <div className={cn("border-l-2 pl-4 py-1.5", config.border)}>
          <div className='flex flex-wrap items-center gap-2'>
-            <Badge variant={config.variant}>{config.label}</Badge>
-            <Paragraph size='sm' variant='default' className='font-semibold'>
-               {entry.subject_name}
-            </Paragraph>
-            <Paragraph size='xs' className='ml-auto shrink-0'>
-               {dateParser(entry.changed_at, "PPp")}
-            </Paragraph>
+            <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm font-semibold", config.pill)}>
+               <span className={cn("size-1.5 rounded-full", config.dot)} />
+               {config.label}
+            </span>
+            <span className='text-sm font-semibold text-foreground'>{entry.subject_name}</span>
+            <span className='text-xs text-muted-foreground ml-auto shrink-0'>{dateParser(entry.changed_at, "PPp")}</span>
          </div>
 
          <div className='flex items-center gap-1 mt-1'>
             <User className='size-3 text-muted-foreground' />
-            <Paragraph size='xs'>
+            <span className='text-xs text-foreground'>
                {entry.changed_by?.full_name}
                <span className='ml-1 text-muted-foreground'>({entry.changed_by?.email})</span>
-            </Paragraph>
+            </span>
          </div>
 
          {config.label !== "Variant Deleted" && config.label !== "Variant Added" && (
@@ -193,20 +185,21 @@ export default function ViewAuditTrails({ item }) {
 
    return (
       <div className='w-full flex flex-col gap-3'>
-         <div>
-            <Title>Audit Trails</Title>
-            <Paragraph className='w-3/4'>
-               View all recorded changes made to this inventory item and its variants.
-            </Paragraph>
+         <div className='flex items-center gap-2'>
+            <div className='p-1.5 bg-primary/10 rounded-lg'>
+               <ClipboardList className='size-4 text-primary' />
+            </div>
+            <div>
+               <Title className='text-base font-bold text-foreground leading-tight'>Audit Trails</Title>
+               <Paragraph size='sm' className='text-muted-foreground'>Recorded changes to this item and its variants.</Paragraph>
+            </div>
          </div>
-
-         <Separator />
 
          <ScrollArea className='h-[340px] pr-2'>
             {isLoading || isFetching ? (
                <AuditTrailSkeleton />
             ) : trails.length === 0 ? (
-               <Paragraph className='py-4 text-center'>No audit trail records found.</Paragraph>
+               <Paragraph size="sm" className='py-4 text-center'>No audit trail records found.</Paragraph>
             ) : (
                <div className='space-y-4'>
                   {trails.map((entry) => (

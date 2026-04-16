@@ -1,15 +1,23 @@
 import PageLayout from "@/layout/PageLayout";
-import { AUDIT_LOGS, HOME, ORDERS } from "@/constants/routes";
-import { ArrowRight, Dot, EyeIcon, Printer, ReceiptText, TriangleAlert } from "lucide-react";
+import { HOME, ORDERS } from "@/constants/routes";
+import {
+   CheckCircle2,
+   CreditCard,
+   EyeIcon,
+   Package,
+   Printer,
+   ReceiptText,
+   RefreshCcw,
+   ShoppingBag,
+   ShoppingCart,
+   TrendingDown,
+   TrendingUp,
+   TriangleAlert,
+   Wallet,
+} from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
-import { Badge } from "@/components/ui/badge";
-import { isPast } from "date-fns";
 import { dateParser, padwithZero, priceParser } from "@/helpers/parser";
-import ITooltip from "@/components/custom/Tooltip";
 import { cn } from "@/lib/utils";
-import { useGetLogsQuery } from "@/features/api/activityLog";
-import Paragraph from "@/components/custom/Paragraph";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
    useGetAllOrdersQuery,
    useGetOrderStatisticsQuery,
@@ -18,7 +26,7 @@ import {
 } from "@/features/api/order";
 import { useCallback, useMemo } from "react";
 import ILineChart from "@/components/custom/LineChart";
-import { Separator } from "@radix-ui/react-dropdown-menu";
+
 import ViewOrder from "@/components/modals/orders/View";
 import { useDispatch, useSelector } from "react-redux";
 import { setOpenRefundModal, setOpenViewModal, setSelectedOrder } from "@/features/slice/orderSlice";
@@ -31,44 +39,174 @@ import { printInvoice } from "@/helpers/printInvoice";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: ORDERS.title }];
 
+function computeStats(data = []) {
+   const total = data.reduce((sum, d) => sum + (d.total || 0), 0);
+   // ignore trailing zero weeks (future incomplete weeks)
+   const filled = data.filter((d) => (d.total || 0) > 0);
+   const last = filled.at(-1)?.total ?? 0;
+   const prev = filled.at(-2)?.total ?? 0;
+   // prev=0 but last>0 means first activity this period → treat as "new"
+   const trend = prev === 0 ? (last > 0 ? 100 : null) : Number((((last - prev) / prev) * 100).toFixed(1));
+   return { total, trend };
+}
+
+const STAT_CONFIGS = [
+   {
+      key: "totalOrders",
+      title: "Total Orders",
+      icon: ShoppingCart,
+      chartColor: "var(--chart-6)",
+      accent: "bg-blue-600",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+   },
+   {
+      key: "totalCompleted",
+      title: "Completed",
+      icon: CheckCircle2,
+      chartColor: "var(--chart-1)",
+      accent: "bg-emerald-500",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
+   },
+   {
+      key: "totalRefunded",
+      title: "Refunded",
+      icon: RefreshCcw,
+      chartColor: "var(--chart-2)",
+      accent: "bg-rose-500",
+      iconBg: "bg-rose-50",
+      iconColor: "text-rose-600",
+   },
+   {
+      key: "totalItemsOrdered",
+      title: "Items Ordered",
+      icon: Package,
+      chartColor: "var(--chart-4)",
+      accent: "bg-violet-500",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
+   },
+];
+
+function OrderStatCard({ data = [], title, icon: Icon, chartColor, accent, iconBg, iconColor }) {
+   const { total, trend } = computeStats(data);
+
+   return (
+      <div className='relative rounded-xl overflow-hidden border bg-white hover:shadow-md transition-all duration-200'>
+         <div className={cn("h-1 w-full", accent)} />
+         <div className='p-4'>
+            <div className='flex items-start justify-between mb-2'>
+               <div>
+                  <p className='text-sm font-semibold text-muted-foreground tracking-widest uppercase'>{title}</p>
+                  <p className='text-3xl font-bold tabular-nums mt-1 text-foreground leading-none'>
+                     {total.toLocaleString()}
+                  </p>
+               </div>
+               <div className={cn("p-2 rounded-lg", iconBg)}>
+                  <Icon className={cn("size-4", iconColor)} />
+               </div>
+            </div>
+
+            {trend !== null ? (
+               <div
+                  className={cn(
+                     "inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mb-3",
+                     trend >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-600",
+                  )}
+               >
+                  {trend >= 0 ? <TrendingUp className='size-3' /> : <TrendingDown className='size-3' />}
+                  {`${trend >= 0 ? "+" : ""}${trend}% vs last week`}
+               </div>
+            ) : (
+               <div className='h-6 mb-3' />
+            )}
+
+            <ILineChart
+               data={data}
+               mode='linear'
+               xAxisKey='week'
+               wrapperClassName='!p-0 !border-0 !shadow-none bg-transparent'
+               chartClassName='h-16 w-full'
+               config={{ total: { label: "Total", color: chartColor } }}
+            />
+         </div>
+      </div>
+   );
+}
+
+const PAYMENT_METHOD_ICONS = {
+   cash: Wallet,
+   card: CreditCard,
+   gcash: ShoppingBag,
+};
+
 const columns = [
    {
       key: "id",
-      title: "Order Number",
-      render: (value) => `#${padwithZero(value)}`,
-   },
-   {
-      key: "order_number",
-      title: "Order Ref No.",
+      title: "Order",
+      width: "130px",
+      render: (value, item) => (
+         <div className='flex flex-col'>
+            <span className='font-mono text-sm font-bold text-foreground tracking-wider'>#{padwithZero(value)}</span>
+            <span className='text-sm text-muted-foreground font-mono'>{item.order_number}</span>
+         </div>
+      ),
    },
    {
       key: "payments.payment_method",
-      title: "Payment Method",
+      title: "Payment",
+      width: "190px",
       render: (value, item) => {
-         const isCompleted = item?.payments.status === "Completed";
-         const badgeColor = isCompleted ? "text-green-600 border-green-600" : "text-yellow-600 border-yellow-600";
+         const isCompleted = item?.payments?.status === "Completed";
+         const PayIcon = PAYMENT_METHOD_ICONS[value?.toLowerCase()] ?? CreditCard;
          return (
-            <Badge variant='outline' className={cn("font-semibold", badgeColor)}>
-               {item?.payments.status} via <span className='capitalize'>{value}</span>
-            </Badge>
+            <div className='flex flex-col gap-1'>
+               <div className='flex items-center gap-1.5'>
+                  <span className='inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700 px-2 py-0.5 rounded-lg capitalize'>
+                     <PayIcon className='size-3 text-gray-500' />
+                     {value}
+                  </span>
+               </div>
+               <span className={cn(
+                  "inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full w-fit",
+                  isCompleted
+                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                     : "bg-amber-50 text-amber-700 border border-amber-200"
+               )}>
+                  <span className={cn("size-1.5 rounded-full", isCompleted ? "bg-emerald-500" : "bg-amber-400 animate-pulse")} />
+                  {item?.payments?.status}
+               </span>
+            </div>
          );
       },
    },
    {
       key: "order_total",
       title: "Total",
-      render: (value) => priceParser(value),
+      width: "130px",
+      render: (value) => (
+         <span className='font-bold text-sm tabular-nums text-foreground'>{priceParser(value)}</span>
+      ),
    },
    {
       key: "items",
       title: "Items",
-      render: (value) => `${value.length} item${value.length > 1 ? "s" : ""}`,
+      width: "95px",
+      render: (value) => (
+         <span className='inline-flex items-center gap-1 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full'>
+            <Package className='size-3' />
+            {value.length}
+         </span>
+      ),
    },
    {
       key: "created_at",
-      width: "170px",
+      width: "150px",
       title: "Date Checkout",
-      render: (value) => dateParser(value),
+      render: (value) => (
+         <span className='text-sm font-semibold text-foreground'>{dateParser(value)}</span>
+      ),
    },
 ];
 
@@ -223,68 +361,16 @@ export default function Orders() {
    );
 
    return (
-      <PageLayout breadcrumbItems={breadcrumbItems} pageTitle={ORDERS.title} route={ORDERS}>
+      <PageLayout
+         breadcrumbItems={breadcrumbItems}
+         pageTitle={ORDERS.title}
+         pageDescription='Manage your orders. View details, process refunds, and keep track of your order history all in one place.'
+         route={ORDERS}
+      >
          <header className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full mt-2 sm:mt-4'>
-            <ILineChart
-               data={orderStatistics?.totalOrders || []}
-               mode='linear'
-               title='Total Orders'
-               xAxisKey='week'
-               description='Per week this month'
-               wrapperClassName='bg-white'
-               chartClassName='h-20 w-full'
-               config={{
-                  total: {
-                     label: "Total",
-                     color: "var(--chart-6)",
-                  },
-               }}
-            />
-            <ILineChart
-               data={orderStatistics?.totalCompleted || []}
-               mode='linear'
-               title='Total Completed'
-               xAxisKey='week'
-               description='Per week this month'
-               wrapperClassName='bg-white'
-               chartClassName='h-20 w-full'
-               config={{
-                  total: {
-                     label: "Total",
-                     color: "var(--chart-6)",
-                  },
-               }}
-            />
-            <ILineChart
-               data={orderStatistics?.totalRefunded || []}
-               mode='linear'
-               title='Total Refunded'
-               xAxisKey='week'
-               description='Per week this month'
-               wrapperClassName='bg-white'
-               chartClassName='h-20 w-full'
-               config={{
-                  total: {
-                     label: "Total",
-                     color: "var(--chart-6)",
-                  },
-               }}
-            />
-            <ILineChart
-               data={orderStatistics?.totalItemsOrdered || []}
-               mode='linear'
-               title='Total Items Ordered'
-               xAxisKey='week'
-               description='Per week this month'
-               wrapperClassName='bg-white'
-               chartClassName='h-20 w-full'
-               config={{
-                  total: {
-                     label: "Total",
-                     color: "var(--chart-6)",
-                  },
-               }}
-            />
+            {STAT_CONFIGS.map((cfg) => (
+               <OrderStatCard key={cfg.key} data={orderStatistics?.[cfg.key] || []} {...cfg} />
+            ))}
          </header>
 
          <DataTable

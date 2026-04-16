@@ -1,8 +1,8 @@
-import { SquareMinus, SquarePlus, Trash2Icon, X } from "lucide-react";
-import Title from "./Title";
-import Paragraph from "./Paragraph";
+import { Box, Minus, Plus, Trash2Icon } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { removeFromCart, updateCart } from "@/features/slice/cartSlice";
+import { priceParser } from "@/helpers/parser";
+import { cn } from "@/lib/utils";
 
 export default function CartItem({ item }) {
    const dispatch = useDispatch();
@@ -12,54 +12,66 @@ export default function CartItem({ item }) {
          dispatch(removeFromCart(item.id));
          return;
       }
-
       dispatch(
          updateCart({
             id: item.id,
-            data: {
-               ...item,
-               quantity: isRemove ? item.quantity - 1 : item.quantity + 1,
-            },
+            data: { ...item, quantity: isRemove ? item.quantity - 1 : item.quantity + 1 },
          }),
       );
    };
 
    const handleRemove = () => dispatch(removeFromCart(item.id));
+   const lineTotal = priceParser(item.price * item.quantity);
 
    return (
-      <div className='relative flex items-center justify-between select-none w-full group rounded p-2 sm:p-3 bg-white border border-outline overflow-hidden border-l-2 sm:border-l-3 border-l-emphasis'>
-         <div className='flex flex-col w-1/2'>
-            <Title size='xs' className='sm:text-sm text-black select-none leading-4 sm:leading-5 font-bold'>
-               {item.name}
-            </Title>
-            <Title size='xs' className='sm:text-sm font-normal text-black mt-0.5 sm:mt-1 select-none'>
-               x{item.quantity}
-            </Title>
+      <div className='group relative select-none w-full rounded-xl bg-white border border-gray-200 hover:border-emphasis/50 hover:shadow-sm transition-all duration-200 overflow-hidden'>
+         {/* Colored left tag */}
+         <div className='absolute left-0 top-0 h-full w-1 bg-emphasis rounded-l-xl' />
+
+         <div className='pl-4 pr-3 py-2.5 flex items-center gap-3'>
+            {/* Name + unit price */}
+            <div className='flex-1 min-w-0'>
+               <p className='text-base font-bold text-foreground leading-snug line-clamp-2'>{item.name}</p>
+               <p className='text-sm text-muted-foreground mt-0.5'>{priceParser(item.price)} each</p>
+            </div>
+
+            {/* Line total */}
+            <p className='flex-shrink-0 text-base font-bold text-emphasis tabular-nums'>{lineTotal}</p>
          </div>
 
-         <Title
-            size='xs'
-            className='sm:text-sm text-black select-none font-bold ml-auto mr-2 absolute end-2 translate-y-0 group-hover:-translate-y-100 transition-all'
-         >
-            PHP {item.price}
-         </Title>
+         {/* Controls row */}
+         <div className='flex items-center justify-between px-4 pb-2.5 gap-2'>
+            <div className='flex items-center gap-1'>
+               <button
+                  onClick={() => handleQuantity(true)}
+                  className={cn(
+                     "size-6 rounded-md flex items-center justify-center transition-colors",
+                     item.quantity === 1
+                        ? "bg-red-100 hover:bg-red-200 text-red-500"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-600",
+                  )}
+               >
+                  {item.quantity === 1 ? <Trash2Icon className='size-3' /> : <Minus className='size-3' />}
+               </button>
 
-         <div className='flex items-center gap-0.5 sm:gap-1 translate-y-100 group-hover:translate-y-0 transition-all'>
-            <SquareMinus
-               onClick={() => handleQuantity(true)}
-               className='size-4 sm:size-4.5 text-black cursor-pointer hover:text-orange-500'
-               strokeWidth={1.5}
-            />
-            <SquarePlus
-               onClick={() => handleQuantity(false)}
-               className='size-4 sm:size-4.5 text-black cursor-pointer hover:text-green-500'
-               strokeWidth={1.5}
-            />
-            <Trash2Icon
+               <span className='text-sm font-bold text-foreground tabular-nums w-5 text-center'>
+                  {item.quantity}
+               </span>
+
+               <button
+                  onClick={() => handleQuantity(false)}
+                  className='size-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors'
+               >
+                  <Plus className='size-3' />
+               </button>
+            </div>
+
+            <button
                onClick={handleRemove}
-               className='size-4 sm:size-4.5 text-black cursor-pointer hover:text-red-500'
-               strokeWidth={1.5}
-            />
+               className='text-xs text-muted-foreground hover:text-red-500 transition-colors font-medium'
+            >
+               Remove
+            </button>
          </div>
       </div>
    );

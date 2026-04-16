@@ -284,6 +284,10 @@ export default function POS() {
       <PageLayout breadcrumbItems={breadcrumbItems} route={POINT_OF_SALE}>
          <main className='flex flex-col lg:flex-row items-start gap-3 w-full h-full relative'>
             <section className='w-full h-full lg:py-6'>
+               <Title className='text-lg md:text-4xl'>Sales</Title>
+               <Paragraph className='text-sm md:text-base text-muted-foreground mb-4'>
+                  Quickly process sales and manage your cart.
+               </Paragraph>
                <header className='flex flex-col lg:flex-row items-start lg:items-center gap-2 mb-4'>
                   <Form
                      onSubmit={onSubmit}
@@ -372,7 +376,7 @@ export default function POS() {
                </header>
 
                {cart.length > 0 ? (
-                  <ScrollArea className='max-h-60 sm:max-h-80 lg:max-h-100 mb-2'>
+                  <ScrollArea className='max-h-60 md:max-h-2/3 lg:max-h-[calc(100vh-26rem)] mb-2'>
                      <div className='space-y-2'>
                         <Each of={cart} render={(item) => <CartItem key={item.id} item={item} />} />
                      </div>
@@ -384,7 +388,7 @@ export default function POS() {
                )}
 
                <ICard
-                  cardClassName='mt-auto bg-primary shadow-md py-2 sm:py-3'
+                  cardClassName='mt-auto bg-primary shadow-md py-2 sm:py-3 h-75'
                   cardContentClassName='flex flex-col gap-1 h-full px-2 sm:px-3'
                >
                   <section className='space-y-1 sm:space-y-2 mb-4 sm:mb-7'>
