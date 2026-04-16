@@ -45,7 +45,7 @@ function StockBar({ value, reorder, safe, max }) {
    const ceiling = Math.max(max || 0, value || 0, 1);
    const pct = Math.min(((value || 0) / ceiling) * 100, 100);
    const barColor =
-      value <= reorder ? "bg-red-500" : value >= safe ? "bg-emerald-500" : "bg-orange-400";
+      value <= reorder ? "bg-red-500" : value >= safe ? "bg-emerald-500" : "bg-primary";
    return (
       <div className='w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden'>
          <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
@@ -86,7 +86,7 @@ const columns = [
          return (
             <div className='flex flex-col gap-1'>
                <div className='flex items-center gap-1.5'>
-                  <span className={cn("text-sm font-bold tabular-nums", isLow ? "text-red-600" : isGood ? "text-emerald-600" : "text-orange-500")}>
+                  <span className={cn("text-sm font-bold tabular-nums", isLow ? "text-red-600" : isGood ? "text-emerald-600" : "text-primary")}>
                      {value}
                   </span>
                   <span className='text-xs text-muted-foreground'>unit{value !== 1 ? "s" : ""}</span>
