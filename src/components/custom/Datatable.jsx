@@ -546,7 +546,7 @@ const DataTable = ({
                            key={column.key || column.title}
                            className={cn(
                               column.headerClassName,
-                              "bg-gray-100 text-black",
+                              "bg-primary text-white px-4",
                               !actions.length && index === columnsWithActions.length - 1 && "text-end",
                            )}
                            style={{ width: column.width }}

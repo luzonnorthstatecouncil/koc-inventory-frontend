@@ -25,21 +25,15 @@ export default function CartItem({ item }) {
 
    return (
       <div className='group relative select-none w-full rounded-xl bg-white border border-gray-200 hover:border-emphasis/50 hover:shadow-sm transition-all duration-200 overflow-hidden'>
-         {/* Colored left tag */}
-         <div className='absolute left-0 top-0 h-full w-1 bg-emphasis rounded-l-xl' />
-
          <div className='pl-4 pr-3 py-2.5 flex items-center gap-3'>
-            {/* Name + unit price */}
             <div className='flex-1 min-w-0'>
                <p className='text-base font-bold text-foreground leading-snug line-clamp-2'>{item.name}</p>
                <p className='text-sm text-muted-foreground mt-0.5'>{priceParser(item.price)} each</p>
             </div>
 
-            {/* Line total */}
             <p className='flex-shrink-0 text-base font-bold text-emphasis tabular-nums'>{lineTotal}</p>
          </div>
 
-         {/* Controls row */}
          <div className='flex items-center justify-between px-4 pb-2.5 gap-2'>
             <div className='flex items-center gap-1'>
                <button
@@ -54,9 +48,7 @@ export default function CartItem({ item }) {
                   {item.quantity === 1 ? <Trash2Icon className='size-3' /> : <Minus className='size-3' />}
                </button>
 
-               <span className='text-sm font-bold text-foreground tabular-nums w-5 text-center'>
-                  {item.quantity}
-               </span>
+               <span className='text-sm font-bold text-foreground tabular-nums w-5 text-center'>{item.quantity}</span>
 
                <button
                   onClick={() => handleQuantity(false)}

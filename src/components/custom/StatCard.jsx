@@ -27,7 +27,7 @@ const StatCard = ({ title, subtitle, value, change, icon: Icon, trend, color, bg
          </div>
 
          <div>
-            <p className='text-2xl font-extrabold text-foreground tabular-nums leading-none'>{value}</p>
+            <p className='text-2xl font-extrabold text-foreground leading-none'>{value}</p>
             {subtitle && <p className='text-xs text-muted-foreground mt-1'>{subtitle}</p>}
          </div>
 

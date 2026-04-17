@@ -362,7 +362,7 @@ export default function POS() {
                </div>
             </section>
 
-            <div className='bg-sidebar text-primary-foreground w-full lg:max-w-90 lg:w-1/3 lg:h-screen lg:sticky! lg:top-0 lg:bottom-0 lg:right-0 flex flex-col border-t lg:border-l lg:border-t-0 px-3 sm:px-4 py-4 sm:py-6 border-outline/50 mt-4 lg:mt-0'>
+            <div className='bg-sidebar text-primary-foreground w-full lg:w-130 lg:h-screen lg:sticky! lg:top-0 lg:bottom-0 lg:right-0 flex flex-col border-t lg:border-l lg:border-t-0 px-3 sm:px-4 py-4 sm:py-6 border-outline/50 mt-4 lg:mt-0'>
                <header className='flex items-center justify-between mb-2'>
                   <Title className='mb-2 select-none flex items-center gap-2 text-xl sm:text-2xl'>
                      Cart

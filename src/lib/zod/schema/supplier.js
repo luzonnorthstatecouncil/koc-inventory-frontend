@@ -1,8 +1,5 @@
 import z from "zod";
-import {
-   booleanRequired,
-   nameRequired,
-} from "../helpers";
+import { booleanRequired, nameRequired } from "../helpers";
 
 export const supplierDefaultValues = {
    name: "",

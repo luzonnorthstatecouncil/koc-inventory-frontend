@@ -91,7 +91,7 @@ export const nameRequired = (field = "This field") =>
    z
       .string()
       .min(3, `${field} must be at least 3 characters`)
-      .regex(/^[a-zA-Z0-9\s.,'-]+$/, `${field} contains invalid characters`);
+      .regex(/^[a-zA-Z0-9\s.,'’-]+$/, `${field} contains invalid characters`);
 
 export const referenceNumberRequired = (field = "This field") =>
    z

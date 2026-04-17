@@ -41,11 +41,9 @@ const breadcrumbItems = [{ label: HOME.title }, { label: ORDERS.title }];
 
 function computeStats(data = []) {
    const total = data.reduce((sum, d) => sum + (d.total || 0), 0);
-   // ignore trailing zero weeks (future incomplete weeks)
    const filled = data.filter((d) => (d.total || 0) > 0);
    const last = filled.at(-1)?.total ?? 0;
    const prev = filled.at(-2)?.total ?? 0;
-   // prev=0 but last>0 means first activity this period → treat as "new"
    const trend = prev === 0 ? (last > 0 ? 100 : null) : Number((((last - prev) / prev) * 100).toFixed(1));
    return { total, trend };
 }
@@ -56,7 +54,6 @@ const STAT_CONFIGS = [
       title: "Total Orders",
       icon: ShoppingCart,
       chartColor: "var(--chart-6)",
-      accent: "bg-blue-600",
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600",
    },
@@ -65,7 +62,6 @@ const STAT_CONFIGS = [
       title: "Completed",
       icon: CheckCircle2,
       chartColor: "var(--chart-1)",
-      accent: "bg-emerald-500",
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
    },
@@ -74,7 +70,6 @@ const STAT_CONFIGS = [
       title: "Refunded",
       icon: RefreshCcw,
       chartColor: "var(--chart-2)",
-      accent: "bg-rose-500",
       iconBg: "bg-rose-50",
       iconColor: "text-rose-600",
    },
@@ -83,7 +78,6 @@ const STAT_CONFIGS = [
       title: "Items Ordered",
       icon: Package,
       chartColor: "var(--chart-4)",
-      accent: "bg-violet-500",
       iconBg: "bg-violet-50",
       iconColor: "text-violet-600",
    },
@@ -94,7 +88,7 @@ function OrderStatCard({ data = [], title, icon: Icon, chartColor, accent, iconB
 
    return (
       <div className='relative rounded-xl overflow-hidden border bg-white hover:shadow-md transition-all duration-200'>
-         <div className={cn("h-1 w-full", accent)} />
+         <div className={cn("h-1 w-full")} />
          <div className='p-4'>
             <div className='flex items-start justify-between mb-2'>
                <div>
@@ -168,13 +162,20 @@ const columns = [
                      {value}
                   </span>
                </div>
-               <span className={cn(
-                  "inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full w-fit",
-                  isCompleted
-                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                     : "bg-amber-50 text-amber-700 border border-amber-200"
-               )}>
-                  <span className={cn("size-1.5 rounded-full", isCompleted ? "bg-emerald-500" : "bg-amber-400 animate-pulse")} />
+               <span
+                  className={cn(
+                     "inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full w-fit",
+                     isCompleted
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border border-amber-200",
+                  )}
+               >
+                  <span
+                     className={cn(
+                        "size-1.5 rounded-full",
+                        isCompleted ? "bg-emerald-500" : "bg-amber-400 animate-pulse",
+                     )}
+                  />
                   {item?.payments?.status}
                </span>
             </div>
@@ -185,9 +186,7 @@ const columns = [
       key: "order_total",
       title: "Total",
       width: "130px",
-      render: (value) => (
-         <span className='font-bold text-sm tabular-nums text-foreground'>{priceParser(value)}</span>
-      ),
+      render: (value) => <span className='font-bold text-sm tabular-nums text-foreground'>{priceParser(value)}</span>,
    },
    {
       key: "items",
@@ -204,9 +203,7 @@ const columns = [
       key: "created_at",
       width: "150px",
       title: "Date Checkout",
-      render: (value) => (
-         <span className='text-sm font-semibold text-foreground'>{dateParser(value)}</span>
-      ),
+      render: (value) => <span className='text-sm font-semibold text-foreground'>{dateParser(value)}</span>,
    },
 ];
 

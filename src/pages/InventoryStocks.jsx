@@ -1,18 +1,6 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, INVENTORY, INVENTORY_STOCKS } from "@/constants/routes";
-import {
-   ArrowRight,
-   CalendarClock,
-   EditIcon,
-   EyeIcon,
-   History,
-   Package,
-   Shovel,
-   Trash2,
-   TrashIcon,
-   TriangleAlert,
-   Upload,
-} from "lucide-react";
+import { ArrowRight, CalendarClock, EditIcon, EyeIcon, History, Shovel, Trash2, TriangleAlert } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
 import { Badge } from "@/components/ui/badge";
 import { useFlushExpiredStocksMutation, useGetInventoryStockListQuery } from "@/features/api/inventory";
@@ -28,14 +16,13 @@ import {
 import { useCallback, useMemo } from "react";
 import { isPast, differenceInDays } from "date-fns";
 import { dateParser, padwithZero } from "@/helpers/parser";
-import ITooltip from "@/components/custom/Tooltip";
 import { cn } from "@/lib/utils";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { toast } from "sonner";
 import InventoryStockModals from "@/components/modals/inventory-stock/Modals";
 import { useUser } from "@/hooks/useUser";
-import { setOpenUserStockRequestsModal, setSelectedUserId, setSelectedUserName } from "@/features/slice/inventorySlice";
+import { setOpenUserStockRequestsModal } from "@/features/slice/inventorySlice";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: INVENTORY_STOCKS.title }];
 
@@ -65,8 +52,7 @@ const columns = [
          return (
             <div className='flex items-center gap-3'>
                <div className='flex gap-0.5 min-w-0'>
-                  {/* Name + archived badge */}
-                  <div className='flex flex-col items-center flex-wrap'>
+                  <div className='flex flex-col flex-wrap'>
                      <span className='font-semibold text-sm text-foreground leading-snug'>{item.inventory?.name}</span>
                      {item?.archived_at && (
                         <span className='inline-flex items-center gap-1 text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full'>
@@ -76,7 +62,6 @@ const columns = [
                      <span className='text-sm text-muted-foreground font-mono tracking-wide'>{value}</span>
                   </div>
 
-                  {/* SKU + variant on the same row */}
                   <div className='flex items-center gap-1.5 flex-wrap'>
                      {item.variant?.variant_name && (
                         <>
