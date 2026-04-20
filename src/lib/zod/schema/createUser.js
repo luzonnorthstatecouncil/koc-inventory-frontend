@@ -1,5 +1,5 @@
 import z from "zod";
-import { booleanRequired, emailRequired, stringNumberRequired, stringOptional, stringRequired } from "../helpers";
+import { booleanRequired, emailRequired, passwordOptional, stringRequired } from "../helpers";
 
 export const createUserDefaultValues = {
    full_name: "",
@@ -15,4 +15,5 @@ export const createUserSchema = z.object({
    username: stringRequired("Username"),
    role: stringRequired("Role"),
    status: booleanRequired("Status"),
+   new_password: passwordOptional(),
 });

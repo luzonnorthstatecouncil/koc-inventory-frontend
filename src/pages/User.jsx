@@ -12,6 +12,7 @@ import {
    setSelectedUser,
    setCredentials,
    setShowCredentialsModal,
+   setOpenChangePasswordModal,
 } from "@/features/slice/userSlice";
 import EditUser from "@/components/modals/user/Edit";
 import { useConfirmation } from "@/helpers/confirmAction";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import CreateUser from "@/components/modals/user/Create";
 import UserCredentialsModal from "@/components/modals/user/UserCredentialsModal";
+import { UserChangePasswordModal } from "@/components/modals/user/UserChangePassword";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: USER_MANAGEMENT.title }];
 
@@ -113,9 +115,8 @@ export default function UserManagement() {
    const exec = useCatchQuery();
    const [resetPassword] = useResetPasswordMutation();
    const [deleteUser] = useDeleteUserMutation();
-   const { openViewModal, openEditModal, openCreateModal, credentials, showCredentialsModal } = useSelector(
-      (state) => state.user,
-   );
+   const { openViewModal, openEditModal, openCreateModal, openChangePasswordModal, credentials, showCredentialsModal } =
+      useSelector((state) => state.user);
 
    const onViewClose = () => {
       dispatch(setOpenViewModal(false));
@@ -145,6 +146,11 @@ export default function UserManagement() {
       dispatch(setOpenCreateModal(false));
    };
 
+   const onChangePasswordClose = () => {
+      dispatch(setOpenChangePasswordModal(false));
+      dispatch(setSelectedUser(null));
+   };
+
    const onDeleteUser = async (user) => {
       const confirmed = await confirm({
          title: "Confirm User Deletion",
@@ -162,16 +168,21 @@ export default function UserManagement() {
       toast.success(message, { id });
    };
 
-   const onResetPassword = async (selectedUser) => {
+   const onOpenChangePassword = (user) => {
+      dispatch(setSelectedUser(user));
+      dispatch(setOpenChangePasswordModal(true));
+   };
+
+   const onChangePassword = async (selectedUser) => {
       const confirmed = await confirm({
-         title: "Confirm Password Reset",
-         confirmLabel: "Reset Password",
-         message: `Are you sure you want to reset the password for ${selectedUser.full_name}?`,
+         title: "Confirm Password Change",
+         confirmLabel: "Change Password",
+         message: `Are you sure you want to change the password for ${selectedUser.full_name}?`,
       });
 
       if (!confirmed) return;
 
-      const id = toast.loading("Resetting password...");
+      const id = toast.loading("Changing password...");
       const { success, message, result: responseData } = await exec(resetPassword, selectedUser.id);
 
       if (!success) {
@@ -206,11 +217,11 @@ export default function UserManagement() {
          action: onEditUser,
       },
       {
-         key: "reset_password",
-         label: "Reset Password",
+         key: "change_password",
+         label: "Change Password",
          icon: Lock,
          className: "text-blue-600",
-         action: onResetPassword,
+         action: onOpenChangePassword,
       },
       {
          key: "delete",
@@ -263,6 +274,10 @@ export default function UserManagement() {
                   username={credentials.username}
                   password={credentials.password}
                />
+            )}
+
+            {openChangePasswordModal && (
+               <UserChangePasswordModal isOpen={openChangePasswordModal} onClose={onChangePasswordClose} />
             )}
          </main>
       </PageLayout>

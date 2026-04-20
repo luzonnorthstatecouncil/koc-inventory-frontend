@@ -35,9 +35,10 @@ export const userApi = createApi({
          invalidatesTags: [USER_TAGS.DETAIL, USER_TAGS.PROFILE, USER_TAGS.LIST],
       }),
       resetPassword: builder.mutation({
-         query: (userId) => ({
+         query: ({ userId, new_password }) => ({
             url: `/v1/users/${userId}/reset-password`,
             method: "POST",
+            body: { new_password },
          }),
       }),
       deleteUser: builder.mutation({

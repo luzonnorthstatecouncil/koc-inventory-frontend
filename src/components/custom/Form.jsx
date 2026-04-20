@@ -10,6 +10,7 @@ export default function Form({
    defaultValues = {},
    mode = "onSubmit",
    debounce = null,
+   relatedKeys = {},
    ...props
 }) {
    const form = useForm({
@@ -26,6 +27,35 @@ export default function Form({
    });
 
    const debounceRef = useRef(null);
+   const previousValuesRef = useRef({});
+
+   useEffect(() => {
+      if (!relatedKeys || Object.keys(relatedKeys).length === 0) return;
+
+      if (!previousValuesRef.current) {
+         previousValuesRef.current = form.getValues();
+      }
+
+      const subscription = form.watch((value, { name }) => {
+         if (name && relatedKeys[name]) {
+            const currentValue = value[name];
+            const previousValue = previousValuesRef.current[name];
+
+            if (currentValue !== previousValue) {
+               const fieldsToClear = [relatedKeys[name]].flat();
+
+               fieldsToClear.forEach((relatedField) => {
+                  form.setValue(relatedField, "", { shouldDirty: true });
+                  form.clearErrors(relatedField);
+               });
+
+               previousValuesRef.current[name] = currentValue;
+            }
+         }
+      });
+
+      return () => subscription.unsubscribe();
+   }, [relatedKeys, form]);
 
    // Debounced submit
    useEffect(() => {

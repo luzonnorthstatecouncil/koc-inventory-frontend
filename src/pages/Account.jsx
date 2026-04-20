@@ -20,32 +20,60 @@ import PageLayout from "@/layout/PageLayout";
 import { accountDetailsSchema, userInfoSchema } from "@/lib/zod/schema/profile";
 import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { AtSign, CalendarDays, CircleDot, IdCard, KeyRound, Mail, ShieldCheck, User, UserRound } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import LogoEmblem from "@/assets/images/logos/logo_emblem.png";
+import IInput from "@/components/custom/Input";
+import ICheckbox from "@/components/custom/Checkbox";
+import { UserChangePasswordModal } from "@/components/modals/user/UserChangePassword";
+import { setOpenChangePasswordModal, setSelectedUser } from "@/features/slice/userSlice";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: ACCOUNT.title }];
 
 export default function Account() {
    const user = useUser();
-   const { confirm } = useConfirmation();
    const exec = useCatchQuery();
+   const dispatch = useDispatch();
+   const { confirm } = useConfirmation();
    const { editableSections } = useSelector((state) => state.account);
+   const { openChangePasswordModal } = useSelector((state) => state.user);
 
    const [resetPassword] = useResetPasswordMutation();
    const [updatePersonalInfo] = useUpdatePersonalInfoMutation();
    const [updateAccountDetails] = useUpdateAccountDetailsMutation();
 
-   const onResetPassword = async () => {
+   const onChangePasswordClose = () => {
+      dispatch(setOpenChangePasswordModal(false));
+      dispatch(setSelectedUser(null));
+   };
+
+   const onOpenChangePassword = () => {
+      dispatch(setSelectedUser(user));
+      dispatch(setOpenChangePasswordModal(true));
+   };
+
+   const onChangePassword = async () => {
       const confirmed = await confirm({
-         title: "Confirm Password Reset",
-         confirmLabel: "Reset Password",
-         message: `Are you sure you want to reset the password for ${user.fullname}?`,
+         title: "Confirm Password Change",
+         confirmLabel: "Change Password",
+         message: (
+            <div>
+               <Title>Enter new password</Title>
+               <Paragraph size='sm' className='text-muted-foreground'>
+                  Choose a strong password to keep your account secure. Make sure to remember it or store it in a safe
+                  place.
+               </Paragraph>
+               <IInput type='password' placeholder='New password' wrapperClassName='mt-4' />
+               <IInput type='password' placeholder='Confirm new password' wrapperClassName='mt-2' />
+
+               <ICheckbox label='Manually enter a new password' className='mt-4' defaultChecked />
+            </div>
+         ),
       });
 
       if (!confirmed) return;
 
-      const id = toast.loading("Resetting password...");
+      const id = toast.loading("Changing password...");
       const { success, message } = await exec(resetPassword, user.id);
 
       if (!success) {
@@ -106,7 +134,7 @@ export default function Account() {
             </Paragraph>
 
             {/* ── Profile Hero ── */}
-            <div className='rounded-xl border border-outline bg-white shadow-sm overflow-hidden mb-6'>
+            <div className='rounded-xl border border-input bg-white overflow-hidden mb-6'>
                {/* Gradient banner */}
                <div className='h-15 bg-gradient-to-br from-primary to-primary/70' />
 
@@ -130,7 +158,7 @@ export default function Account() {
                </div>
 
                {/* Quick info strip */}
-               <div className='border-t border-outline bg-primary/5 px-6 py-3 flex flex-wrap gap-x-6 gap-y-2'>
+               <div className='border-t border-input bg-primary/5 px-6 py-3 flex flex-wrap gap-x-6 gap-y-2'>
                   <div className='flex items-center gap-1.5'>
                      <User className='size-4 text-blue-500' />
                      <Paragraph size='sm' variant='default'>
@@ -153,7 +181,7 @@ export default function Account() {
             </div>
 
             {/* ── Settings Card ── */}
-            <div className='rounded-xl border border-outline bg-white shadow-sm overflow-hidden'>
+            <div className='rounded-xl border border-input bg-white overflow-hidden'>
                {/* ─ Personal Information ─ */}
                <AccountSection
                   editable
@@ -162,7 +190,8 @@ export default function Account() {
                   title='Personal Information'
                   description='Update your name and email address.'
                   icon={<UserRound className='size-4 lg:size-6 text-muted-foreground' />}
-                  className='border-none rounded-none border-b border-outline'
+                  className='border-none rounded-none'
+                  wrapperClassName='border-b! border-input'
                   onSubmit={onUpdatePersonalInfo}
                   schema={userInfoSchema}
                   defaultValues={{
@@ -195,6 +224,7 @@ export default function Account() {
                   description='View your role, username, and account status.'
                   icon={<IdCard className='size-4 lg:size-6 text-muted-foreground' />}
                   className='border-none rounded-none'
+                  wrapperClassName='border-t! border-input'
                   onSubmit={onUpdateAccountDetails}
                   schema={accountDetailsSchema}
                   defaultValues={{
@@ -230,9 +260,9 @@ export default function Account() {
                </AccountSection>
 
                {/* ─ Security ─ */}
-               <div className='border-t border-outline'>
-                  <div className='flex items-center gap-3 px-6 py-3 bg-muted/30 border-b border-outline'>
-                     <div className='rounded-lg bg-background border border-outline p-1.5 shrink-0'>
+               <div className='border-t border-input'>
+                  <div className='flex items-center gap-3 px-6 py-3 bg-muted/30 border-b border-input'>
+                     <div className='rounded-lg bg-background border border-input p-1.5 shrink-0'>
                         <ShieldCheck className='size-4 lg:size-6 text-muted-foreground' />
                      </div>
                      <div>
@@ -249,7 +279,7 @@ export default function Account() {
                      </div>
                   </div>
                   <div className='px-4 py-5 space-y-3'>
-                     <div className='flex items-center justify-between gap-4 rounded-lg bg-muted/80 border border-outline/50 px-4 py-3'>
+                     <div className='flex items-center justify-between gap-4 rounded-lg bg-muted/80 border border-input/50 px-4 py-3'>
                         <div className='flex items-center gap-3'>
                            <div className='rounded-md bg-blue-50 p-2 border border-blue-100'>
                               <KeyRound className='size-4.5 text-blue-500' />
@@ -261,12 +291,17 @@ export default function Account() {
                               <Paragraph size='xs'>New password will be sent to your email.</Paragraph>
                            </div>
                         </div>
-                        <IButton variant='outline' size='sm' className='text-xs shrink-0' onClick={onResetPassword}>
-                           Reset
+                        <IButton
+                           variant='outline'
+                           size='sm'
+                           className='text-xs shrink-0'
+                           onClick={onOpenChangePassword}
+                        >
+                           Change Password
                         </IButton>
                      </div>
 
-                     <div className='flex items-center justify-between gap-4 rounded-lg bg-muted/80 border border-outline/50 px-4 py-3'>
+                     <div className='flex items-center justify-between gap-4 rounded-lg bg-muted/80 border border-input/50 px-4 py-3'>
                         <div className='flex items-center gap-3'>
                            <div className='rounded-md bg-emerald-50 p-2 border border-emerald-100'>
                               <ShieldCheck className='size-4.5 text-emerald-500' />
@@ -283,7 +318,7 @@ export default function Account() {
                         </IButton>
                      </div>
 
-                     <div className='flex items-center justify-between gap-4 rounded-lg bg-muted/80 border border-outline/50 px-4 py-3'>
+                     <div className='flex items-center justify-between gap-4 rounded-lg bg-muted/80 border border-input/50 px-4 py-3'>
                         <div className='flex items-center gap-3'>
                            <div className='rounded-md bg-amber-50 p-2 border border-amber-100'>
                               <Mail className='size-4.5 text-amber-500' />
@@ -303,6 +338,10 @@ export default function Account() {
                </div>
             </div>
          </main>
+
+         {openChangePasswordModal && (
+            <UserChangePasswordModal isOpen={openChangePasswordModal} onClose={onChangePasswordClose} />
+         )}
       </PageLayout>
    );
 }

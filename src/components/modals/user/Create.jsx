@@ -34,6 +34,7 @@ export default function CreateUser({ isOpen, onClose }) {
 
       const payload = {
          ...data,
+         userPassword: data.new_password || undefined,
          status: data.status ? "active" : "inactive",
       };
 
@@ -47,15 +48,6 @@ export default function CreateUser({ isOpen, onClose }) {
       }
 
       toast.success(message, { id });
-      
-      if (responseData?.username && responseData?.password) {
-         dispatch(setCredentials({
-            username: responseData.username,
-            password: responseData.password,
-         }));
-         dispatch(setShowCredentialsModal(true));
-      }
-      
       onClose();
    }, []);
 
@@ -71,45 +63,36 @@ export default function CreateUser({ isOpen, onClose }) {
             secondaryAction={null}
             primaryAction={null}
          >
-         <Form
-            className='flex flex-col gap-4'
-            onSubmit={onSubmit}
-            schema={createUserSchema}
-            defaultValues={createUserDefaultValues}
-         >
-            <IInput name='full_name' label='Full Name' placeholder='e.g. John Doe' />
-            <IInput name='username' label='Username' placeholder='e.g. johndoe123' />
-            <IInput name='email' label='Email' placeholder='e.g. john.doe@example.com' />
-            <ISelect name='role' label='Role' options={ROLE_OPTIONS} showAll={false} />
-            <ICheckbox name='status' label='Is this user active?' />
+            <Form
+               className='flex flex-col gap-4'
+               onSubmit={onSubmit}
+               schema={createUserSchema}
+               defaultValues={createUserDefaultValues}
+            >
+               <IInput name='full_name' label='Full Name' placeholder='e.g. John Doe' />
+               <IInput name='username' label='Username' placeholder='e.g. johndoe123' />
+               <IInput name='email' label='Email' placeholder='e.g. john.doe@example.com' />
+               <ISelect name='role' label='Role' options={ROLE_OPTIONS} showAll={false} />
 
-            <div className='flex items-center justify-end gap-2 mt-4'>
-               <IButtonConfirm
-                  title='Cancel Editing'
-                  message='Are you sure you want to cancel? All unsaved changes will be lost.'
-                  asButton
-                  onConfirm={onClose}
-               >
-                  Cancel
-               </IButtonConfirm>
-               <IButton type='submit' variant='default'>
-                  Save Changes
-               </IButton>
-            </div>
-         </Form>
-      </Modal>
-      
-      {showCredentialsModal && credentials && (
-         <UserCredentialsModal
-            isOpen={showCredentialsModal}
-            onClose={() => {
-               dispatch(setShowCredentialsModal(false));
-               dispatch(setCredentials(null));
-            }}
-            username={credentials.username}
-            password={credentials.password}
-         />
-      )}
+               <IInput label='New Password (Optional)' type='password' name='new_password' placeholder='*********' />
+
+               <ICheckbox name='status' label='Is this user active?' />
+
+               <div className='flex items-center justify-end gap-2 mt-4'>
+                  <IButtonConfirm
+                     title='Cancel Editing'
+                     message='Are you sure you want to cancel? All unsaved changes will be lost.'
+                     asButton
+                     onConfirm={onClose}
+                  >
+                     Cancel
+                  </IButtonConfirm>
+                  <IButton type='submit' variant='default'>
+                     Save Changes
+                  </IButton>
+               </div>
+            </Form>
+         </Modal>
       </>
    );
 }

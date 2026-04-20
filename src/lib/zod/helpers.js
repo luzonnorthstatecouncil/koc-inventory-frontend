@@ -11,6 +11,13 @@ export const trimmedString = (field = "This field") => z.string().trim().min(1, 
 export const emailRequired = () => z.string().min(1, "Email is required").email("Invalid email format");
 
 // 🔐 Passwords
+export const passwordOptional = (min = 6) =>
+   z
+      .string()
+      .optional()
+      .nullable()
+      .refine((val) => !val || val.length >= min, `Password must be at least ${min} characters`);
+
 export const passwordRequired = (min = 6) =>
    z.string().min(1, "Password is required").min(min, `Password must be at least ${min} characters`);
 
@@ -33,8 +40,7 @@ export const priceOptional = (field = "This field") =>
    numberOptional().refine((val) => val === null || val >= 0, `${field} must be a positive number`);
 
 export const priceRequired = (field = "This field") =>
-   z
-      .coerce
+   z.coerce
       .number({
          required_error: `${field} is required`,
          invalid_type_error: `${field} must be a number`,

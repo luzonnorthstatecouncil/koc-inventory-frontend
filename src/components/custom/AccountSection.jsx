@@ -12,6 +12,7 @@ export default function AccountSection({
    title,
    description,
    className,
+   wrapperClassName,
    contentClassName,
    editable = false,
    children,
@@ -45,7 +46,12 @@ export default function AccountSection({
                <>
                   {/* Header strip: icon + title/desc + edit controls */}
                   {(title || description || editable) && (
-                     <div className='flex items-center justify-between gap-4 px-6 py-3 bg-muted/30 border-y border-outline'>
+                     <div
+                        className={cn(
+                           "flex items-center justify-between gap-4 px-6 py-3 bg-muted/30 border-b border-outline",
+                           wrapperClassName,
+                        )}
+                     >
                         <div className='flex items-center gap-3'>
                            {icon && (
                               <div className='rounded-lg bg-background border border-outline p-1.5 shrink-0'>

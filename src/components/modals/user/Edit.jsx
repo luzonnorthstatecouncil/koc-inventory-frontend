@@ -4,28 +4,21 @@ import ICheckbox from "@/components/custom/Checkbox";
 import Form from "@/components/custom/Form";
 import IInput from "@/components/custom/Input";
 import Modal from "@/components/custom/Modal";
-import Paragraph from "@/components/custom/Paragraph";
 import ISelect from "@/components/custom/Select";
-import Title from "@/components/custom/Title";
-import { Separator } from "@/components/ui/separator";
 import { ROLE_OPTIONS } from "@/constants/options.js";
-import { useResetPasswordMutation, useUpdateUserMutation } from "@/features/api/users";
+import { useUpdateUserMutation } from "@/features/api/users";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { editUserSchema } from "@/lib/zod/schema/editUser";
 import { useCallback } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { toast } from "sonner";
-import UserCredentialsModal from "./UserCredentialsModal";
-import { setCredentials, setShowCredentialsModal } from "@/features/slice/userSlice";
 
 export default function EditUser({ isOpen, onClose }) {
    const exec = useCatchQuery();
    const { confirm } = useConfirmation();
-   const { selectedUser, credentials, showCredentialsModal } = useSelector((state) => state.user);
-   const dispatch = useDispatch();
+   const { selectedUser } = useSelector((state) => state.user);
 
-   const [resetPassword] = useResetPasswordMutation();
    const [updateUser] = useUpdateUserMutation();
 
    const onSubmit = useCallback(async (data) => {
@@ -51,34 +44,6 @@ export default function EditUser({ isOpen, onClose }) {
       toast.success(message);
       onClose();
    }, []);
-
-   const onResetPassword = useCallback(async () => {
-      const confirmed = await confirm({
-         title: "Confirm Password Reset",
-         confirmLabel: "Reset Password",
-         message: `Are you sure you want to reset the password for ${selectedUser.full_name}?`,
-      });
-
-      if (!confirmed) return;
-
-      const { success, message, result: responseData } = await exec(resetPassword, selectedUser.id);
-
-      if (!success) {
-         return;
-      }
-
-      toast.success(message);
-
-      if (responseData?.username && responseData?.password) {
-         dispatch(
-            setCredentials({
-               username: responseData.username,
-               password: responseData.password,
-            }),
-         );
-         dispatch(setShowCredentialsModal(true));
-      }
-   }, [selectedUser]);
 
    return (
       <>
@@ -112,25 +77,6 @@ export default function EditUser({ isOpen, onClose }) {
                <ISelect name='role' label='Role' options={ROLE_OPTIONS} showAll={false} />
                <ICheckbox name='status' label='Is this user active?' />
 
-               <Separator />
-
-               <section>
-                  <Title>Reset Password</Title>
-                  <Paragraph className='mb-3'>
-                     Upon successful update, the user's password will be reset to a default password that will be sent
-                     to their registered email address.
-                  </Paragraph>
-
-                  <IButton
-                     variant='outline'
-                     className='w-full border-orange-600 text-orange-600 bg-orange-50'
-                     type='button'
-                     onClick={onResetPassword}
-                  >
-                     Reset Password
-                  </IButton>
-               </section>
-
                <div className='flex items-center justify-end gap-2 mt-4'>
                   <IButtonConfirm
                      title='Cancel Editing'
@@ -146,18 +92,6 @@ export default function EditUser({ isOpen, onClose }) {
                </div>
             </Form>
          </Modal>
-
-         {showCredentialsModal && credentials && (
-            <UserCredentialsModal
-               isOpen={showCredentialsModal}
-               onClose={() => {
-                  dispatch(setShowCredentialsModal(false));
-                  dispatch(setCredentials(null));
-               }}
-               username={credentials.username}
-               password={credentials.password}
-            />
-         )}
       </>
    );
 }
