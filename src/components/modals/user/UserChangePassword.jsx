@@ -93,7 +93,7 @@ export const UserChangePasswordModal = ({ isOpen, onClose }) => {
                            defaultChecked
                         />
                      </div>
-                     <footer>
+                     <footer className="mb-3">
                         <IButton type='submit' className='w-full mb-2'>
                            {manual ? "Change" : "Reset"} Password
                         </IButton>
