@@ -24,7 +24,7 @@ import {
    useRefundOrderMutation,
    useVoidRefundOrderMutation,
 } from "@/features/api/order";
-import { useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import ILineChart from "@/components/custom/LineChart";
 
 import ViewOrder from "@/components/modals/orders/View";
@@ -41,10 +41,22 @@ const breadcrumbItems = [{ label: HOME.title }, { label: ORDERS.title }];
 
 function computeStats(data = []) {
    const total = data.reduce((sum, d) => sum + (d.total || 0), 0);
-   const filled = data.filter((d) => (d.total || 0) > 0);
-   const last = filled.at(-1)?.total ?? 0;
-   const prev = filled.at(-2)?.total ?? 0;
-   const trend = prev === 0 ? (last > 0 ? 100 : null) : Number((((last - prev) / prev) * 100).toFixed(1));
+   if (data.length === 0) return { total, trend: null };
+
+   const last = data.at(-1)?.total ?? 0;
+   const prev = data.length > 1 ? (data.at(-2)?.total ?? 0) : 0;
+
+   let trend = null;
+   if (prev === 0) {
+      if (last > 0) {
+         trend = 100;
+      } else {
+         trend = null;
+      }
+   } else {
+      trend = Number((((last - prev) / prev) * 100).toFixed(1));
+   }
+
    return { total, trend };
 }
 
@@ -222,9 +234,14 @@ export default function Orders() {
 
    const { openViewModal, openRefundModal } = useSelector((state) => state.order);
 
+   const [params, setParams] = useState({});
+
    const [refundOrder] = useRefundOrderMutation();
    const [voidRefundOrder] = useVoidRefundOrderMutation();
-   const { data: orderStatistics } = useGetOrderStatisticsQuery();
+   const { data: orderStatistics } = useGetOrderStatisticsQuery({
+      dateFrom: params.dateRange?.from,
+      dateTo: params.dateRange?.to,
+   });
    const { data: ordersData } = useGetAllOrdersQuery({});
 
    const onViewOrder = useCallback((item) => {
@@ -382,6 +399,7 @@ export default function Orders() {
             filterable
             filters={stockFilters}
             actions={actions}
+            onParamsChange={setParams}
             actionButtons={[
                {
                   label: "Export Current List",

@@ -77,6 +77,7 @@ const DataTable = ({
    renderExpandedRow,
    expandedRowClassName,
    onMount,
+   onParamsChange,
    ...props
 }) => {
    const user = useUser();
@@ -146,6 +147,14 @@ const DataTable = ({
    useEffect(() => {
       if (onMount) onMount(query?.useQuery ? serverSideData : clientSideData);
    }, [serverSideData, clientSideData]);
+
+   useEffect(() => {
+      onParamsChange?.({
+         search: debouncedSearchTerm,
+         filters: activeFilters,
+         dateRange: debouncedDateRange,
+      });
+   }, [debouncedSearchTerm, activeFilters, debouncedDateRange, onParamsChange]);
 
    const paginateTableData = useCallback(
       (data) => data.slice((currentPage - 1) * pageSizeState, currentPage * pageSizeState),
