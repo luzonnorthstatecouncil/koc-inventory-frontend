@@ -6,7 +6,13 @@ import { useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { nestedObjParser } from "@/helpers/parser";
-import { ALPHABETS_ONLY, ALPHANUMERIC_ONLY, NUMERIC_ONLY, PRICE_INPUT, REFERENCE_NUMBER_INPUT } from "@/constants/regex";
+import {
+   ALPHABETS_ONLY,
+   ALPHANUMERIC_ONLY,
+   NUMERIC_ONLY,
+   PRICE_INPUT,
+   REFERENCE_NUMBER_INPUT,
+} from "@/constants/regex";
 import { cn } from "@/lib/utils";
 import Paragraph from "./Paragraph";
 
@@ -68,12 +74,17 @@ export default function IInput({
 
          <div className={cn("relative w-full", inputWrapperClassName)}>
             {prefix && (
-               <span className='absolute top-1/2 left-3 -translate-y-1/2 text-primary-foreground'>{prefix}</span>
+               <span className='absolute top-1/2 left-3 -translate-y-1/2 text-primary-foreground'>
+                  {prefix}
+               </span>
             )}
 
             <Input
                {...(useForm && name
-                  ? register(name, { valueAsNumber: props.type === "number" || parse === "numeric" || parse === "price" })
+                  ? register(name, {
+                       valueAsNumber:
+                          props.type === "number" || parse === "numeric" || parse === "price",
+                    })
                   : {})}
                {...props}
                type={isPassword && !passwordVisible ? "password" : isPassword ? "text" : props.type}
@@ -84,7 +95,7 @@ export default function IInput({
                variant='secondary'
                maxLength={props.maxLength || 35}
                className={cn(
-                  "w-full bg-white border border-outline text-black",
+                  "w-full bg-white border border-outline text-black shadow-none!",
                   Boolean(prefix) && "!pl-9",
                   Boolean(suffix) && "!pr-9",
                   props.className,
@@ -120,7 +131,9 @@ export default function IInput({
                }}
             />
 
-            {suffix && !isPassword && <span className='absolute top-1/2 right-3 -translate-y-1/2'>{suffix}</span>}
+            {suffix && !isPassword && (
+               <span className='absolute top-1/2 right-3 -translate-y-1/2'>{suffix}</span>
+            )}
 
             {isPassword &&
                (passwordVisible ? (
@@ -140,7 +153,9 @@ export default function IInput({
                ))}
          </div>
 
-         {showError && error && <p className='text-xs font-medium text-red-500 text-start'>{error}</p>}
+         {showError && error && (
+            <p className='text-xs font-medium text-red-500 text-start'>{error}</p>
+         )}
       </div>
    );
 }

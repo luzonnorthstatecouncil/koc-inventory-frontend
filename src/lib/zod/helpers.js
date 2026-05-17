@@ -79,7 +79,7 @@ export const stringNumberRequired = (field = "This field") =>
       })
       .refine((val) => !isNaN(val) && isFinite(val), `${field} must be a valid number`);
 
-export const stringOrNumberOptional = () => z.union([z.string(), z.number()]).optional().nullable();
+export const stringOrNumberOptional = () => z.union([z.string(), z.number()]).optional().nullable().transform((val) => (val === "" ? null : val));
 
 export const alphaNumericRequired = (field = "This field") =>
    z

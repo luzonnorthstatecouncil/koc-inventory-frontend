@@ -243,6 +243,9 @@ export default function UserManagement() {
             <DataTable
                query={{
                   useQuery: useGetUserListQuery,
+                  params: {
+                     status: "active",
+                  },
                   options: {
                      refetchOnMountOrArgChange: true,
                   },

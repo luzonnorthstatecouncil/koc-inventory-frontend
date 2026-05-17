@@ -28,6 +28,7 @@ import SelectAsync from "@/components/custom/SelectAsync";
 import { useUser } from "@/hooks/useUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import IInput from "@/components/custom/Input";
+import { format } from "date-fns";
 
 const chartConfig = {
    total_in: {
@@ -60,7 +61,10 @@ const CustomFooter = ({ percentage = 0, direction = "up" }) => (
 export default function Create({ onClose, inventoryOptions }) {
    const { confirm } = useConfirmation();
    const [createStock] = useCreateStockMutation();
-   const { data: supplierList = [] } = useGetSupplierListQuery({ pageSize: 1000, status: "active" });
+   const { data: supplierList = [] } = useGetSupplierListQuery({
+      pageSize: 1000,
+      status: "active",
+   });
    const exec = useCatchQuery();
    const user = useUser();
 
@@ -107,7 +111,9 @@ export default function Create({ onClose, inventoryOptions }) {
 
                useEffect(() => {
                   if (inventory) {
-                     form.setValue("has_expiry", Boolean(inventory.has_expiry), { shouldValidate: true });
+                     form.setValue("has_expiry", Boolean(inventory.has_expiry), {
+                        shouldValidate: true,
+                     });
                   }
                }, [inventory?.id, inventory?.has_expiry]);
 
@@ -120,8 +126,8 @@ export default function Create({ onClose, inventoryOptions }) {
                                  <span>
                                     <AlertTriangle className='size-4' />
                                  </span>
-                                 There is a pending stock request for this item. Adding stock now may affect the pending
-                                 request.
+                                 There is a pending stock request for this item. Adding stock now
+                                 may affect the pending request.
                               </AlertDescription>
                            </Alert>
                         )}
@@ -162,18 +168,27 @@ export default function Create({ onClose, inventoryOptions }) {
                                  {inventory.current_qty} stock
                                  {inventory.current_qty > 1 && "s"}
                               </Title>
-                              <Paragraph size='sm'>Max Quantity Level: {inventory.max_qty_level}</Paragraph>
+                              <Paragraph size='sm'>
+                                 Max Quantity Level: {inventory.max_qty_level}
+                              </Paragraph>
                            </header>
                         )}
                         <div className='flex items-center justify-between gap-3 mb-3'>
                            <div className='flex flex-col'>
-                              <Details label='Number of Item' description='Enter the number of items to add.' />
+                              <Details
+                                 label='Number of Item'
+                                 description='Enter the number of items to add.'
+                              />
                               {formErrors.quantity && (
-                                 <span className='text-destructive text-xs'>{formErrors.quantity.message}</span>
+                                 <span className='text-destructive text-xs'>
+                                    {formErrors.quantity.message}
+                                 </span>
                               )}
                            </div>
                            <InputNumber
-                              max={inventory ? inventory?.max_qty_level - inventory?.current_qty : ""}
+                              max={
+                                 inventory ? inventory?.max_qty_level - inventory?.current_qty : ""
+                              }
                               requireMax
                               name='quantity'
                               steps={10}
@@ -183,9 +198,14 @@ export default function Create({ onClose, inventoryOptions }) {
 
                         <div className='flex items-center justify-between gap-3 mb-3'>
                            <div className='flex flex-col'>
-                              <Details label='Received At' description='Enter the received date of this batch.' />
+                              <Details
+                                 label='Received At'
+                                 description='Enter the received date of this batch.'
+                              />
                               {formErrors.received_at && (
-                                 <span className='text-destructive text-xs'>{formErrors.received_at.message}</span>
+                                 <span className='text-destructive text-xs'>
+                                    {formErrors.received_at.message}
+                                 </span>
                               )}
                            </div>
                            <DatePicker
@@ -211,7 +231,9 @@ export default function Create({ onClose, inventoryOptions }) {
                                  }
                               />
                               {formErrors.expires_at && (
-                                 <span className='text-destructive text-xs'>{formErrors.expires_at.message}</span>
+                                 <span className='text-destructive text-xs'>
+                                    {formErrors.expires_at.message}
+                                 </span>
                               )}
                            </div>
                            <DatePicker

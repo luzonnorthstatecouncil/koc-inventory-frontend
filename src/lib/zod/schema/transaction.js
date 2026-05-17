@@ -7,6 +7,7 @@ export const posTransactionSchema = z.object({
          z.object({
             id: numberRequired(),
             quantity: positiveNumber(),
+            isKit: z.boolean().optional(),
          })
       )
       .min(1, "Cart cannot be empty"),
@@ -22,4 +23,5 @@ export const cartItemSchema = z.object({
    sku: stringRequired("SKU"),
    price: stringNumberRequired("Price"),
    quantity: z.number().int().min(1, "Quantity must be at least 1").default(1),
+   isKit: z.boolean().optional().default(false),
 });

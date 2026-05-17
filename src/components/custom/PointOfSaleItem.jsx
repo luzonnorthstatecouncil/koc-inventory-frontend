@@ -3,6 +3,7 @@ import IButton from "./Button";
 import { useMemo } from "react";
 import { priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
+import IPopover from "@/components/custom/Popover";
 
 function StockPill({ current, reorder, safe }) {
    const { label, bar, text, bg } = useMemo(() => {
@@ -24,9 +25,16 @@ export default function PointOfSaleItem(props) {
    const outOfStock = props.current_qty <= 0;
 
    return (
-      <button
+      <div
          onClick={!outOfStock ? props.onClick : undefined}
-         disabled={outOfStock}
+         onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+               e.preventDefault();
+               if (!outOfStock && props.onClick) props.onClick(e);
+            }
+         }}
+         role="button"
+         tabIndex={0}
          className={cn(
             "group relative w-full md:w-55 lg:w-57 text-left rounded-xl border bg-white transition-all duration-200 overflow-hidden",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
@@ -38,12 +46,50 @@ export default function PointOfSaleItem(props) {
          )}
       >
          <div className='p-3'>
-            {/* In-cart badge */}
-            {props.included && (
-               <div className='absolute top-2 right-2'>
+            {/* Badges */}
+            <div className='absolute top-2 right-2 flex gap-1 z-10'>
+               {props.isKit && (
+                  <IPopover
+                     align="end"
+                     sideOffset={8}
+                     className="w-64 p-3"
+                     trigger={
+                        <span 
+                           onClick={(e) => e.stopPropagation()}
+                           className='px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 text-[10px] font-bold rounded uppercase tracking-tighter cursor-pointer transition-colors'
+                        >
+                           Kit
+                        </span>
+                     }
+                  >
+                     <div className="space-y-2">
+                        <p className="font-semibold text-sm leading-none text-foreground">Kit Components</p>
+                        <div className="flex flex-col gap-1.5 mt-2 max-h-48 overflow-y-auto pr-1">
+                           {props.items && props.items.length > 0 ? (
+                              props.items.map((item) => {
+                                 const variantName = item.variant?.variant_name;
+                                 const isDefault = !variantName || variantName === "Default";
+                                 return (
+                                    <div key={item.id} className="flex justify-between items-start gap-2 text-xs text-muted-foreground border-b border-border/50 pb-1.5 last:border-0 last:pb-0">
+                                       <span className="flex-1 leading-snug">
+                                          <span className="font-medium text-foreground">{item.variant?.inventory?.name || "Unknown"}</span>
+                                          {!isDefault && <span className="text-[10px] ml-1">({variantName})</span>}
+                                       </span>
+                                       <span className="font-medium bg-muted px-1.5 rounded-md whitespace-nowrap">x{item.quantity}</span>
+                                    </div>
+                                 );
+                              })
+                           ) : (
+                              <span className="text-xs italic text-muted-foreground">No items included.</span>
+                           )}
+                        </div>
+                     </div>
+                  </IPopover>
+               )}
+               {props.included && (
                   <CheckCircle2 className='size-4 text-primary fill-primary/10' />
-               </div>
-            )}
+               )}
+            </div>
 
             {/* Name & SKU */}
             <p className='text-sm font-bold text-foreground leading-snug line-clamp-2 pr-5 mb-1'>{props.name}</p>
@@ -76,7 +122,7 @@ export default function PointOfSaleItem(props) {
                </div>
             </div>
          </div>
-      </button>
+      </div>
    );
 }
 

@@ -174,6 +174,9 @@ export default function Suppliers() {
             <DataTable
                query={{
                   useQuery: useGetSupplierListQuery,
+                  params: {
+                     status: "active",
+                  },
                   options: {
                      refetchOnMountOrArgChange: true,
                   },

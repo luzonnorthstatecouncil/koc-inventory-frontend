@@ -18,11 +18,19 @@ import {
    setShowInvoiceNumberModal,
    updateCart,
    setCategory,
+   setAmountTendered,
+   setInvoiceNumber,
+   setIsDeduction,
+   setRemarks,
+   setCart,
 } from "@/features/slice/cartSlice";
 import CartItem from "@/components/custom/CartItem";
 import Fallback from "./Fallback";
 import Title from "@/components/custom/Title";
-import { useGetInventoryListWithStockQuery } from "@/features/api/inventory";
+import {
+   useGetInventoryListWithStockQuery,
+   useBulkDeductStocksMutation,
+} from "@/features/api/inventory";
 import Each from "@/components/custom/Each";
 import Suspense from "@/components/custom/Suspense";
 import { Button } from "@/components/ui/button";
@@ -45,12 +53,9 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { useEffect } from "react";
 import BarcodeScanner from "@/components/custom/BarcodeScanner";
 import { setBarcodeValue, setEnableBarcodeScanner } from "@/features/slice/barcodeSlice";
-import LogoEmblem from "@/assets/images/logos/logo_emblem.png";
 import { printInvoice } from "@/helpers/printInvoice";
 import ISelect from "@/components/custom/Select";
 import { useGetCategoryListQuery } from "@/features/api/category";
-import { ca } from "date-fns/locale";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 
 const breadcrumbItems = [{ label: HOME.title }, { label: POINT_OF_SALE.title }];
 
@@ -59,6 +64,7 @@ export default function POS() {
    const { confirm } = useConfirmation();
    const exec = useCatchQuery();
    const [checkourOrder] = useCheckoutOrderMutation();
+   const [bulkDeduct] = useBulkDeductStocksMutation();
 
    const { enableBarcodeScanner, barcodeValue } = useSelector((state) => state.barcode);
    const {
@@ -71,7 +77,19 @@ export default function POS() {
       showInvoiceNumberModal,
       amountTendered,
       invoiceNumber,
+      isDeduction,
+      remarks,
    } = useSelector((state) => state.cart);
+
+   const DEDUCTION_REMARKS_OPTIONS = [
+      { label: "Internal Use", value: "Internal Use" },
+      { label: "Damage", value: "Damage" },
+      { label: "Expired", value: "Expired" },
+      { label: "Freebies", value: "Freebies" },
+      { label: "Loss", value: "Loss" },
+      { label: "Sample", value: "Sample" },
+      { label: "Other", value: "Other" },
+   ];
 
    const {
       data: inventoryItems,
@@ -93,7 +111,7 @@ export default function POS() {
    const { data: categoryList } = useGetCategoryListQuery();
 
    const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-   const total = subtotal;
+   const total = isDeduction ? 0 : subtotal;
 
    const onSubmit = ({ search, category }) => {
       dispatch(setSearchQuery(search));
@@ -102,6 +120,15 @@ export default function POS() {
 
    const handleShowLowStock = (value) => {
       dispatch(setShowLowStock(value));
+   };
+
+   const handleIsDeduction = (value) => {
+      dispatch(setIsDeduction(value));
+      if (value) {
+         dispatch(setPaymentMethod("none"));
+      } else {
+         dispatch(setPaymentMethod(null));
+      }
    };
 
    const handleEnableBarcodeScanner = (value) => {
@@ -121,7 +148,9 @@ export default function POS() {
             return;
          }
 
-         const existingItem = cart.find((cartItem) => cartItem.id === item.id);
+         const existingItem = cart.find(
+            (cartItem) => cartItem.id === item.id && !!cartItem.isKit === !!item.isKit,
+         );
 
          if (existingItem) {
             const updatedItem = cartItemSchema.parse({
@@ -134,12 +163,13 @@ export default function POS() {
                return;
             }
 
-            dispatch(
-               updateCart({
-                  id: item.id,
-                  data: updatedItem,
-               }),
+            // We need a custom update since the helper only checks id
+            const updatedCart = cart.map((cartItem) =>
+               cartItem.id === item.id && !!cartItem.isKit === !!item.isKit
+                  ? updatedItem
+                  : cartItem,
             );
+            dispatch(setCart(updatedCart));
          } else {
             dispatch(addCart(validatedItem));
          }
@@ -179,6 +209,11 @@ export default function POS() {
          return;
       }
 
+      if (isDeduction) {
+         onCheckout();
+         return;
+      }
+
       if (!paymentMethod) {
          toast.error("Please select a payment method.");
          return;
@@ -204,62 +239,82 @@ export default function POS() {
    const onCheckout = async () => {
       const transactionData = {
          cart,
-         paymentMethod,
+         paymentMethod: isDeduction ? "none" : paymentMethod,
          subtotal,
          total,
+         type: isDeduction ? "deduction" : "sale",
+         remarks: isDeduction ? remarks : null,
       };
 
       try {
-         const validatedTransaction = posTransactionSchema.parse(transactionData);
+         // Skip validation for deduction since payment fields are missing
+         let validatedTransaction = transactionData;
+         if (!isDeduction) {
+            validatedTransaction = posTransactionSchema.parse(transactionData);
+         }
 
          const confirmed = await confirm({
-            title: "Process Transaction",
-            message: `Process payment of ${priceParser(
-               total.toFixed(2).toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-               }),
-            )} via ${paymentMethod}?`,
-            confirmLabel: "Process Payment",
+            title: isDeduction ? "Confirm Stock Deduction" : "Process Transaction",
+            message: isDeduction
+               ? `Are you sure you want to deduct ${cart.length} item(s) from inventory? This action cannot be undone.`
+               : `Process payment of ${priceParser(
+                    total.toFixed(2).toLocaleString("en-US", {
+                       minimumFractionDigits: 2,
+                    }),
+                 )} via ${paymentMethod}?`,
+            confirmLabel: isDeduction ? "Deduct Stock" : "Process Payment",
             cancelLabel: "Cancel",
+            variant: isDeduction ? "destructive" : "default",
          });
 
          if (!confirmed) return;
 
          const payload = {
             ...validatedTransaction,
-            invoiceNumber: invoiceNumber,
+            invoiceNumber: isDeduction ? `DDC-${Date.now()}` : invoiceNumber,
             total: Number(validatedTransaction.total.toFixed(2)),
-            amountTendered: Number(amountTendered).toFixed(2),
-            change: Number(Number(amountTendered).toFixed(2) - Number(validatedTransaction.total).toFixed(2)).toFixed(
-               2,
-            ),
+            amountTendered: isDeduction ? 0 : Number(amountTendered).toFixed(2),
+            change: isDeduction
+               ? 0
+               : Number(
+                    Number(amountTendered).toFixed(2) -
+                       Number(validatedTransaction.total).toFixed(2),
+                 ).toFixed(2),
          };
 
-         const id = toast.loading("Processing transaction...");
-         const { success, message, data } = await exec(checkourOrder, payload);
+         const id = toast.loading(isDeduction ? "Deducting stock..." : "Processing transaction...");
 
-         if (!success) {
-            toast.dismiss(id);
-            return;
+         const checkoutAction = isDeduction ? bulkDeduct : checkourOrder;
+
+         const result = await exec(checkoutAction, payload);
+
+         if (result.success) {
+            const data = result.result;
+            toast.success(data.message || "Transaction processed successfully", { id });
+
+            if (!isDeduction) {
+               const invoiceInfo = {
+                  cart: cart,
+                  paymentMethod: payload.paymentMethod,
+                  subtotal: payload.subtotal,
+                  total: payload.total,
+                  amountTendered: payload.amountTendered,
+                  change: payload.change,
+               };
+               printInvoice(
+                  invoiceInfo,
+                  payload.invoiceNumber || data?.id || `TXN-${Date.now()}`,
+                  new Date(),
+               );
+            }
+
+            dispatch(resetCheckout());
+            refetch();
+         } else {
+            toast.error(result.message || "Failed to process transaction", { id });
          }
-
-         // Prepare invoice data with full cart details (not just id and quantity)
-         const invoiceInfo = {
-            cart: cart, // Use original cart with full item details
-            paymentMethod: validatedTransaction.paymentMethod,
-            subtotal: validatedTransaction.subtotal,
-            total: Number(validatedTransaction.total.toFixed(2)),
-            amountTendered: payload.amountTendered,
-            change: payload.change,
-         };
-
-         // Open invoice in new window
-         printInvoice(invoiceInfo, invoiceNumber || data?.id || `TXN-${Date.now()}`, new Date());
-
-         dispatch(resetCheckout());
-         toast.success(message, { id });
-         refetch();
       } catch (error) {
+         console.log(error);
          toast.error("Failed to process transaction. Please try again.");
       }
    };
@@ -310,7 +365,11 @@ export default function POS() {
                   </Form>
 
                   <section className='flex items-center gap-2'>
-                     <IButton className='select-none text-xs' variant='ghost' onClick={() => refetch()}>
+                     <IButton
+                        className='select-none text-xs'
+                        variant='ghost'
+                        onClick={() => refetch()}
+                     >
                         <RefreshCcwIcon className='size-4' />
                         <span className='hidden sm:inline'>Refresh</span>
                      </IButton>
@@ -347,7 +406,9 @@ export default function POS() {
                         of={inventoryItems}
                         fallbackClassName='mt-0 h-80!'
                         fallback={
-                           searchQuery ? "No items found with this filter" : "No item with available stocks found"
+                           searchQuery
+                              ? "No items found with this filter"
+                              : "No item with available stocks found"
                         }
                         render={(item) => (
                            <PointOfSaleItem
@@ -369,7 +430,11 @@ export default function POS() {
                      <ShoppingCart className='size-4 sm:size-5' strokeWidth={2.5} />
                   </Title>
 
-                  <Button variant='destructive' className='select-none text-xs' onClick={removeAllFromCart}>
+                  <Button
+                     variant='destructive'
+                     className='select-none text-xs'
+                     onClick={removeAllFromCart}
+                  >
                      <Trash2 className='size-4' />
                      <span className='hidden sm:inline'>Remove All</span>
                   </Button>
@@ -388,12 +453,14 @@ export default function POS() {
                )}
 
                <ICard
-                  cardClassName='mt-auto bg-primary shadow-md py-2 sm:py-3 h-75'
+                  cardClassName='mt-auto bg-primary shadow-md py-2 sm:py-3 h-85'
                   cardContentClassName='flex flex-col gap-1 h-full px-2 sm:px-3'
                >
                   <section className='space-y-1 sm:space-y-2 mb-4 sm:mb-7'>
                      <div className='flex items-center justify-between'>
-                        <Paragraph className='!text-xs sm:!text-sm text-primary-foreground'>Subtotal</Paragraph>
+                        <Paragraph className='!text-xs sm:!text-sm text-primary-foreground'>
+                           Subtotal
+                        </Paragraph>
                         <Paragraph className='!text-xs sm:!text-sm !text-primary-foreground !font-semibold'>
                            <AnimatedNumber value={subtotal} prefix='PHP ' />
                         </Paragraph>
@@ -402,30 +469,67 @@ export default function POS() {
                      <Separator className='my-2 sm:my-2.5 border border-dashed border-gray-400' />
 
                      <div className='flex items-center justify-between'>
-                        <Paragraph className='!text-base sm:!text-lg text-primary-foreground'>Total</Paragraph>
+                        <Paragraph className='!text-base sm:!text-lg text-primary-foreground'>
+                           Total
+                        </Paragraph>
                         <Paragraph className='!text-base sm:!text-lg !text-primary-foreground font-bold'>
                            <AnimatedNumber value={total} prefix='PHP ' className='font-bold' />
                         </Paragraph>
                      </div>
                   </section>
 
-                  <section className='mt-auto mb-2 sm:mb-3'>
-                     <Paragraph className='!text-xs sm:!text-sm mb-2 text-primary-foreground'>Payment Method</Paragraph>
-                     <IRadioGroup
-                        className='grid grid-cols-3 gap-1 sm:gap-2'
-                        value={paymentMethod}
-                        options={PAYMENT_METHOD_OPTIONS}
-                        iconAsLabel
-                        iconClassName='size-5 sm:size-7 group-hover:scale-110 transition-all'
-                        checkedClassName='bg-white text-primary font-bold'
-                        itemClassName='bg-white/50 border-2 border-outline/30 text-black p-2 sm:p-3 flex items-center justify-center rounded-md cursor-pointer flex flex-col gap-1 items-center group transition-all'
-                        onChange={handlePaymentMethod}
-                     />
+                  <section className='mt-auto sm:mb-3'>
+                     <div className='flex items-center justify-between pl-3 pr-1 py-2 rounded-lg bg-white/10'>
+                        <Paragraph className='!text-xs sm:!text-sm text-primary-foreground font-medium'>
+                           Internal Deduction?
+                        </Paragraph>
+                        <ICheckbox
+                           name='is_deduction'
+                           label=''
+                           useForm={false}
+                           checked={isDeduction}
+                           onChange={handleIsDeduction}
+                        />
+                     </div>
+
+                     {isDeduction && (
+                        <ISelect
+                           label='Deduction Remark'
+                           useForm={false}
+                           value={remarks}
+                           options={DEDUCTION_REMARKS_OPTIONS}
+                           triggerClassName='text-black'
+                           className='mt-3'
+                           onValueChange={(val) => dispatch(setRemarks(val.value))}
+                        />
+                     )}
+
+                     {!isDeduction && (
+                        <>
+                           <Paragraph className='!text-xs sm:!text-sm mt-3 mb-2 text-primary-foreground'>
+                              Payment Method
+                           </Paragraph>
+                           <IRadioGroup
+                              className='grid grid-cols-3 gap-1 sm:gap-2'
+                              value={paymentMethod}
+                              options={PAYMENT_METHOD_OPTIONS}
+                              iconAsLabel
+                              iconClassName='size-5 sm:size-7 group-hover:scale-110 transition-all'
+                              checkedClassName='bg-white text-primary font-bold'
+                              itemClassName='bg-white/50 border-2 border-outline/30 text-black p-2 sm:p-3 flex items-center justify-center rounded-md cursor-pointer flex flex-col gap-1 items-center group transition-all'
+                              onChange={handlePaymentMethod}
+                           />
+                        </>
+                     )}
                   </section>
 
                   <section>
-                     <IButton variant='emphasis' className='w-full text-sm sm:text-base' onClick={onProcessPayment}>
-                        Process Transaction
+                     <IButton
+                        variant='emphasis'
+                        className='w-full text-sm sm:text-base'
+                        onClick={onProcessPayment}
+                     >
+                        {isDeduction ? "Deduct Stock" : "Process Transaction"}
                      </IButton>
                   </section>
                </ICard>

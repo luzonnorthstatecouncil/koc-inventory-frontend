@@ -284,6 +284,9 @@ export default function InventoryItems() {
             <DataTable
                query={{
                   useQuery: useGetInventoryListQuery,
+                  params: {
+                     status: "active",
+                  },
                   options: {
                      refetchOnMountOrArgChange: true,
                   },

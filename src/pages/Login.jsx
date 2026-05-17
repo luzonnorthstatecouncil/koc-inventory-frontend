@@ -55,15 +55,23 @@ export default function Login() {
    return (
       <LoginLayout>
          <section className='flex flex-col lg:flex-row items-center mx-auto gap-6 sm:gap-8 lg:gap-12 px-4 sm:px-6 lg:pr-24 mb-12 lg:mb-0 w-full max-w-screen-xl'>
-            <img src={LogoWordmark} alt='Logo Emblem' className='w-64 sm:w-80 lg:w-150 h-auto mx-auto md:mb-2' />
+            <img
+               src={LogoWordmark}
+               alt='Logo Emblem'
+               className='w-64 sm:w-80 lg:w-150 h-auto mx-auto md:mb-2'
+            />
             <ICard
-               title='Welcome Back'
+               title='Sales & Inventory'
                description='Enter your credentials to access your account'
-               cardClassName='text-center w-full sm:w-96 lg:w-100 bg-white text-primary'
-               cardTitleClassName='text-xl sm:text-2xl lg:text-3xl'
+               cardClassName='text-start w-full sm:w-96 lg:w-100 bg-white text-primary'
+               cardTitleClassName='text-xl sm:text-2xl lg:text-3xl font-extrabold!'
             >
                <Form className='flex flex-col gap-4' onSubmit={onSubmit} schema={loginSchema}>
-                  <IInput name='username' placeholder='Username' prefix={<MailIcon className='size-4 text-black' />} />
+                  <IInput
+                     name='username'
+                     placeholder='Username'
+                     prefix={<MailIcon className='size-4 text-black' />}
+                  />
                   <IInput
                      name='password'
                      type='password'

@@ -20,6 +20,8 @@ const initialState = {
    showInvoiceNumberModal: false,
    amountTendered: 0,
    invoiceNumber: "",
+   isDeduction: false,
+   remarks: "Internal Use",
 };
 
 const cartSlice = createSlice({
@@ -38,6 +40,9 @@ const cartSlice = createSlice({
       setShowInvoiceNumberModal: setState("showInvoiceNumberModal"),
       setAmountTendered: setState("amountTendered"),
       setInvoiceNumber: setState("invoiceNumber"),
+      setIsDeduction: setState("isDeduction"),
+      setRemarks: setState("remarks"),
+      setCart: setState("cart"),
       resetCheckout: clearStates(initialState),
    },
 });
@@ -55,6 +60,9 @@ export const {
    setShowInvoiceNumberModal,
    setAmountTendered,
    setInvoiceNumber,
+   setIsDeduction,
+   setRemarks,
+   setCart,
    resetCheckout,
 } = cartSlice.actions;
 export default cartSlice.reducer;

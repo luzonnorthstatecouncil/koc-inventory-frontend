@@ -11,6 +11,7 @@ import {
    User2,
    UserRoundCog,
    Warehouse,
+   Activity,
 } from "lucide-react";
 
 export const LOGIN = {
@@ -65,10 +66,31 @@ export const STOCK_APPROVALS = {
    icon: BookAlert,
 };
 
+export const KITS = {
+   path: "/inventory/kits",
+   title: "Kits",
+   roles: ["admin", "user", "supervisor"],
+   icon: Inbox,
+};
+
+export const STOCK_MOVEMENTS = {
+   path: "/inventory/movements",
+   title: "Movements",
+   roles: ["admin", "user", "supervisor"],
+   icon: Activity,
+};
+
 export const INVENTORY = {
    title: "Inventory Management",
    roles: ["admin", "user", "supervisor"],
-   children: [INVENTORY_ITEMS, INVENTORY_STOCKS, INVENTORY_SUPPLIERS, STOCK_APPROVALS],
+   children: [
+      INVENTORY_ITEMS,
+      KITS,
+      INVENTORY_STOCKS,
+      STOCK_MOVEMENTS,
+      INVENTORY_SUPPLIERS,
+      STOCK_APPROVALS,
+   ],
    icon: Folder,
 };
 

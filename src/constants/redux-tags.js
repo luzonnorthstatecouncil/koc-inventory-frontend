@@ -29,3 +29,8 @@ export const APPROVAL_TAGS = {
    LIST: "APPROVAL_LIST",
    DETAIL: "APPROVAL_DETAIL",
 };
+
+export const KIT_TAGS = {
+   LIST: "KIT_LIST",
+   DETAIL: "KIT_DETAIL",
+};

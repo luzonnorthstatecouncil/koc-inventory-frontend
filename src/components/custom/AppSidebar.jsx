@@ -53,7 +53,7 @@ export function AppSidebar({ user }) {
    return (
       <Sidebar className='border border-sidebar-border max-lg:w-2/6'>
          <SidebarContent className='p-1.5 sm:p-2 bg-sidebar border border-sidebar-border text-sidebar-foreground'>
-            <SidebarGroup className='text-lg sm:text-xl md:text-2xl font-bold flex flex-row items-center gap-2 px-1 sm:px-0'>
+            <SidebarGroup className='text-lg sm:text-xl md:text-2xl font-bold flex flex-row items-center justify-center gap-2 px-1 sm:px-0'>
                <img src={LogoWordmark} alt='Logo' className='w-3/4 sm:w-4/5' />
             </SidebarGroup>
 
@@ -66,7 +66,8 @@ export function AppSidebar({ user }) {
                      <SidebarGroupContent>
                         <SidebarMenu className='gap-0 w-full'>
                            {module.modules.map((item) =>
-                              item.roles && !item.roles.includes(user.role) ? null : item.children &&
+                              item.roles &&
+                              !item.roles.includes(user.role) ? null : item.children &&
                                 item.children.length > 0 ? (
                                  <Collapsible
                                     key={item.title}
@@ -86,23 +87,35 @@ export function AppSidebar({ user }) {
                                              >
                                                 <div className='flex items-center gap-1.5 sm:gap-2 mx-1 sm:mx-1.5'>
                                                    <item.icon className='size-3.5 sm:size-4' />
-                                                   <h1 className='text-xs sm:text-sm'>{item.title}</h1>
+                                                   <h1 className='text-xs sm:text-sm'>
+                                                      {item.title}
+                                                   </h1>
                                                 </div>
                                                 <ChevronRight className='size-3.5 sm:size-4 transition-transform duration-200 ease-in-out group-data-[state=open]:rotate-90' />
                                              </div>
                                           </SidebarMenuButton>
                                        </CollapsibleTrigger>
 
-                                       <CollapsibleContent className='border-l border-gray-400' asChild>
+                                       <CollapsibleContent
+                                          className='border-l border-gray-400'
+                                          asChild
+                                       >
                                           <SidebarMenuSub>
                                              {item.children.map((child) =>
-                                                child.roles && !child.roles.includes(user.role) ? null : (
+                                                child.roles &&
+                                                !child.roles.includes(user.role) ? null : (
                                                    <SidebarMenuSubItem key={child.title}>
-                                                      <SidebarMenuButton type='button' className='h-5 sm:h-6' asChild>
+                                                      <SidebarMenuButton
+                                                         type='button'
+                                                         className='h-5 sm:h-6'
+                                                         asChild
+                                                      >
                                                          <div
                                                             className={cn(
                                                                "flex items-center gap-2 sm:gap-3 w-full text-sidebar-foreground hover:text-secondary hover:bg-secondary/5 transition-all text-sm sm:text-base cursor-pointer select-none py-0.5",
-                                                               location.pathname.includes(child.path) &&
+                                                               location.pathname.includes(
+                                                                  child.path,
+                                                               ) &&
                                                                   "bg-secondary/5! font-semibold text-secondary!",
                                                             )}
                                                             onClick={() => navigate(child.path)}
@@ -112,7 +125,9 @@ export function AppSidebar({ user }) {
                                                             ) : (
                                                                <span className='size-3 sm:size-4' />
                                                             )}
-                                                            <h1 className='text-xs sm:text-sm'>{child.title}</h1>
+                                                            <h1 className='text-xs sm:text-sm'>
+                                                               {child.title}
+                                                            </h1>
                                                          </div>
                                                       </SidebarMenuButton>
                                                    </SidebarMenuSubItem>
@@ -137,7 +152,9 @@ export function AppSidebar({ user }) {
                                                 location.pathname === item.path &&
                                                    "bg-secondary/5 font-semibold text-secondary",
                                              )}
-                                             onClick={() => (item.disabled ? {} : navigate(item.path))}
+                                             onClick={() =>
+                                                item.disabled ? {} : navigate(item.path)
+                                             }
                                           >
                                              <div className='flex items-center gap-1.5 sm:gap-2 w-full text-xs sm:text-sm'>
                                                 <item.icon className='size-3.5 sm:size-4' />
@@ -156,14 +173,17 @@ export function AppSidebar({ user }) {
             )}
 
             <SidebarGroup>
-               <SidebarGroupLabel className='text-sidebar-foreground text-xs sm:text-sm'>Account</SidebarGroupLabel>
+               <SidebarGroupLabel className='text-sidebar-foreground text-xs sm:text-sm'>
+                  Account
+               </SidebarGroupLabel>
                <SidebarGroupContent>
                   <SidebarMenuItem className='flex items-center justify-between'>
                      <SidebarMenuButton asChild>
                         <div
                            className={cn(
                               `flex items-center justify-between gap-2 sm:gap-3 w-full text-sidebar-foreground hover:bg-secondary/5! rounded p-1 sm:p-1.5 hover:text-secondary! transition-all text-sm sm:text-base cursor-pointer select-none`,
-                              location.pathname === ACCOUNT.path && "bg-secondary/5 font-semibold text-secondary",
+                              location.pathname === ACCOUNT.path &&
+                                 "bg-secondary/5 font-semibold text-secondary",
                            )}
                            onClick={() => navigate(ACCOUNT.path)}
                         >
@@ -191,7 +211,9 @@ export function AppSidebar({ user }) {
                Sign Out
             </IButtonConfirm>
             <SidebarMenu>
-               <p className='text-gray-400 text-xs sm:text-xs'>Version {import.meta.env.VITE_APP_VERSION}</p>
+               <p className='text-gray-400 text-xs sm:text-xs'>
+                  Version {import.meta.env.VITE_APP_VERSION}
+               </p>
             </SidebarMenu>
          </SidebarFooter>
       </Sidebar>

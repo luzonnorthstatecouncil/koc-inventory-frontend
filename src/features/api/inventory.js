@@ -113,6 +113,13 @@ export const inventoryApi = createApi({
          query: (id) => `/v1/stocks/${id}`,
          providesTags: [STOCKS_TAGS.DETAIL],
       }),
+      getStockMovements: builder.query({
+         query: (params) => {
+            const queryParams = urlParams(params);
+            return `/v1/stocks/movements?${queryParams}`;
+         },
+         providesTags: [STOCKS_TAGS.LIST],
+      }),
       createStock: builder.mutation({
          query: (data) => ({
             url: "/v1/stocks",
@@ -136,6 +143,14 @@ export const inventoryApi = createApi({
             body: data,
          }),
          invalidatesTags: [INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST],
+      }),
+      bulkDeductStocks: builder.mutation({
+         query: (data) => ({
+            url: `/v1/stocks/bulk-deduct`,
+            method: "POST",
+            body: data,
+         }),
+         invalidatesTags: [INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST],
       }),
       flushExpiredStocks: builder.mutation({
          query: (data) => ({
@@ -218,9 +233,11 @@ export const {
    useGetInventoryStockListQuery,
    useGetInventoryStocksQuery,
    useGetInventoryStockByIdQuery,
+   useGetStockMovementsQuery,
    useCreateStockMutation,
    useBulkCreateStocksMutation,
    useRemoveStockMutation,
+   useBulkDeductStocksMutation,
    useFlushExpiredStocksMutation,
    useAdjustStocksMutation,
    useUpdateStockExpiryMutation,

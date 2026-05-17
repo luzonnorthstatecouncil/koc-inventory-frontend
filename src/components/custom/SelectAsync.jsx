@@ -26,6 +26,7 @@ const SelectAsync = ({
    onValueChange,
    name,
    label,
+   description,
    showAll = true,
    allLabel = "All",
    allValue = "all",
@@ -108,7 +109,8 @@ const SelectAsync = ({
 
             // Append new data if it's different from previous
             const newItems = responseData.filter(
-               (item) => !prev.some((existing) => (existing.value || existing) === (item.value || item)),
+               (item) =>
+                  !prev.some((existing) => (existing.value || existing) === (item.value || item)),
             );
 
             if (newItems.length > 0) {
@@ -119,13 +121,12 @@ const SelectAsync = ({
             return prev;
          });
       }
-   }, [serverData, currentPage]);
+   }, [serverData, currentPage, debouncedSearchTerm]);
 
    // Reset page when search changes
    useEffect(() => {
       if (searchable) {
          setCurrentPage(1);
-         setAllOptions([]);
       }
    }, [debouncedSearchTerm, searchable]);
 
@@ -143,7 +144,8 @@ const SelectAsync = ({
    const isQueryLoading = isLoading || isFetching;
 
    // If using react-hook-form, get the current value from context
-   const selectedValue = useForm && name && formContext ? (formContext.watch(name) ?? "") : (value ?? "");
+   const selectedValue =
+      useForm && name && formContext ? (formContext.watch(name) ?? "") : (value ?? "");
 
    // If using react-hook-form, update the form value
    const handleChange = useCallback(
@@ -171,7 +173,17 @@ const SelectAsync = ({
             });
          }
       },
-      [useForm, name, setValue, onValueChange, options, clearErrors, formContext, relatedKeys, relatedErrorKeys],
+      [
+         useForm,
+         name,
+         setValue,
+         onValueChange,
+         options,
+         clearErrors,
+         formContext,
+         relatedKeys,
+         relatedErrorKeys,
+      ],
    );
 
    // Dynamically get label for selected value
@@ -182,7 +194,9 @@ const SelectAsync = ({
             return opt.value == selectedValue;
          });
 
-         return typeof found === "string" ? found : found?.label;
+         return typeof found === "string"
+            ? found
+            : (found?.label ?? props.placeholder ?? "Select an option");
       }
 
       return props.placeholder ?? "Select an option";
@@ -222,6 +236,7 @@ const SelectAsync = ({
    return (
       <div className={cn("flex flex-col gap-1", className)}>
          {label && <Label>{label}</Label>}
+         {description && <p className='text-xs text-muted-foreground'>{description}</p>}
 
          <Select
             {...(useForm && name ? register(name) : {})}
@@ -240,7 +255,7 @@ const SelectAsync = ({
                   triggerClassName,
                )}
             >
-               <SelectValue placeholder={selectedDisplayValue} />
+               <SelectValue placeholder={props.placeholder}>{selectedDisplayValue}</SelectValue>
             </SelectTrigger>
 
             <SelectContent className={cn("max-h-72", contentClassName)} ref={scrollRef}>
@@ -280,7 +295,11 @@ const SelectAsync = ({
                         </SelectItem>
                      ))
                   ) : !isQueryLoading ? (
-                     <SelectItem value='no-options' disabled className='cursor-not-allowed text-gray-400'>
+                     <SelectItem
+                        value='no-options'
+                        disabled
+                        className='cursor-not-allowed text-gray-400'
+                     >
                         {searchTerm ? "No results found" : "No options available"}
                      </SelectItem>
                   ) : null}

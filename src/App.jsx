@@ -10,6 +10,7 @@ import AuditLogs from "./pages/AuditLogs";
 import UserManagement from "./pages/User";
 import Reports from "./pages/Reports";
 import InvoicePage from "./pages/InvoicePage";
+import Kits from "./pages/Kits";
 
 import {
    ACCOUNT,
@@ -17,12 +18,14 @@ import {
    INVENTORY_ITEMS,
    INVENTORY_STOCKS,
    INVENTORY_SUPPLIERS,
+   KITS,
    LOGIN,
    ORDERS,
    POINT_OF_SALE,
    REPORTS,
    SETTINGS,
    STOCK_APPROVALS,
+   STOCK_MOVEMENTS,
    USER_MANAGEMENT,
 } from "./constants/routes";
 import InventoryStocks from "./pages/InventoryStocks";
@@ -30,6 +33,7 @@ import Orders from "./pages/Orders";
 import Account from "./pages/Account";
 import Suppliers from "./pages/Suppliers";
 import StockApprovals from "./pages/StockApprovals";
+import StockMovements from "./pages/StockMovements";
 
 export default function App() {
    const token = getToken();
@@ -47,6 +51,8 @@ export default function App() {
       { path: INVENTORY_STOCKS.path, element: <InventoryStocks /> },
       { path: STOCK_APPROVALS.path, element: <StockApprovals /> },
       { path: INVENTORY_SUPPLIERS.path, element: <Suppliers /> },
+      { path: KITS.path, element: <Kits /> },
+      { path: STOCK_MOVEMENTS.path, element: <StockMovements /> },
       { path: USER_MANAGEMENT.path, element: <UserManagement /> },
       { path: REPORTS.path, element: <Reports /> },
       { path: AUDIT_LOGS.path, element: <AuditLogs /> },

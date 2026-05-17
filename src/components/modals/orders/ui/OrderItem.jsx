@@ -1,7 +1,15 @@
 import { priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 
-export default function OrderItem({ name, quantity, price, className, nameClassName, priceClassName, parsePrice = true }) {
+export default function OrderItem({
+   name,
+   quantity,
+   price,
+   className,
+   nameClassName,
+   priceClassName,
+   parsePrice = true,
+}) {
    return (
       <div className={cn("flex items-center justify-between gap-3 py-1.5", className)}>
          <div className='flex items-center gap-2.5 min-w-0'>
@@ -12,12 +20,17 @@ export default function OrderItem({ name, quantity, price, className, nameClassN
             )}
             <div className={cn("min-w-0", nameClassName)}>
                <p className='text-sm font-medium text-foreground truncate'>{name}</p>
-               {quantity && (
+               {quantity && price ? (
                   <p className='text-sm text-muted-foreground'>{priceParser(price)} each</p>
-               )}
+               ) : null}
             </div>
          </div>
-         <p className={cn("text-sm font-semibold text-foreground tabular-nums flex-shrink-0", priceClassName)}>
+         <p
+            className={cn(
+               "text-sm font-semibold text-foreground tabular-nums flex-shrink-0",
+               priceClassName,
+            )}
+         >
             {parsePrice ? priceParser(quantity ? quantity * price : price) : price}
          </p>
       </div>
