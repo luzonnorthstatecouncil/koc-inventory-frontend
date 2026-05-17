@@ -27,9 +27,9 @@ const columns = [
    {
       key: "created_at",
       title: "Date & Time",
-      width: "180px",
+      width: "220px",
       render: (value) => (
-         <span className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
+         <span className='inline-flex items-center gap-1.5 text-sm text-muted-foreground'>
             <CalendarDays className='size-3.5' />
             {dateParser(value, "PP p")}
          </span>
@@ -65,7 +65,7 @@ const columns = [
    {
       key: "stock.variant.variant_name",
       title: "Variant",
-      width: "150px",
+      width: "250px",
       render: (_, item) => {
          const variant = item.stock?.variant;
          return (
