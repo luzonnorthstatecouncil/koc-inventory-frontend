@@ -1,15 +1,19 @@
-import Details from "./Details";
 import IInput from "./Input";
 
-export default function EditableDetails({ label, description, isEdit = false, name, value, icon }) {
+/** A settings field: a label/value row while viewing, a full-width input while editing. */
+export default function EditableDetails({ label, description, isEdit = false, name }) {
    return isEdit ? (
-      <IInput
-         inputWrapperClassName='w-1/3'
-         name={name}
-         label={label}
-         placeholder={`Enter ${label.toLowerCase()}`}
-      />
+      <IInput name={name} label={label} placeholder={`Enter ${label.toLowerCase()}`} />
    ) : (
-      <Details label={label} description={description} icon={icon} />
+      <ReadOnlyRow label={label} value={description} />
+   );
+}
+
+export function ReadOnlyRow({ label, value }) {
+   return (
+      <div className='flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6'>
+         <dt className='text-sm text-neutral-600'>{label}</dt>
+         <dd className='min-w-0 truncate text-sm font-medium text-foreground'>{value}</dd>
+      </div>
    );
 }

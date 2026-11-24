@@ -9,17 +9,18 @@ import { cn } from "@/lib/utils";
 import { ClipboardList, User } from "lucide-react";
 import { useState } from "react";
 
+// Neutral by default; red only marks destructive changes.
 const CHANGE_TYPE_CONFIG = {
-   variant_added:      { label: "Variant Added",   pill: "bg-emerald-50 text-emerald-700",  dot: "bg-emerald-500",  border: "border-l-emerald-400" },
-   variant_deleted:    { label: "Variant Deleted", pill: "bg-red-50 text-red-600",          dot: "bg-red-500",      border: "border-l-red-400" },
-   variant_updated:    { label: "Variant Updated", pill: "bg-amber-50 text-amber-700",      dot: "bg-amber-400",    border: "border-l-amber-400" },
-   inventory_updated:  { label: "Item Updated",    pill: "bg-blue-50 text-blue-700",        dot: "bg-blue-500",     border: "border-l-blue-400" },
-   inventory_created:  { label: "Item Created",    pill: "bg-emerald-50 text-emerald-700",  dot: "bg-emerald-500",  border: "border-l-emerald-400" },
-   inventory_deleted:  { label: "Item Deleted",    pill: "bg-red-50 text-red-600",          dot: "bg-red-500",      border: "border-l-red-400" },
+   variant_added: { label: "Variant added", destructive: false },
+   variant_deleted: { label: "Variant deleted", destructive: true },
+   variant_updated: { label: "Variant updated", destructive: false },
+   inventory_updated: { label: "Item updated", destructive: false },
+   inventory_created: { label: "Item created", destructive: false },
+   inventory_deleted: { label: "Item deleted", destructive: true },
 };
 
 function formatValue(value) {
-   if (value === null || value === undefined) return <span className='italic text-muted-foreground'>null</span>;
+   if (value === null || value === undefined) return <span className='italic text-neutral-500'>null</span>;
    return String(value);
 }
 
@@ -56,26 +57,26 @@ function ChangeDiff({ changedFields: rawChangedFields, oldValues: rawOldValues, 
       const isAdded = Boolean(newValues);
 
       return (
-         <div className='mt-2 rounded-md border overflow-hidden'>
+         <div className='mt-2 overflow-hidden rounded-lg border border-neutral-200'>
             <table className='w-full text-xs'>
                <thead>
-                  <tr className='bg-muted/60'>
-                     <th className='text-left px-3 py-1.5 font-medium text-muted-foreground w-1/3'>Field</th>
-                     <th className='text-left px-3 py-1.5 font-medium text-muted-foreground'>
+                  <tr className='bg-neutral-50'>
+                     <th className='text-left px-3 py-1.5 font-medium text-neutral-500 w-1/3'>Field</th>
+                     <th className='text-left px-3 py-1.5 font-medium text-neutral-500'>
                         {isAdded ? "Value" : "Removed Value"}
                      </th>
                   </tr>
                </thead>
                <tbody>
                   {Object.entries(values).map(([field, value]) => (
-                     <tr key={field} className='border-t'>
+                     <tr key={field} className='border-t border-neutral-200'>
                         <td className='px-3 py-1.5 text-foreground font-medium capitalize'>
                            {field.replace(/_/g, " ")}
                         </td>
                         <td
                            className={cn(
                               "px-3 py-1.5",
-                              isAdded ? "text-green-700 dark:text-green-400" : "text-destructive",
+                              isAdded ? "text-foreground" : "text-neutral-500 line-through",
                            )}
                         >
                            {formatValue(value)}
@@ -89,21 +90,21 @@ function ChangeDiff({ changedFields: rawChangedFields, oldValues: rawOldValues, 
    }
 
    return (
-      <div className='mt-2 rounded-md border overflow-hidden'>
+      <div className='mt-2 overflow-hidden rounded-lg border border-neutral-200'>
          <table className='w-full text-xs'>
             <thead>
-               <tr className='bg-muted/60'>
-                  <th className='text-left px-3 py-1.5 font-medium text-muted-foreground w-1/3'>Field</th>
-                  <th className='text-left px-3 py-1.5 font-medium text-muted-foreground w-1/3'>Old Value</th>
-                  <th className='text-left px-3 py-1.5 font-medium text-muted-foreground w-1/3'>New Value</th>
+               <tr className='bg-neutral-50'>
+                  <th className='text-left px-3 py-1.5 font-medium text-neutral-500 w-1/3'>Field</th>
+                  <th className='text-left px-3 py-1.5 font-medium text-neutral-500 w-1/3'>Old Value</th>
+                  <th className='text-left px-3 py-1.5 font-medium text-neutral-500 w-1/3'>New Value</th>
                </tr>
             </thead>
             <tbody>
                {changedFields?.map((field) => (
-                  <tr key={field} className='border-t'>
+                  <tr key={field} className='border-t border-neutral-200'>
                      <td className='px-3 py-1.5 text-foreground font-medium capitalize'>{field.replace(/_/g, " ")}</td>
-                     <td className='px-3 py-1.5 text-gray-500 line-through'>{formatValue(oldValues?.[field])}</td>
-                     <td className='px-3 py-1.5 text-green-700 dark:text-green-400'>
+                     <td className='px-3 py-1.5 text-neutral-500 line-through'>{formatValue(oldValues?.[field])}</td>
+                     <td className='px-3 py-1.5 font-medium text-foreground'>
                         {formatValue(newValues?.[field])}
                      </td>
                   </tr>
@@ -117,38 +118,46 @@ function ChangeDiff({ changedFields: rawChangedFields, oldValues: rawOldValues, 
 function AuditTrailEntry({ entry }) {
    const config = CHANGE_TYPE_CONFIG[entry.change_type] ?? {
       label: entry.change_type,
-      pill: "bg-gray-100 text-gray-600",
-      dot: "bg-gray-400",
-      border: "border-l-gray-300",
+      destructive: false,
    };
 
    return (
-      <div className={cn("border-l-2 pl-4 py-1.5", config.border)}>
-         <div className='flex flex-wrap items-center gap-2'>
-            <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm font-semibold", config.pill)}>
-               <span className={cn("size-1.5 rounded-full", config.dot)} />
-               {config.label}
-            </span>
-            <span className='text-sm font-semibold text-foreground'>{entry.subject_name}</span>
-            <span className='text-xs text-muted-foreground ml-auto shrink-0'>{dateParser(entry.changed_at, "PPp")}</span>
+      <li className='px-4 py-3'>
+         <div className='flex items-start justify-between gap-4'>
+            <div className='flex min-w-0 flex-col gap-0.5'>
+               <span
+                  className={cn(
+                     "inline-flex items-center gap-2 text-xs font-medium",
+                     config.destructive ? "text-red-700" : "text-neutral-500",
+                  )}
+               >
+                  <span
+                     className={cn("size-2 rounded-full", config.destructive ? "bg-red-500" : "bg-neutral-300")}
+                     aria-hidden='true'
+                  />
+                  {config.label}
+               </span>
+               <span className='truncate text-sm font-medium text-foreground'>{entry.subject_name}</span>
+               <span className='inline-flex items-center gap-1 text-xs text-neutral-500'>
+                  <User className='size-3' aria-hidden='true' />
+                  {entry.changed_by?.full_name}
+                  <span className='text-neutral-500'>({entry.changed_by?.email})</span>
+               </span>
+            </div>
+            <div className='flex shrink-0 flex-col items-end gap-0.5'>
+               <span className='text-sm font-medium text-foreground'>{dateParser(entry.changed_at, "PP")}</span>
+               <span className='text-xs text-neutral-500 tabular-nums'>{dateParser(entry.changed_at, "p")}</span>
+            </div>
          </div>
 
-         <div className='flex items-center gap-1 mt-1'>
-            <User className='size-3 text-muted-foreground' />
-            <span className='text-xs text-foreground'>
-               {entry.changed_by?.full_name}
-               <span className='ml-1 text-muted-foreground'>({entry.changed_by?.email})</span>
-            </span>
-         </div>
-
-         {config.label !== "Variant Deleted" && config.label !== "Variant Added" && (
+         {config.label !== "Variant deleted" && config.label !== "Variant added" && (
             <ChangeDiff
                changedFields={entry.changed_fields}
                oldValues={entry.old_values}
                newValues={entry.new_values}
             />
          )}
-      </div>
+      </li>
    );
 }
 
@@ -156,7 +165,7 @@ function AuditTrailSkeleton() {
    return (
       <div className='space-y-4'>
          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className='border-l-2 border-l-muted pl-4 py-1 space-y-2'>
+            <div key={i} className='space-y-2 border-b border-neutral-200 px-4 py-3 last:border-b-0'>
                <div className='flex items-center gap-2'>
                   <Skeleton className='h-5 w-24 rounded-md' />
                   <Skeleton className='h-4 w-20' />
@@ -185,27 +194,25 @@ export default function ViewAuditTrails({ item }) {
 
    return (
       <div className='w-full flex flex-col gap-3'>
-         <div className='flex items-center gap-2'>
-            <div className='p-1.5 bg-primary/10 rounded-lg'>
-               <ClipboardList className='size-4 text-primary' />
-            </div>
+         <div className='flex items-start gap-2'>
+            <ClipboardList className='mt-1 size-4 shrink-0 text-neutral-400' aria-hidden='true' />
             <div>
                <Title className='text-base font-bold text-foreground leading-tight'>Audit Trails</Title>
-               <Paragraph size='sm' className='text-muted-foreground'>Recorded changes to this item and its variants.</Paragraph>
+               <Paragraph size='sm' className='text-neutral-500'>Recorded changes to this item and its variants.</Paragraph>
             </div>
          </div>
 
-         <ScrollArea className='h-[340px] pr-2'>
+         <ScrollArea className='h-85 pr-2'>
             {isLoading || isFetching ? (
                <AuditTrailSkeleton />
             ) : trails.length === 0 ? (
                <Paragraph size="sm" className='py-4 text-center'>No audit trail records found.</Paragraph>
             ) : (
-               <div className='space-y-4'>
+               <ul className='divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white'>
                   {trails.map((entry) => (
                      <AuditTrailEntry key={entry.id} entry={entry} />
                   ))}
-               </div>
+               </ul>
             )}
          </ScrollArea>
 

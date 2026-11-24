@@ -12,6 +12,8 @@ export default mergeConfig(
          port: 5174,
          strictPort: true,
          proxy: { "/api": "http://localhost:5055" },
+         // Playwright writes traces under e2e/results during the run; watching them reloads the page mid-test
+         watch: { ignored: ["**/e2e/**"] },
       },
    }),
 );

@@ -1,39 +1,29 @@
-import { useDispatch } from "react-redux";
-import { showLoading, hideLoading } from "@/features/slice/loading";
-
 /**
- * Custom hook to wrap async queries/mutations with loading state
+ * Wraps an RTK Query mutation/query call and normalises its result. Loading is shown where the
+ * request starts (the button, form or page), not globally.
  */
 export const useCatchQuery = () => {
-   const dispatch = useDispatch();
-
    const run = async (asyncFn, args) => {
-      dispatch(showLoading());
+      const result = await asyncFn(args);
+      const hasError = Boolean(result?.error?.data);
 
-      try {
-         const result = await asyncFn(args);
-         const hasError = Boolean(result?.error?.data);
-
-         if (result?.error && result.error.status === "FETCH_ERROR") {
-            return { success: false, message: "Network error. Please check your connection." };
-         }
-
-         if (hasError) {
-            return {
-               success: false,
-               message: result?.error?.data?.message || "Something went wrong.",
-               errors: result?.error?.data?.errors ?? null,
-            };
-         }
-
-         return {
-            success: true,
-            message: result?.data.message,
-            result: result?.data,
-         };
-      } finally {
-         dispatch(hideLoading());
+      if (result?.error && result.error.status === "FETCH_ERROR") {
+         return { success: false, message: "Network error. Please check your connection." };
       }
+
+      if (hasError) {
+         return {
+            success: false,
+            message: result?.error?.data?.message || "Something went wrong.",
+            errors: result?.error?.data?.errors ?? null,
+         };
+      }
+
+      return {
+         success: true,
+         message: result?.data.message,
+         result: result?.data,
+      };
    };
 
    return run;

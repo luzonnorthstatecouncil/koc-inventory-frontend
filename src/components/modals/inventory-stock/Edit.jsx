@@ -1,27 +1,21 @@
-import Paragraph from "@/components/custom/Paragraph";
-import ITabs from "@/components/custom/Tabs";
-import Title from "@/components/custom/Title";
 import Form from "@/components/custom/Form";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import IButton from "@/components/custom/Button";
-import Details from "@/components/custom/Details";
+import IInput from "@/components/custom/Input";
 import ISelect from "@/components/custom/Select";
-import InputNumber from "@/components/custom/InputNumber";
 import ITextarea from "@/components/custom/Textarea";
 
 import { addOthers } from "@/helpers/parser";
-import { AlertCircle, AlertTriangle, PackageMinus, PackagePlus } from "lucide-react";
+import { Info, TriangleAlert } from "lucide-react";
 import { useCallback, useMemo } from "react";
-import { Separator } from "@/components/ui/separator";
 import { ADJUSTMENT_STOCK_REMARKS_OPTIONS, REMOVE_STOCK_REMARKS_OPTIONS } from "@/constants/options";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { toast } from "sonner";
 import { editStockDefaultValues, editStockSchema } from "@/lib/zod/schema/manageStock";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useAdjustStocksMutation } from "@/features/api/inventory";
-import ModalSkeleton from "@/components/custom/ModalSkeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export default function Edit({ item, onClose }) {
    const { confirm } = useConfirmation();
@@ -32,36 +26,37 @@ export default function Edit({ item, onClose }) {
       return item?.variant?.stockRequests?.some((request) => request.status === "pending");
    }, [item]);
 
-   const onSubmit = useCallback(async (data) => {
-      if (item.current_quantity === data.quantity) {
-         toast.error("Quantity must be different from current quantity.");
-         return;
-      }
+   const onSubmit = useCallback(
+      async (data) => {
+         if (item.current_quantity === data.quantity) {
+            toast.error("Enter a quantity different from what's on hand.");
+            return;
+         }
 
-      const confirmed = await confirm({
-         title: "Adjustment",
-         message: `This will change the ${item.current_quantity} stock${data.quantity > 1 ? "s" : ""} to ${
-            data.quantity
-         } stocks from ${item.reference_no}. Are you sure you want to proceed?`,
-      });
+         const confirmed = await confirm({
+            title: "Adjust this batch?",
+            message: `Batch ${item.reference_no} goes from ${item.current_quantity} to ${data.quantity} on hand.`,
+         });
 
-      if (!confirmed) return;
+         if (!confirmed) return;
 
-      const formData = {
-         ...data,
-         remarks: data.remarks_others || data.remarks,
-         current: item.current_quantity,
-         adjustment_type: data.quantity > item.current_quantity ? "add" : "remove",
-      };
+         const formData = {
+            ...data,
+            remarks: data.remarks_others || data.remarks,
+            current: item.current_quantity,
+            adjustment_type: data.quantity > item.current_quantity ? "add" : "remove",
+         };
 
-      const { min_quantity, remarks_others, ...payload } = formData;
+         const { min_quantity, remarks_others, ...payload } = formData;
 
-      const { success, message } = await exec(adjustStock, payload);
-      if (!success) return;
+         const { success, message } = await exec(adjustStock, payload);
+         if (!success) return;
 
-      toast.success(message);
-      onClose();
-   }, [adjustStock, confirm, exec, item.current_quantity, item.reference_no, onClose]);
+         toast.success(message);
+         onClose();
+      },
+      [adjustStock, confirm, exec, item.current_quantity, item.reference_no, onClose],
+   );
 
    return (
       <Form
@@ -82,106 +77,99 @@ export default function Edit({ item, onClose }) {
 
 function StocksContent({ item, onClose, hasPendingStockRequest }) {
    const { formState } = useFormContext();
-   const formValues = useMemo(() => formState?.values, [formState?.values]);
-   const formErrors = useMemo(() => formState?.errors, [formState?.errors]);
+   const quantity = useWatch({ name: "quantity" });
+   const remarks = useWatch({ name: "remarks" });
+
+   const current = Number(item.current_quantity) || 0;
+   const next = Number(quantity);
+   const delta = Number.isFinite(next) ? next - current : 0;
+   const removing = Number.isFinite(next) && next <= current;
+   const variant = item.variant?.variant_name;
 
    return (
-      <div className='w-full flex flex-col relative'>
-         <Title className='grid grid-cols-2 gap-2' size='base' variant='default'>
-            <span>
-               {item.reference_no}
-               <Paragraph className='font-normal'>
-                  {item.inventory.name} - {item.variant.variant_name}
-               </Paragraph>
-            </span>
-            <Paragraph size='sm' variant='muted' className='font-normal text-end flex items-center justify-end gap-1'>
-               Current: <strong className='text-gray-800'>{item.current_quantity}</strong> /{" "}
-               {item.variant.max_qty_level}
-            </Paragraph>
-         </Title>
+      <div className='flex w-full flex-col gap-4'>
+         <header className='flex items-start justify-between gap-4 rounded-xl border border-neutral-200 px-4 py-3'>
+            <div className='flex min-w-0 flex-col gap-0.5'>
+               <p className='truncate text-sm font-semibold text-foreground'>
+                  {item.inventory?.name}
+                  {variant && variant !== "Default" && <span className='font-medium text-neutral-500'> · {variant}</span>}
+               </p>
+               <p className='text-xs text-neutral-500 tabular-nums'>Batch {item.reference_no}</p>
+            </div>
+            <div className='flex shrink-0 flex-col items-end gap-0.5'>
+               <p className='text-base font-semibold text-foreground tabular-nums'>{current.toLocaleString()}</p>
+               <p className='text-xs text-neutral-500 tabular-nums'>
+                  on hand · max {Number(item.variant?.max_qty_level || 0).toLocaleString()}
+               </p>
+            </div>
+         </header>
 
-         <Separator className='my-3' />
-
-         {hasPendingStockRequest && (
-            <Alert className='mb-2 border border-destructive bg-red-50'>
-               <AlertDescription className='text-xs text-destructive flex items-center gap-2'>
-                  <span>
-                     <AlertTriangle className='size-4' />
-                  </span>
-                  There is a pending stock request for this item. Adjusting the stock now may affect the pending
-                  request.
-               </AlertDescription>
-            </Alert>
+         {hasPendingStockRequest ? (
+            <div className='flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900'>
+               <TriangleAlert className='mt-0.5 size-4 shrink-0 opacity-70' aria-hidden='true' />
+               <p className='text-sm'>This item has a stock request waiting for approval. Settle it before adjusting.</p>
+            </div>
+         ) : (
+            <div className='flex gap-2.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-neutral-700'>
+               <Info className='mt-0.5 size-4 shrink-0 opacity-70' aria-hidden='true' />
+               <p className='text-sm'>Enter what&apos;s actually on hand; the difference is added or removed for you.</p>
+            </div>
          )}
 
-         <Alert className='mb-4 border border-primary bg-blue-50'>
-            <AlertDescription className='text-xs text-primary flex items-center gap-2'>
-               <span>
-                  <AlertTriangle className='size-4' />
-               </span>
-               This tool automatically calculates the difference and adjusts the stock level accordingly (removing or
-               adding units).
-            </AlertDescription>
-         </Alert>
-
-         <div className='relative mb-3'>
-            <div className='flex items-center justify-between gap-3 mb-3'>
-               <div className='flex flex-col'>
-                  <Details label='Number of Item' description='Enter the desired total item of the stock.' />
-                  {formErrors.quantity && (
-                     <span className='text-destructive text-xs'>{formErrors.quantity.message}</span>
-                  )}
-               </div>
-
-               <InputNumber
-                  max={item.variant.max_qty_level}
-                  name='quantity'
-                  steps={10}
-                  disabled={hasPendingStockRequest}
-               />
-            </div>
-
-            <ISelect
-               showAll={false}
-               name='remarks'
-               label='Remarks'
-               triggerClassName='bg-white'
-               relatedKeys={["remarks_others"]}
+         <div className='flex flex-col gap-1'>
+            <IInput
+               name='quantity'
+               label='Quantity on hand'
+               type='number'
+               min={0}
+               max={item.variant?.max_qty_level}
                disabled={hasPendingStockRequest}
-               options={addOthers(
-                  formValues?.quantity <= item.current_quantity
-                     ? REMOVE_STOCK_REMARKS_OPTIONS
-                     : ADJUSTMENT_STOCK_REMARKS_OPTIONS,
-               )}
+               className='tabular-nums'
             />
-
-            {formValues?.remarks === "others" && (
-               <ITextarea
-                  name='remarks_others'
-                  placeholder='State other reason here...'
-                  className='bg-white'
-                  wrapperClassName='mt-2'
-               />
-            )}
+            <p
+               className={cn(
+                  "text-xs tabular-nums",
+                  delta === 0 ? "text-neutral-500" : delta < 0 ? "text-red-700" : "text-foreground",
+               )}
+            >
+               {delta === 0
+                  ? "No change yet."
+                  : delta < 0
+                    ? `Removes ${Math.abs(delta).toLocaleString()} from this batch.`
+                    : `Adds ${delta.toLocaleString()} to this batch.`}
+            </p>
          </div>
 
-         <div className='flex items-center justify-end gap-2 mt-2'>
+         <ISelect
+            showAll={false}
+            name='remarks'
+            label='Reason'
+            triggerClassName='bg-white'
+            relatedKeys={["remarks_others"]}
+            disabled={hasPendingStockRequest}
+            options={addOthers(removing ? REMOVE_STOCK_REMARKS_OPTIONS : ADJUSTMENT_STOCK_REMARKS_OPTIONS)}
+         />
+
+         {remarks === "others" && (
+            <ITextarea name='remarks_others' placeholder='Describe the reason' className='bg-white' rows={2} />
+         )}
+
+         <footer className='-mx-3 mt-1 flex items-center justify-end gap-2 border-t border-neutral-200 px-3 pt-3 pb-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6'>
             <IButtonConfirm
-               title='Cancel Editing'
-               message='Are you sure you want to cancel? All unsaved changes will be lost.'
+               title='Discard this adjustment?'
+               message='The batch stays as it is.'
+               cancelLabel='Keep editing'
+               confirmLabel='Discard'
                asButton
                onConfirm={onClose}
+               isDirty={formState.isDirty}
             >
                Cancel
             </IButtonConfirm>
-            <IButton
-               type='submit'
-               variant='default'
-               disabled={hasPendingStockRequest || formValues?.quantity === item.current_quantity}
-            >
-               Save Changes
+            <IButton type='submit' variant='default' disabled={hasPendingStockRequest || delta === 0}>
+               Save adjustment
             </IButton>
-         </div>
+         </footer>
       </div>
    );
 }

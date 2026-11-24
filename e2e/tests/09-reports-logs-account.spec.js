@@ -9,7 +9,13 @@ test.describe.serial("Phase 11: Reports, movements, audit logs", () => {
     await page.goto("/reports");
     await expect(page.getByText("Total Inventory Value").first()).toBeVisible();
     await page.getByRole("tab", { name: "Stocks Velocity" }).click();
-    await expect(page.getByText(/T-Shirt/).first()).toBeVisible();
+    // Which items appear depends on net sales; what must hold is that the page footer matches
+    // the rows shown (items hidden while "calibrating" used to be counted but not listed)
+    const panel = page.getByRole("tabpanel", { name: "Stocks Velocity" });
+    const footer = panel.getByText(/Showing \d+ to \d+ of \d+ entries/);
+    await expect(footer).toBeVisible();
+    const [, from, to] = (await footer.textContent()).match(/Showing (\d+) to (\d+)/).map(Number);
+    await expect(panel.getByRole("rowgroup").last().getByRole("row")).toHaveCount(to - from + 1);
     await page.getByRole("tab", { name: "Reorder Report" }).click();
     expect(issues.filter((i) => !/DevTools|Future Flag/.test(i))).toEqual([]);
   });
@@ -67,7 +73,7 @@ test.describe.serial("Phase 12: Account", () => {
   test("AC-01 update full name from the Account page", async ({ page }) => {
     await signIn(page, "sup_ui", "suppass1");
     await page.goto("/account");
-    const s = await startEdit(page, "Personal Information");
+    const s = await startEdit(page, "Personal information");
     const name = s.locator("input").first();
     await name.fill("Samantha Supervisor");
     await s.getByRole("button", { name: "Save Changes" }).click();
@@ -78,7 +84,7 @@ test.describe.serial("Phase 12: Account", () => {
   test("AC-02 one-character name is rejected", async ({ page }) => {
     await signIn(page, "sup_ui", "suppass1");
     await page.goto("/account");
-    const s = await startEdit(page, "Personal Information");
+    const s = await startEdit(page, "Personal information");
     await s.locator("input").first().fill("S");
     await s.getByRole("button", { name: "Save Changes" }).click();
     await expect(page.getByText(/at least 2 characters/i).first()).toBeVisible();
@@ -87,7 +93,7 @@ test.describe.serial("Phase 12: Account", () => {
   test("AC-03 username already taken is refused", async ({ page }) => {
     await signIn(page, "sup_ui", "suppass1");
     await page.goto("/account");
-    const s = await startEdit(page, "Account Details");
+    const s = await startEdit(page, "Account details");
     await s.locator("input").first().fill("admin");
     await s.getByRole("button", { name: "Save Changes" }).click();
     await confirmDialog(page);
@@ -97,7 +103,7 @@ test.describe.serial("Phase 12: Account", () => {
   test("AC-04 renaming your username keeps you signed in and the new name works", async ({ page, browser }) => {
     await signIn(page, "sup_ui", "suppass1");
     await page.goto("/account");
-    const s = await startEdit(page, "Account Details");
+    const s = await startEdit(page, "Account details");
     await s.locator("input").first().fill("sup_renamed");
     await s.getByRole("button", { name: "Save Changes" }).click();
     await confirmDialog(page);

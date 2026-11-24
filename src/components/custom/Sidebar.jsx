@@ -6,7 +6,7 @@ export default function ISidebar({ items, active, className, itemClassName }) {
          {items?.map((item, index) => (
             <Item
                onClick={item.action}
-               className={`p-1 cursor-pointer hover:bg-sidebar-accent select-none ${
+               className={`p-1 cursor-pointer hover:bg-muted select-none ${
                   active === item.key ? "font-semibold" : "text-gray-400"
                } ${itemClassName}`}
                key={index}

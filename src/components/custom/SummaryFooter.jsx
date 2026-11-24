@@ -1,28 +1,31 @@
 import { cn } from "@/lib/utils";
 
-const SummaryFooter = ({ items, className }) => {
-	if (!items || items.length === 0) return null;
+const VALUE_TONE = {
+   default: "text-foreground",
+   warning: "text-amber-700",
+   danger: "text-red-700",
+};
 
-	return (
-		<div className={cn("mt-4 grid gap-3", className)}>
-			{items.map((item, index) => (
-				<div key={index} className={cn("rounded-xl border px-4 py-3", item.bgColor, item.borderColor)}>
-					{item.label && (
-						<p className={cn("text-xs font-semibold uppercase tracking-wide mb-1", item.labelColor)}>
-							{item.label}
-						</p>
-					)}
-					<p className={cn("text-2xl font-extrabold tabular-nums leading-none", item.valueColor)}>{item.value}</p>
-					{item.description && (
-						<p className={cn("text-xs mt-1 font-medium opacity-70", item.descriptionColor ?? item.labelColor)}>
-							{item.description}
-						</p>
-					)}
-				</div>
-			))}
-		</div>
-	);
+/**
+ * A report's headline totals, shown above its table so they're seen first. Each total is its own
+ * card sized to its content; `tone` ("warning" | "danger") colours a value only when it needs attention.
+ */
+const SummaryFooter = ({ items, className }) => {
+   if (!items || items.length === 0) return null;
+
+   return (
+      <dl className={cn("grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3", className)}>
+         {items.map((item, index) => (
+            <div key={index} className='flex flex-col gap-1 rounded-xl border border-neutral-200 bg-white px-4 py-3'>
+               {item.label && <dt className='text-xs text-neutral-500'>{item.label}</dt>}
+               <dd className={cn("text-xl font-bold tracking-tight tabular-nums", VALUE_TONE[item.tone] ?? VALUE_TONE.default)}>
+                  {item.value}
+               </dd>
+               {item.description && <dd className='text-xs text-neutral-500'>{item.description}</dd>}
+            </div>
+         ))}
+      </dl>
+   );
 };
 
 export default SummaryFooter;
-

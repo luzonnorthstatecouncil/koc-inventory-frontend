@@ -9,8 +9,6 @@ import {
    AlertDialogTitle,
    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2Icon } from "lucide-react";
-import { useSelector } from "react-redux";
 import { cn } from "@/lib/utils";
 import { outlineButtonVariant } from "../ui/button-variants";
 import IButton from "./Button";
@@ -29,8 +27,6 @@ export default function IButtonConfirm({
    primaryActionVariant = "default",
    isDirty = true,
 }) {
-   const isLoading = useSelector((state) => state.loading.isLoading);
-
    if (!isDirty) {
       return (
          <IButton type='button' variant='outline' onClick={onConfirm}>
@@ -56,7 +52,7 @@ export default function IButtonConfirm({
             <AlertDialogFooter>
                <AlertDialogCancel className='border border-outline text-black'>{cancelLabel}</AlertDialogCancel>
                <AlertDialogAction variant={primaryActionVariant} onClick={onConfirm}>
-                  {isLoading ? <Loader2Icon /> : confirmLabel}
+                  {confirmLabel}
                </AlertDialogAction>
             </AlertDialogFooter>
          </AlertDialogContent>

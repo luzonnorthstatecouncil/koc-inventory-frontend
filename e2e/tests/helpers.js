@@ -78,3 +78,16 @@ async function fillNumber(scope, label, value) {
   await input.fill(String(value));
 }
 module.exports.fillNumber = fillNumber;
+/** The POS till is closed until a shift is open; open one (with a float) if it isn't. */
+async function ensureShiftOpen(page, openingCash = 1000) {
+  const open = page.getByText("Open a shift to start selling");
+  // The shift strip above the till: "Shift open" / "Since 9:00 AM"
+  const bar = page.getByRole("region", { name: "Current shift" });
+  await expect(open.or(bar).first()).toBeVisible();
+  if (await open.isVisible()) {
+    await page.getByLabel("Opening cash in drawer").fill(String(openingCash));
+    await page.getByRole("button", { name: /^Open shift with/ }).click();
+    await expect(bar).toBeVisible();
+  }
+}
+module.exports.ensureShiftOpen = ensureShiftOpen;

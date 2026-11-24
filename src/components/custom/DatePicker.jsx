@@ -121,7 +121,7 @@ export default function DatePicker({
                      variant='outline'
                      onClick={handleTriggerClick}
                      className={cn(
-                        "w-full bg-gray-100 text-black justify-between !font-normal rounded-md",
+                        "w-full bg-gray-100 text-black justify-between !font-medium rounded-md",
                         error ? "border-destructive" : "",
                         triggerClassName
                      )}

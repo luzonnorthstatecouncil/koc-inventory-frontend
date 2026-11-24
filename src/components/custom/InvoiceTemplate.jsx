@@ -2,7 +2,8 @@ import { priceParser } from "@/helpers/parser";
 import LogoEmblem from "@/assets/images/logos/logo_emblem.png";
 
 const InvoiceTemplate = ({ transactionData, transactionId, timestamp }) => {
-   const { cart, paymentMethod, subtotal, total, amountTendered, change } = transactionData;
+   const { cart, paymentMethod, subtotal, total, amountTendered, change, orderNumber, invoiceNumber, cashier } =
+      transactionData;
 
    const businessName = import.meta.env.VITE_BUSINESS_NAME || "YOUR BUSINESS NAME";
    // Address/phone/TIN are intentionally hidden on receipts (see the commented lines below)
@@ -49,9 +50,15 @@ const InvoiceTemplate = ({ transactionData, transactionId, timestamp }) => {
             {/* Transaction Info */}
             <div className='mb-3 text-xs'>
                <div className='flex justify-between'>
-                  <span>Transaction ID:</span>
-                  <span className='font-semibold uppercase'>#{transactionId || "N/A"}</span>
+                  <span>Receipt No.:</span>
+                  <span className='font-semibold uppercase'>{orderNumber || transactionId || "N/A"}</span>
                </div>
+               {invoiceNumber && (
+                  <div className='flex justify-between'>
+                     <span>Invoice No.:</span>
+                     <span className='uppercase'>{invoiceNumber}</span>
+                  </div>
+               )}
                <div className='flex justify-between'>
                   <span>Date:</span>
                   <span>{new Date(timestamp).toLocaleDateString()}</span>
@@ -60,10 +67,12 @@ const InvoiceTemplate = ({ transactionData, transactionId, timestamp }) => {
                   <span>Time:</span>
                   <span>{new Date(timestamp).toLocaleTimeString()}</span>
                </div>
-               {/* <div className='flex justify-between'>
-                  <span>Cashier:</span>
-                  <span>{localStorage.getItem("username") || "Admin"}</span>
-               </div> */}
+               {cashier && (
+                  <div className='flex justify-between'>
+                     <span>Cashier:</span>
+                     <span>{cashier}</span>
+                  </div>
+               )}
             </div>
 
             {/* Divider */}

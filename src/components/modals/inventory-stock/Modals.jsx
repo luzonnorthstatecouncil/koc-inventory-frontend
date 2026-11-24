@@ -110,10 +110,10 @@ export default function InventoryStockModals() {
 
          {openCreateModal && (
             <Modal
-               size='4xl'
+               size='5xl'
                isOpen={openCreateModal}
-               title='Create Inventory Stock'
-               description='Add a new item to the inventory.'
+               title='Add stock'
+               description='Record a batch received from a supplier.'
                secondaryAction={null}
                contentClassName='my-0'
                className='gap-4 pb-0'
@@ -128,8 +128,8 @@ export default function InventoryStockModals() {
             <Modal
                size='lg'
                isOpen={openEditModal}
-               title='Modify Inventory Stock'
-               description='Modify an existing stock batch in the inventory.'
+               title='Adjust stock'
+               description='Correct the quantity on hand for a batch.'
                secondaryAction={null}
                contentClassName='my-0'
                className='gap-4 pb-0'
@@ -143,7 +143,7 @@ export default function InventoryStockModals() {
             <Modal
                size='lg'
                isOpen={openAdjustExpiryModal}
-               title='Adjust Expiration Date'
+               title='Change expiry date'
                description='Update the expiration date for this stock batch.'
                secondaryAction={null}
                contentClassName='my-0'
@@ -156,10 +156,10 @@ export default function InventoryStockModals() {
 
          {openBulkCreateModal && (
             <Modal
-               size='lg'
+               size='2xl'
                isOpen={openBulkCreateModal}
-               title='Bulk Import Stocks'
-               description='Import multiple stock entries from an Excel file.'
+               title='Import stock'
+               description='Add many batches at once from the Excel template. Every row is checked before anything is saved.'
                secondaryAction={null}
                contentClassName='my-0'
                className='gap-4 pb-0'

@@ -126,7 +126,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
          {
             label: (
                <div
-                  className={cn(isStockIn ? "text-green-500" : "text-gray-400", "flex items-center gap-1 font-normal")}
+                  className={cn(isStockIn ? "text-green-500" : "text-gray-400", "flex items-center gap-1 font-medium")}
                >
                   <PackagePlus size={24} />
                   <span className='ml-2'>Stock In</span>
@@ -139,7 +139,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
                <div
                   className={cn(
                      tab === "stock_out" ? "text-destructive" : "text-gray-400",
-                     "flex items-center gap-1 font-normal"
+                     "flex items-center gap-1 font-medium"
                   )}
                >
                   <PackageMinus size={24} />
@@ -156,7 +156,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
       <div className='w-full flex flex-col relative'>
          <Title className='grid grid-cols-2 gap-2' size='base' variant='default'>
             <span>{item.name}</span>
-            <Paragraph size='sm' variant='muted' className='font-normal text-end flex items-center justify-end gap-1'>
+            <Paragraph size='sm' variant='muted' className='font-medium text-end flex items-center justify-end gap-1'>
                Current: <strong className='text-gray-800'>{item.current_qty}</strong> / {item.max_qty_level}
             </Paragraph>
          </Title>
@@ -232,7 +232,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
                         label={null}
                         type='date'
                         maxDate={new Date()}
-                        className='bg-white'
+                        wrapperClassName='w-full' triggerClassName='bg-white'
                      />
                   </div>
                   <div className='flex items-center justify-between gap-3 mb-3'>
@@ -249,7 +249,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
                         label={null}
                         type='date'
                         minDate={minDateExpiry}
-                        className='bg-white'
+                        wrapperClassName='w-full' triggerClassName='bg-white'
                      />
                   </div>
                </>

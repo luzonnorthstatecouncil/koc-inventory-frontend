@@ -1,8 +1,7 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, INVENTORY, INVENTORY_STOCKS } from "@/constants/routes";
-import { ArrowRight, CalendarClock, EditIcon, EyeIcon, History, Shovel, Trash2, TriangleAlert } from "lucide-react";
+import { EditIcon, EyeIcon, History, Shovel } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
-import { Badge } from "@/components/ui/badge";
 import { useFlushExpiredStocksMutation, useGetInventoryStockListQuery } from "@/features/api/inventory";
 import { useDispatch } from "react-redux";
 import {
@@ -14,7 +13,7 @@ import {
    setOpenBulkCreateModal,
 } from "@/features/slice/inventoryStockSlice";
 import { useCallback, useMemo } from "react";
-import { isPast, differenceInDays } from "date-fns";
+import { isPast, differenceInCalendarDays } from "date-fns";
 import { dateParser, padwithZero } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 import { useConfirmation } from "@/helpers/confirmAction";
@@ -24,158 +23,138 @@ import InventoryStockModals from "@/components/modals/inventory-stock/Modals";
 import { useUser } from "@/hooks/useUser";
 import { setOpenUserStockRequestsModal } from "@/features/slice/inventorySlice";
 
+const primaryText = "text-sm font-medium text-foreground";
+const secondaryText = "text-xs text-neutral-500";
+const EXPIRY_WARNING_DAYS = 30;
+
+const plural = (n, word) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+
+/** Expiry in words: red once expired, amber inside the warning window, neutral otherwise. */
+function expiryState(item) {
+   const value = item.expires_at;
+   if (!item.inventory?.has_expiry || !value) return null;
+   if (item.archived_at) return { label: dateParser(value, "PP"), text: "text-neutral-500" };
+   const days = differenceInCalendarDays(new Date(value), new Date());
+   if (days < 0) return { label: "Expired", note: dateParser(value, "PP"), text: "text-red-700", dot: "bg-red-500" };
+   if (days <= EXPIRY_WARNING_DAYS)
+      return {
+         label: days === 0 ? "Expires today" : `Expires in ${plural(days, "day")}`,
+         note: dateParser(value, "PP"),
+         text: "text-amber-700",
+         dot: "bg-amber-500",
+      };
+   return { label: dateParser(value, "PP"), note: `${plural(days, "day")} left`, text: "text-foreground" };
+}
+
 const columns = [
    {
-      key: "id",
-      title: "ID",
-      render: (value) => (
-         <span className='font-mono text-xs font-bold text-muted-foreground tracking-wider'>
-            #{padwithZero(value, 3)}
-         </span>
-      ),
-   },
-   {
       key: "inventory.sku",
-      width: "35%",
+      width: "32%",
       title: "Product",
-      cellClassName: "font-medium",
       render: (value, item) => {
-
+         const variant = item.variant?.variant_name;
          return (
-            <div className='flex items-center gap-3'>
-               <div className='flex gap-0.5 min-w-0'>
-                  <div className='flex flex-col flex-wrap'>
-                     <span className='font-semibold text-sm text-foreground leading-snug'>{item.inventory?.name}</span>
-                     {item?.archived_at && (
-                        <span className='inline-flex items-center gap-1 text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full'>
-                           <Trash2 className='size-2.5' /> Archived
-                        </span>
-                     )}
-                     <span className='text-sm text-muted-foreground font-mono tracking-wide'>{value}</span>
-                  </div>
-
-                  <div className='flex items-center gap-1.5 flex-wrap'>
-                     {item.variant?.variant_name && (
-                        <>
-                           <span className='text-muted-foreground/40 text-xs'>·</span>
-                           <span className='text-sm font-semibold bg-violet-50 text-violet-600 border border-violet-200 px-1.5 py-0.5 rounded-md'>
-                              {item.variant.variant_name}
-                           </span>
-                        </>
-                     )}
-                  </div>
-               </div>
+            <div className='flex min-w-0 flex-col gap-0.5'>
+               <span className={cn(primaryText, "truncate font-semibold", item.archived_at && "text-neutral-500")}>
+                  {item.inventory?.name}
+               </span>
+               <span className={cn(secondaryText, "truncate tabular-nums")}>
+                  {value}
+                  {variant && variant !== "Default" && ` · ${variant}`}
+               </span>
             </div>
          );
       },
    },
    {
       key: "reference_no",
-      title: "Reference No.",
+      title: "Batch",
       width: "160px",
-      render: (value) => (
-         <span className='inline-flex items-center gap-1.5 font-mono text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700 px-2.5 py-1 rounded-lg tracking-wider'>
-            {value}
-         </span>
+      render: (value, item) => (
+         <div className='flex flex-col gap-0.5'>
+            <span className={cn(primaryText, "tabular-nums", item.archived_at && "text-neutral-500 line-through")}>
+               {value}
+            </span>
+            <span className={cn(secondaryText, "tabular-nums")}>
+               #{padwithZero(item.id, 3)}
+               {item.archived_at && " · Archived"}
+            </span>
+         </div>
       ),
    },
    {
-      key: "batch_quantity",
-      title: "Batch Qty",
-      width: "160px",
-      render: (value, item) => {
-         const before = item.inventory_current ?? 0;
-         const after = value + before;
+      key: "received_at",
+      title: "Received",
+      width: "140px",
+      render: (value) =>
+         value ? (
+            <div className='flex flex-col gap-0.5'>
+               <span className={primaryText}>{dateParser(value, "PP")}</span>
+               <span className={cn(secondaryText, "tabular-nums")}>{dateParser(value, "p")}</span>
+            </div>
+         ) : (
+            <span className='text-sm text-neutral-500'>—</span>
+         ),
+   },
+   {
+      key: "expires_at",
+      title: "Expires",
+      width: "170px",
+      render: (_, item) => {
+         const state = expiryState(item);
+         if (!state) return <span className='text-sm text-neutral-500'>No expiry</span>;
          return (
-            <div className='flex flex-col gap-1'>
-               <span className='inline-flex items-center gap-1 text-sm font-bold tabular-nums px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 w-fit'>
-                  +{value} <span className='text-xs font-normal text-emerald-500'>{item.inventory?.unit}</span>
+            <div className='flex flex-col gap-0.5'>
+               <span className={cn("inline-flex items-center gap-1.5 text-sm font-medium", state.text)}>
+                  {state.dot && <span className={cn("size-1.5 rounded-full", state.dot)} aria-hidden='true' />}
+                  {state.label}
                </span>
-               <div className='flex items-center gap-1 text-sm'>
-                  <span className='text-muted-foreground tabular-nums line-through'>{before}</span>
-                  <ArrowRight className='size-2.5 text-muted-foreground' />
-                  <span className='font-bold text-emerald-600 tabular-nums'>{after}</span>
-               </div>
+               {state.note && <span className={cn(secondaryText, "tabular-nums")}>{state.note}</span>}
+            </div>
+         );
+      },
+   },
+   {
+      key: "batch_quantity",
+      title: "Received qty",
+      width: "140px",
+      headerClassName: "text-end",
+      cellClassName: "text-end",
+      // What the batch added to the item's stock: before → after
+      render: (value, item) => {
+         const before = Number(item.inventory_current ?? 0);
+         const added = Number(value) || 0;
+         return (
+            <div className='flex flex-col items-end gap-0.5'>
+               <span className={cn(primaryText, "tabular-nums")}>
+                  +{added.toLocaleString()} <span className='font-medium text-neutral-500'>{item.inventory?.unit}</span>
+               </span>
+               <span className={cn(secondaryText, "tabular-nums")}>
+                  {before.toLocaleString()} → {(before + added).toLocaleString()}
+               </span>
             </div>
          );
       },
    },
    {
       key: "current_quantity",
-      title: "Current Qty",
-      width: "120px",
+      title: "Remaining",
+      width: "130px",
+      headerClassName: "text-end",
+      cellClassName: "text-end",
       render: (value, item) => {
-         const isEmpty = value <= 0;
-         const isLow = value > 0 && value <= 5;
+         const left = Number(value) || 0;
+         const empty = left <= 0;
+         const low = !empty && left <= 5;
          return (
-            <span
-               className={cn(
-                  "inline-flex items-center gap-1 text-sm font-bold tabular-nums px-2 py-0.5 rounded-md w-fit",
-                  isEmpty
-                     ? "bg-red-50 text-red-600"
-                     : isLow
-                       ? "bg-orange-50 text-orange-600"
-                       : "bg-blue-50 text-blue-700",
-               )}
-            >
-               {value}
-               <span
-                  className={cn(
-                     "text-xs font-normal",
-                     isEmpty ? "text-red-400" : isLow ? "text-orange-400" : "text-blue-400",
-                  )}
-               >
-                  {item.inventory?.unit}
+            <div className='flex flex-col items-end gap-0.5'>
+               <span className={cn(primaryText, "tabular-nums", item.archived_at && "text-neutral-500")}>
+                  {left.toLocaleString()} <span className='font-medium text-neutral-500'>{item.inventory?.unit}</span>
                </span>
-            </span>
-         );
-      },
-   },
-   {
-      key: "received_at",
-      title: "Received",
-      width: "140px",
-      render: (value) => (
-         <div className='flex flex-col gap-0.5'>
-            <span className='text-xs font-semibold text-foreground'>{dateParser(value, "PP")}</span>
-         </div>
-      ),
-   },
-   {
-      key: "expires_at",
-      title: "Expiration",
-      width: "160px",
-      render: (value, item) => {
-         const hasExpiry = Boolean(item.inventory?.has_expiry);
-         const isExpired = hasExpiry && value && isPast(value) && !item.archived_at;
-         const daysLeft = hasExpiry && value && !isExpired ? differenceInDays(new Date(value), new Date()) : null;
-         const isExpiringSoon = daysLeft !== null && daysLeft <= 30;
-
-         if (!hasExpiry || !value) {
-            return <span className='text-xs text-muted-foreground'>No expiry</span>;
-         }
-
-         return (
-            <div className='flex flex-col gap-1'>
-               <span
-                  className={cn(
-                     "text-xs font-semibold",
-                     isExpired ? "text-red-600" : isExpiringSoon ? "text-orange-500" : "text-foreground",
-                  )}
-               >
-                  {dateParser(value, "PP")}
-               </span>
-               {isExpired ? (
-                  <span className='inline-flex items-center gap-1 text-xs font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full w-fit'>
-                     <TriangleAlert className='size-2.5' /> Expired
-                  </span>
-               ) : isExpiringSoon ? (
-                  <span className='inline-flex items-center gap-1 text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-full w-fit'>
-                     <CalendarClock className='size-2.5' /> {daysLeft}d left
-                  </span>
-               ) : (
-                  <span className='inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full w-fit'>
-                     <CalendarClock className='size-2.5' /> {daysLeft}d left
+               {!item.archived_at && (empty || low) && (
+                  <span className={cn("inline-flex items-center gap-1.5 text-xs", empty ? "text-red-700" : "text-amber-700")}>
+                     <span className={cn("size-1.5 rounded-full", empty ? "bg-red-500" : "bg-amber-500")} aria-hidden='true' />
+                     {empty ? "Used up" : "Running low"}
                   </span>
                )}
             </div>

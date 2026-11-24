@@ -8,11 +8,12 @@ import { useUser } from "@/hooks/useUser";
 import { Menu } from "lucide-react";
 import Logo from "@/assets/images/logos/logo_emblem.png";
 import LogoWordmark from "@/assets/images/logos/logo_wordmark_white.png";
-import PageTransition from "@/components/custom/PageTransition";
 import LoadingState from "@/components/custom/LoadingState";
 import EmptyLayout from "./EmptyLayout";
 import { useLocation } from "react-router-dom";
 import Paragraph from "@/components/custom/Paragraph";
+import { cn } from "@/lib/utils";
+import QuickActions from "@/components/custom/QuickActions";
 
 export default function PageLayout({ children, pageTitle, pageDescription, route }) {
    const user = useUser();
@@ -23,7 +24,9 @@ export default function PageLayout({ children, pageTitle, pageDescription, route
       <SidebarProvider>
          {!user?.role ? <AppSidebarSkeleton /> : <AppSidebar user={user} />}
 
-         <BaseLayout className={`flex-col w-full max-md:pt-16! max-lg:pt-18! ${isSales && "lg:mt-0 lg:pr-0 lg:py-0"}`}>
+         <BaseLayout
+            className={cn("flex-col w-full max-md:pt-16! max-lg:pt-18!", isSales && "lg:mt-0 lg:pr-0 lg:py-0")}
+         >
             {/* Mobile/Tablet Header with Sidebar Trigger */}
             <header className='flex items-center justify-center gap-3 lg:hidden w-full fixed top-0 left-0 bg-primary mb-2 p-2 md:py-0 md:px-4 z-10'>
                <SidebarTrigger className='text-white'>
@@ -37,26 +40,34 @@ export default function PageLayout({ children, pageTitle, pageDescription, route
                   className='h-16 w-auto mx-auto -translate-x-2 hidden md:block'
                />
             </header>
-            {pageTitle && <Title className='text-base md:text-3xl font-bold sm:mb-2 md:mb-0'>{pageTitle}</Title>}
+            {/* Content column: capped and centred on wide screens; Sales keeps the full width for the till */}
+            <div className={cn("flex w-full flex-col", !isSales && "mx-auto max-w-7xl")}>
+               {pageTitle && <Title className='text-base md:text-3xl font-bold sm:mb-2 md:mb-0'>{pageTitle}</Title>}
 
-            {pageDescription && <Paragraph className='text-sm md:text-base! text-muted-foreground mb-2'>{pageDescription}</Paragraph>}
-
-            <PageTransition>
-               {!user?.role ? (
-                  <LoadingState />
-               ) : route?.roles && !route?.roles.includes(user?.role) && user ? (
-                  <EmptyLayout>
-                     <Title className='mb-12'>You do not have permission to view this page.</Title>
-                  </EmptyLayout>
-               ) : route?.disabled ? (
-                  <EmptyLayout>
-                     <Title className='mb-12'>This page is under development.</Title>
-                  </EmptyLayout>
-               ) : (
-                  children
+               {pageDescription && (
+                  <Paragraph className='text-sm md:text-base! text-muted-foreground mb-2'>{pageDescription}</Paragraph>
                )}
-            </PageTransition>
+
+               <div className='w-full'>
+                  {!user?.role ? (
+                     <LoadingState />
+                  ) : route?.roles && !route?.roles.includes(user?.role) && user ? (
+                     <EmptyLayout>
+                        <Title className='mb-12'>You do not have permission to view this page.</Title>
+                     </EmptyLayout>
+                  ) : route?.disabled ? (
+                     <EmptyLayout>
+                        <Title className='mb-12'>This page is under development.</Title>
+                     </EmptyLayout>
+                  ) : (
+                     children
+                  )}
+               </div>
+            </div>
          </BaseLayout>
+
+         {/* Restock / assemble shortcuts that any page can open */}
+         {user?.role && <QuickActions />}
       </SidebarProvider>
    );
 }

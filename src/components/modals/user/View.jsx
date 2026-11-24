@@ -1,37 +1,23 @@
 import Modal from "@/components/custom/Modal";
+import { ROLE_OPTIONS } from "@/constants/options.js";
 import { dateParser } from "@/helpers/parser";
-import { CalendarDays, Mail, ShieldCheck, User2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 
-const ROLE_STYLES = {
-   admin: "bg-primary/10 text-primary",
-   cashier: "bg-violet-50 text-violet-700",
-   staff: "bg-blue-50 text-blue-700",
-};
+const roleLabel = (role) => ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role ?? "—";
 
-function avatarColor(name = "") {
-   const palette = [
-      "bg-rose-100 text-rose-700",
-      "bg-orange-100 text-orange-700",
-      "bg-amber-100 text-amber-700",
-      "bg-emerald-100 text-emerald-700",
-      "bg-cyan-100 text-cyan-700",
-      "bg-blue-100 text-blue-700",
-      "bg-violet-100 text-violet-700",
-      "bg-pink-100 text-pink-700",
-   ];
-   let hash = 0;
-   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-   return palette[Math.abs(hash) % palette.length];
+function Fact({ label, children }) {
+   return (
+      <div className='flex items-baseline justify-between gap-4'>
+         <dt className='text-sm text-neutral-600'>{label}</dt>
+         <dd className='truncate text-sm font-medium text-foreground tabular-nums'>{children}</dd>
+      </div>
+   );
 }
 
 export default function ViewUser({ isOpen, onClose }) {
    const { selectedUser } = useSelector((state) => state.user);
-
-   const name = selectedUser?.full_name ?? "";
-   const initials = `${name.charAt(0)}${name.split(" ")[1]?.charAt(0) ?? ""}`.toUpperCase();
    const isActive = selectedUser?.status === "active";
-   const roleStyle = ROLE_STYLES[selectedUser?.role?.toLowerCase()] ?? "bg-gray-100 text-gray-600";
 
    return (
       <Modal
@@ -39,47 +25,33 @@ export default function ViewUser({ isOpen, onClose }) {
          onClose={onClose}
          contentClassName='my-0'
          isLoading={!selectedUser}
-         title='User Details'
+         title='User'
          secondaryAction={null}
          primaryAction={{ label: "Close", onConfirm: onClose }}
       >
-         {/* Avatar + name hero */}
-         <div className='flex flex-col items-center gap-3 py-4 border-b border-gray-100 mb-4'>
-            <div className={`size-16 rounded-full flex items-center justify-center text-xl font-bold ${avatarColor(name)}`}>
-               {initials}
-            </div>
-            <div className='text-center'>
-               <p className='font-bold text-lg text-foreground leading-tight'>{name}</p>
-               <div className='flex items-center justify-center gap-2 mt-1.5'>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${roleStyle}`}>
-                     {selectedUser?.role}
-                  </span>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                     <span className={`size-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-gray-400"}`} />
-                     {isActive ? "Active" : "Inactive"}
-                  </span>
-               </div>
-            </div>
-         </div>
+         <div className='flex flex-col gap-5'>
+            <section className='flex flex-col gap-1'>
+               <p className={cn("inline-flex items-center gap-2 text-sm font-medium", isActive ? "text-neutral-700" : "text-neutral-500")}>
+                  <span className={cn("size-2 rounded-full", isActive ? "bg-emerald-500" : "bg-neutral-300")} aria-hidden='true' />
+                  {isActive ? "Active" : "Inactive"}
+               </p>
+               <p className='text-2xl font-bold tracking-tight text-foreground'>{selectedUser?.full_name ?? "—"}</p>
+               <p className='text-sm text-neutral-500'>{roleLabel(selectedUser?.role)}</p>
+            </section>
 
-         {/* Detail rows */}
-         <div className='space-y-2'>
-            {[
-               { icon: Mail, label: "Email", value: selectedUser?.email },
-               { icon: User2, label: "Username", value: selectedUser?.username },
-               { icon: ShieldCheck, label: "Role", value: selectedUser?.role, capitalize: true },
-               { icon: CalendarDays, label: "Date Added", value: dateParser(selectedUser?.created_at) },
-            ].map(({ icon: Icon, label, value, capitalize }) => (
-               <div key={label} className='flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5'>
-                  <div className='flex-shrink-0 size-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center'>
-                     <Icon className='size-3.5 text-muted-foreground' />
-                  </div>
-                  <div className='min-w-0'>
-                     <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wide'>{label}</p>
-                     <p className={`text-sm font-medium text-foreground truncate ${capitalize ? "capitalize" : ""}`}>{value ?? "—"}</p>
-                  </div>
-               </div>
-            ))}
+            <section className='flex flex-col gap-2 rounded-xl bg-neutral-50 px-4 py-3'>
+               <h3 className='text-xs font-semibold text-neutral-500'>Account</h3>
+               <dl className='flex flex-col gap-1.5'>
+                  <Fact label='Username'>{selectedUser?.username ?? "—"}</Fact>
+                  <Fact label='Email'>{selectedUser?.email ?? "—"}</Fact>
+                  <Fact label='Role'>{roleLabel(selectedUser?.role)}</Fact>
+                  {selectedUser?.created_at && (
+                     <Fact label='Added'>
+                        {dateParser(selectedUser.created_at, "PP")} · {dateParser(selectedUser.created_at, "p")}
+                     </Fact>
+                  )}
+               </dl>
+            </section>
          </div>
       </Modal>
    );

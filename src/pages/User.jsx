@@ -1,5 +1,5 @@
 import PageLayout from "@/layout/PageLayout";
-import { HOME, USER_MANAGEMENT } from "@/constants/routes";
+import { USER_MANAGEMENT } from "@/constants/routes";
 import { EditIcon, EyeIcon, Lock, TrashIcon } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
 import { useDeleteUserMutation, useGetUserListQuery } from "@/features/api/users";
@@ -14,81 +14,43 @@ import {
    setShowCredentialsModal,
    setOpenChangePasswordModal,
 } from "@/features/slice/userSlice";
-import EditUser from "@/components/modals/user/Edit";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { toast } from "sonner";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
-import CreateUser from "@/components/modals/user/Create";
+import ManageUser from "@/components/modals/user/ManageUser";
+import { ROLE_OPTIONS } from "@/constants/options.js";
+import { cn } from "@/lib/utils";
 import UserCredentialsModal from "@/components/modals/user/UserCredentialsModal";
 import { UserChangePasswordModal } from "@/components/modals/user/UserChangePassword";
 
-const ROLE_STYLES = {
-   admin: "bg-primary/10 text-primary",
-   cashier: "bg-violet-50 text-violet-700",
-   staff: "bg-blue-50 text-blue-700",
-};
-
-function avatarColor(name = "") {
-   const palette = [
-      "bg-rose-100 text-rose-700",
-      "bg-orange-100 text-orange-700",
-      "bg-amber-100 text-amber-700",
-      "bg-emerald-100 text-emerald-700",
-      "bg-cyan-100 text-cyan-700",
-      "bg-blue-100 text-blue-700",
-      "bg-violet-100 text-violet-700",
-      "bg-pink-100 text-pink-700",
-   ];
-   let hash = 0;
-   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-   return palette[Math.abs(hash) % palette.length];
-}
+const roleLabel = (role) => ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role ?? "—";
 
 const columns = [
    {
       key: "full_name",
       title: "User",
-      render: (value, item) => {
-         const initials = `${value?.charAt(0) ?? ""}${value?.split(" ")[1]?.charAt(0) ?? ""}`.toUpperCase();
-         return (
-            <div className='flex items-center gap-3'>
-               <div
-                  className={`flex-shrink-0 size-9 rounded-full flex items-center justify-center text-xs font-bold ${avatarColor(value)}`}
-               >
-                  {initials}
-               </div>
-               <div className='min-w-0'>
-                  <p className='font-semibold text-sm text-foreground leading-tight truncate'>{value}</p>
-                  <p className='text-sm text-muted-foreground truncate'>{item.user?.email}</p>
-               </div>
-            </div>
-         );
-      },
+      render: (value, item) => (
+         <div className='flex min-w-0 flex-col gap-0.5'>
+            <span className='block truncate text-sm font-semibold text-foreground'>{value}</span>
+            <span className='block truncate text-xs text-neutral-500'>{item.email || item.user?.email || item.username}</span>
+         </div>
+      ),
    },
    {
       key: "role",
       title: "Role",
-      render: (value) => {
-         const style = ROLE_STYLES[value?.toLowerCase()] ?? "bg-gray-100 text-gray-600";
-         return (
-            <span
-               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${style}`}
-            >
-               {value}
-            </span>
-         );
-      },
+      width: "160px",
+      render: (value) => <span className='text-sm font-medium text-foreground'>{roleLabel(value)}</span>,
    },
    {
       key: "status",
       title: "Status",
+      width: "140px",
       render: (value) => {
          const isActive = value === "active";
          return (
-            <span
-               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}
-            >
-               <span className={`size-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-gray-400"}`} />
+            <span className={cn("inline-flex items-center gap-2 text-sm font-medium", isActive ? "text-neutral-700" : "text-neutral-500")}>
+               <span className={cn("size-2 rounded-full", isActive ? "bg-emerald-500" : "bg-neutral-300")} aria-hidden='true' />
                {isActive ? "Active" : "Inactive"}
             </span>
          );
@@ -187,7 +149,6 @@ export default function UserManagement() {
          key: "change_password",
          label: "Change Password",
          icon: Lock,
-         className: "text-blue-600",
          action: onOpenChangePassword,
       },
       {
@@ -201,7 +162,6 @@ export default function UserManagement() {
 
    return (
       <PageLayout
-        
          pageTitle={USER_MANAGEMENT.title}
          pageDescription='Manage users and their permissions within the inventory system. Create new accounts, edit existing ones, and reset passwords as needed to ensure smooth operations.'
          route={USER_MANAGEMENT}
@@ -231,8 +191,8 @@ export default function UserManagement() {
             />
 
             {openViewModal && <ViewUser isOpen={openViewModal} onClose={onViewClose} />}
-            {openEditModal && <EditUser isOpen={openEditModal} onClose={onEditClose} />}
-            {openCreateModal && <CreateUser isOpen={openCreateModal} onClose={onCreateClose} />}
+            {openEditModal && <ManageUser isEditing isOpen={openEditModal} onClose={onEditClose} />}
+            {openCreateModal && <ManageUser isOpen={openCreateModal} onClose={onCreateClose} />}
 
             {showCredentialsModal && credentials && (
                <UserCredentialsModal

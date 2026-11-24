@@ -44,7 +44,8 @@ export const baseQuery = async (args, api, extraOptions) => {
          isUnauthorized = true;
          api.dispatch(logout());
          toast.error("Session expired. Please log in again.");
-      } else {
+      } else if (!extraOptions?.silent) {
+         // Endpoints with `extraOptions: { silent: true }` handle their own errors (e.g. background hints)
          toast.error(result.error.data?.message || result.error.data?.error || "An error occurred");
       }
    }

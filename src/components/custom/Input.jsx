@@ -4,7 +4,6 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useId, useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
-import { useSelector } from "react-redux";
 import { nestedObjParser } from "@/helpers/parser";
 import {
    ALPHABETS_ONLY,
@@ -48,7 +47,8 @@ export default function IInput({
    // Links the visible label to the input (screen readers, click-to-focus)
    const autoId = useId();
    const inputId = props.id || autoId;
-   const isLoading = useSelector((state) => state.loading.isLoading);
+   // Only this field's own form submitting locks it, not requests elsewhere on the page.
+   const isLoading = Boolean(formContext?.formState?.isSubmitting);
    const [passwordVisible, setPasswordVisible] = useState(false);
 
    const preventSubmit = (e) => {

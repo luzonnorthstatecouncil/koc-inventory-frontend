@@ -1,70 +1,57 @@
-import React from "react";
 import { cn } from "@/lib/utils";
-import { Package } from "lucide-react";
-import IProgress from "./Progress";
-import Title from "./Title";
+import { stockState } from "./PointOfSaleItem";
+import { AddStockLink } from "./RestockLinks";
+import { needsRestock } from "@/helpers/restock";
+
+const TONE = {
+   ok: { dot: "bg-neutral-300", text: "text-neutral-500", label: "In stock" },
+   low: { dot: "bg-amber-500", text: "text-amber-700", label: "Low" },
+   critical: { dot: "bg-red-500", text: "text-red-700", label: "Reorder" },
+   out: { dot: "bg-red-500", text: "text-red-700", label: "Out of stock" },
+};
 
 /**
- * VariantsAccordion Component
- *
- * Displays a list of product variants with their stock information
- * Designed to be used within the DataTable's expandable row feature
- *
- * @param {Array} variants - Array of variant objects with name and stock properties
- * @param {string} className - Additional CSS classes
+ * The variants of one product, shown in the Items table's expanded row.
+ * Same text and stock wording as the table above it.
  */
 const VariantsAccordion = ({ variants = [], className }) => {
    if (!variants || variants.length === 0) {
-      return <div className='text-sm text-muted-foreground py-2'>No variants available</div>;
+      return <p className='py-1 text-sm text-neutral-500'>No variants for this product.</p>;
    }
 
    return (
-      <div className={cn("space-y-2", className)}>
-         <div className='text-sm font-semibold text-foreground mb-3 flex items-center gap-2'>
-            <Package className='size-4' />
-            Variants ({variants.length})
-         </div>
+      <div className={cn("flex flex-col gap-2", className)}>
+         <p className='text-xs font-semibold text-neutral-500'>
+            {variants.length} {variants.length === 1 ? "variant" : "variants"}
+         </p>
 
-         <div className='grid grid-cols-2 lg:grid-cols-5 gap-3'>
+         <ul className='grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-5'>
             {variants.map((variant, index) => {
-               const variantColor =
-                  variant.current_qty <= variant.reorder_level
-                     ? "danger"
-                     : variant.current_qty >= variant.safe_qty_level
-                     ? "success"
-                     : "default";
-
-               const textColor =
-                  variant.current_qty <= variant.reorder_level
-                     ? "text-red-600"
-                     : variant.current_qty >= variant.safe_qty_level
-                     ? "text-green-600"
-                     : "text-foreground";
-
+               const qty = Number(variant.current_qty) || 0;
+               const tone = TONE[stockState(qty, variant.reorder_level, variant.safe_qty_level).tone];
                return (
-                  <section className='p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow'>
-                     <div key={index} className='flex items-center justify-between mb-2'>
-                        <Title size='sm' className='font-medium line-clamp-2'>
-                           {variant.variant_name}
-                        </Title>
-
-                        <div className='ml-3 flex flex-col items-end'>
-                           <div className={cn("text-sm font-semibold", textColor)}>{variant.current_qty || 0}</div>
-                           <div className='text-xs text-muted-foreground'>
-                              {variant.current_qty > 1 ? "units" : "unit"}
-                           </div>
+                  <li
+                     key={variant.id ?? index}
+                     className='flex flex-col gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2.5'
+                  >
+                     <div className='flex items-center justify-between gap-3'>
+                        <div className='min-w-0'>
+                           <p className='truncate text-sm font-medium text-foreground'>{variant.variant_name}</p>
+                           <p className={cn("inline-flex items-center gap-1.5 text-xs", tone.text)}>
+                              <span className={cn("size-1.5 rounded-full", tone.dot)} aria-hidden='true' />
+                              {tone.label}
+                           </p>
                         </div>
+                        <p className='shrink-0 text-sm font-medium text-foreground tabular-nums'>
+                           {qty.toLocaleString()} <span className='font-medium text-neutral-500'>{qty === 1 ? "unit" : "units"}</span>
+                        </p>
                      </div>
-                     <IProgress
-                        value={variant.current_qty}
-                        max={variant.max_qty_level}
-                        variant={variantColor}
-                        size='xs'
-                     />
-                  </section>
+                     {/* Only variants below their safe level get the shortcut */}
+                     {needsRestock(variant) && <AddStockLink variant={variant} className='-ml-1.5 self-start' />}
+                  </li>
                );
             })}
-         </div>
+         </ul>
       </div>
    );
 };

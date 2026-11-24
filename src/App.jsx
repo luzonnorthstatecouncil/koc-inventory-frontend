@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/custom/ProtectedRoute";
 import LoadingState from "./components/custom/LoadingState";
+import PageSkeleton from "./components/custom/PageSkeleton";
+import PageLayout from "./layout/PageLayout";
 
 import {
    ACCOUNT,
@@ -39,19 +41,19 @@ const Account = lazy(() => import("./pages/Account"));
 const InvoicePage = lazy(() => import("./pages/InvoicePage"));
 
 const protectedRoutes = [
-   { path: POINT_OF_SALE.path, Page: POS },
-   { path: ORDERS.path, Page: Orders },
-   { path: INVENTORY_ITEMS.path, Page: InventoryItems },
-   { path: INVENTORY_STOCKS.path, Page: InventoryStocks },
-   { path: STOCK_APPROVALS.path, Page: StockApprovals },
-   { path: INVENTORY_SUPPLIERS.path, Page: Suppliers },
-   { path: KITS.path, Page: Kits },
-   { path: STOCK_MOVEMENTS.path, Page: StockMovements },
-   { path: USER_MANAGEMENT.path, Page: UserManagement },
-   { path: REPORTS.path, Page: Reports },
-   { path: AUDIT_LOGS.path, Page: AuditLogs },
-   { path: SETTINGS.path, Page: Settings },
-   { path: ACCOUNT.path, Page: Account },
+   { route: POINT_OF_SALE, Page: POS },
+   { route: ORDERS, Page: Orders },
+   { route: INVENTORY_ITEMS, Page: InventoryItems },
+   { route: INVENTORY_STOCKS, Page: InventoryStocks },
+   { route: STOCK_APPROVALS, Page: StockApprovals },
+   { route: INVENTORY_SUPPLIERS, Page: Suppliers },
+   { route: KITS, Page: Kits },
+   { route: STOCK_MOVEMENTS, Page: StockMovements },
+   { route: USER_MANAGEMENT, Page: UserManagement },
+   { route: REPORTS, Page: Reports },
+   { route: AUDIT_LOGS, Page: AuditLogs },
+   { route: SETTINGS, Page: Settings },
+   { route: ACCOUNT, Page: Account },
 ];
 
 export default function App() {
@@ -72,8 +74,27 @@ export default function App() {
             <Route path='*' element={<Navigate to={POINT_OF_SALE.path} />} />
 
             {/* protected routes */}
-            {protectedRoutes.map(({ path, Page }) => (
-               <Route key={path} path={path} element={<ProtectedRoute element={<Page />} />} />
+            {protectedRoutes.map(({ route, Page }) => (
+               <Route
+                  key={route.path}
+                  path={route.path}
+                  element={
+                     <ProtectedRoute
+                        element={
+                           // Page code loads behind a skeleton inside the layout, so the sidebar never disappears.
+                           <Suspense
+                              fallback={
+                                 <PageLayout route={route}>
+                                    <PageSkeleton />
+                                 </PageLayout>
+                              }
+                           >
+                              <Page />
+                           </Suspense>
+                        }
+                     />
+                  }
+               />
             ))}
          </Routes>
       </Suspense>

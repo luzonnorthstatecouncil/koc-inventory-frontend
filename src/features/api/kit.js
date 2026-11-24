@@ -15,6 +15,12 @@ export const kitApi = baseApi.injectEndpoints({
          query: (id) => `/v1/kits/${id}`,
          providesTags: [KIT_TAGS.DETAIL],
       }),
+      // Read-only, but POST because it takes the (unsaved) component list as a body
+      getKitCapacity: builder.query({
+         query: (body) => ({ url: `/v1/kits/capacity`, method: "POST", body }),
+         extraOptions: { silent: true },
+         providesTags: [KIT_TAGS.LIST, INVENTORY_TAGS.LIST],
+      }),
       createNewKit: builder.mutation({
          query: (data) => ({
             url: `/v1/kits`,
@@ -44,6 +50,7 @@ export const kitApi = baseApi.injectEndpoints({
 export const {
    useGetKitListQuery,
    useGetKitByIdQuery,
+   useGetKitCapacityQuery,
    useCreateNewKitMutation,
    useEditKitMutation,
    useDeleteKitMutation,

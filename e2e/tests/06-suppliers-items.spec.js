@@ -46,7 +46,7 @@ test.describe.serial("Phase 5: Inventory items", () => {
     const dlg = await openAdd(page);
     let calls = 0;
     page.on("request", (r) => { if (r.method() === "POST" && /\/v1\/inventory$/.test(r.url())) calls++; });
-    await dlg.getByRole("button", { name: "Create Item" }).click();
+    await dlg.getByRole("button", { name: "Create item" }).click();
     await expect(dlg.getByText(/required/i).first()).toBeVisible();
     expect(calls).toBe(0);
   });
@@ -54,16 +54,15 @@ test.describe.serial("Phase 5: Inventory items", () => {
   test("IT-02 create an item with two variants", async ({ page }) => {
     await signIn(page);
     const dlg = await openAdd(page);
-    await fillField(dlg, "Product Name", "Polo Shirt");
+    await fillField(dlg, "Product name", "Polo Shirt");
     await chooseOption(page, dlg, "Category", "Apparel");
-    await fillField(dlg, "Unit Price", "350");
+    await fillField(dlg, "Unit price", "350");
     await chooseOption(page, dlg, "Unit", "Piece");
-    await dlg.getByRole("tab", { name: "Variants" }).click();
-    const variantInputs = dlg.getByPlaceholder("e.g., Small, Medium, Large, Red, Blue");
+    const variantInputs = dlg.getByPlaceholder("e.g. Default, Small, Red");
     await variantInputs.first().fill("Small");
-    await dlg.getByRole("button", { name: "Add Variant" }).click(); // now a real button
+    await dlg.getByRole("button", { name: "Add variant" }).click();
     await variantInputs.nth(1).fill("Large");
-    await dlg.getByRole("button", { name: "Create Item" }).click();
+    await dlg.getByRole("button", { name: "Create item" }).click();
     await confirmDialog(page);
     await expect(page.getByText(/created successfully/i).first()).toBeVisible();
     await expect(page.getByRole("row", { name: /Polo Shirt/ })).toBeVisible();
@@ -72,13 +71,12 @@ test.describe.serial("Phase 5: Inventory items", () => {
   test("IT-03 duplicate name in the same category is refused", async ({ page }) => {
     await signIn(page);
     const dlg = await openAdd(page);
-    await fillField(dlg, "Product Name", "Polo Shirt");
+    await fillField(dlg, "Product name", "Polo Shirt");
     await chooseOption(page, dlg, "Category", "Apparel");
-    await fillField(dlg, "Unit Price", "350");
+    await fillField(dlg, "Unit price", "350");
     await chooseOption(page, dlg, "Unit", "Piece");
-    await dlg.getByRole("tab", { name: "Variants" }).click();
-    await dlg.getByPlaceholder("e.g., Small, Medium, Large, Red, Blue").first().fill("One");
-    await dlg.getByRole("button", { name: "Create Item" }).click();
+    await dlg.getByPlaceholder("e.g. Default, Small, Red").first().fill("One");
+    await dlg.getByRole("button", { name: "Create item" }).click();
     await confirmDialog(page);
     await expect(page.getByText(/already exists/i).first()).toBeVisible();
   });
@@ -90,7 +88,7 @@ test.describe.serial("Phase 5: Inventory items", () => {
     await page.goto("/inventory/items");
     await rowAction(page, "T-Shirt", "Edit Product");
     const dlg = page.getByRole("alertdialog").last();
-    await fillField(dlg, "Unit Price", "275");
+    await fillField(dlg, "Unit price", "275");
     await dlg.getByRole("button", { name: /Submit|Save|Update/ }).last().click();
     await confirmDialog(page);
     await expect(page.getByText(/updated successfully/i).first()).toBeVisible();

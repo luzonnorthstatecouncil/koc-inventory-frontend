@@ -1,0 +1,1 @@
+import{r as e}from"./vendor-react-JvDs9nhC.js";function r(){const[l,s]=e.useState({type:null,item:null}),n=e.useCallback((t,a=null)=>s({type:t,item:a}),[]),u=e.useCallback(()=>s({type:null,item:null}),[]),o=e.useCallback(t=>s(a=>({...a,item:t})),[]),c=e.useCallback(t=>l.type===t,[l.type]);return{type:l.type,item:l.item,open:n,close:u,setItem:o,is:c}}export{r as u};

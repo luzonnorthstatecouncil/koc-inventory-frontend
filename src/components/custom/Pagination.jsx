@@ -53,7 +53,7 @@ const Pagination = ({
                      value={pageSize ? pageSize.toString() : defaultPageSize.toString()}
                      onValueChange={handlePageSizeChange}
                      options={pageSizeOptions}
-                     triggerClassName='bg-white text-xs'
+                     triggerClassName='bg-white text-sm'
                      showAll={false}
                   />
                </div>

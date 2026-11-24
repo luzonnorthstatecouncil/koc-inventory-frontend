@@ -1,10 +1,10 @@
 import userSlice from "@/features/slice/userSlice";
-import loadingReducer from "@/features/slice/loading";
 import cartSlice from "@/features/slice/cartSlice";
 import inventorySlice from "@/features/slice/inventorySlice";
 import inventoryStockSlice from "@/features/slice/inventoryStockSlice";
 import confirmationReducer from "@/features/slice/confirmationSlice";
 import accountSlice from "@/features/slice/accountSlice";
+import quickActionsSlice from "@/features/slice/quickActionsSlice";
 
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
@@ -24,11 +24,11 @@ export const store = configureStore({
    reducer: {
       user: userSlice,
       cart: cartSlice,
-      loading: loadingReducer,
       confirmation: confirmationReducer,
       inventory: inventorySlice,
       inventoryStock: inventoryStockSlice,
       account: accountSlice,
+      quickActions: quickActionsSlice,
       [baseApi.reducerPath]: baseApi.reducer,
    },
    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(baseApi.middleware),

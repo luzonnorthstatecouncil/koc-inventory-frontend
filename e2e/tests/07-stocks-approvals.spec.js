@@ -6,7 +6,7 @@ const { db } = require("./db");
 const openCreateStock = async (page) => {
   await page.goto("/inventory/stocks");
   await page.getByRole("button", { name: "Create New Stock" }).click();
-  return page.getByRole("alertdialog").filter({ hasText: "Create Inventory Stock" });
+  return page.getByRole("alertdialog").filter({ hasText: "Record a batch received from a supplier" });
 };
 
 test.describe.serial("Phase 6: Stocks", () => {
@@ -32,10 +32,10 @@ test.describe.serial("Phase 6: Stocks", () => {
     const before = await db.variantQty("Laptop");
     await signIn(page);
     const dlg = await openCreateStock(page);
-    await chooseOption(page, dlg, "Inventory Variant", "Laptop - Default");
-    await fillNumber(dlg, "Number of Item", "5");
-    await chooseOption(page, dlg, "Supplier's Name", "Acme Trading");
-    await fillField(dlg, "Invoice Number (Optional)", "DR-1001");
+    await chooseOption(page, dlg, "Item", "Laptop - Default");
+    await fillField(dlg, "Quantity", "5");
+    await chooseOption(page, dlg, "Supplier", "Acme Trading");
+    await fillField(dlg, "Invoice no. (optional)", "DR-1001");
     await dlg.getByRole("button", { name: "Add Stock" }).click();
     await confirmDialog(page);
     await expect(page.getByText(/Added 5 items/i).first()).toBeVisible();
@@ -46,10 +46,10 @@ test.describe.serial("Phase 6: Stocks", () => {
   test("ST6-03 a second batch on the same supplier invoice is allowed (grouping)", async ({ page }) => {
     await signIn(page);
     const dlg = await openCreateStock(page);
-    await chooseOption(page, dlg, "Inventory Variant", "Office Chair - Default");
-    await fillNumber(dlg, "Number of Item", "2");
-    await chooseOption(page, dlg, "Supplier's Name", "Acme Trading");
-    await fillField(dlg, "Invoice Number (Optional)", "DR-1001");
+    await chooseOption(page, dlg, "Item", "Office Chair - Default");
+    await fillField(dlg, "Quantity", "2");
+    await chooseOption(page, dlg, "Supplier", "Acme Trading");
+    await fillField(dlg, "Invoice no. (optional)", "DR-1001");
     await dlg.getByRole("button", { name: "Add Stock" }).click();
     await confirmDialog(page);
     await expect(page.getByText(/Added 2 items/i).first()).toBeVisible();
@@ -62,9 +62,9 @@ test.describe.serial("Phase 6: Stocks", () => {
     await page.goto("/inventory/stocks");
     await rowAction(page, /Laptop.*DR-1001|DR-1001.*Laptop/, "Adjust Stock");
     const dlg = page.getByRole("alertdialog").last();
-    await fillNumber(dlg, "Number of Item", "3"); // 5 -> 3
-    await chooseOption(page, dlg, "Remarks", "Lost or Missing Stocks"); // lowering shows removal reasons
-    await dlg.getByRole("button", { name: "Save Changes" }).click();
+    await fillField(dlg, "Quantity on hand", "3"); // 5 -> 3
+    await chooseOption(page, dlg, "Reason", "Lost or Missing Stocks"); // lowering shows removal reasons
+    await dlg.getByRole("button", { name: "Save adjustment" }).click();
     await confirmDialog(page);
     await expect(page.getByText(/Adjusted stock quantity to 3/i).first()).toBeVisible();
     expect(await db.variantQty("Laptop")).toBe(before - 2);
@@ -89,10 +89,10 @@ test.describe.serial("Phase 7: Stock approvals", () => {
     const before = await db.variantQty("Office Chair");
     await signIn(page, "sup_ui", "suppass1");
     const dlg = await openCreateStock(page);
-    await chooseOption(page, dlg, "Inventory Variant", "Office Chair - Default");
-    await fillNumber(dlg, "Number of Item", "4");
-    await chooseOption(page, dlg, "Supplier's Name", "Acme Trading");
-    await dlg.getByRole("button", { name: "Add Stock" }).click();
+    await chooseOption(page, dlg, "Item", "Office Chair - Default");
+    await fillField(dlg, "Quantity", "4");
+    await chooseOption(page, dlg, "Supplier", "Acme Trading");
+    await dlg.getByRole("button", { name: "Request stock" }).click();
     await confirmDialog(page);
     await expect(page.getByText(/submitted for admin approval/i).first()).toBeVisible();
     expect(await db.variantQty("Office Chair"), "nothing changes before approval").toBe(before);

@@ -3,7 +3,95 @@ import ReportTabContent from "@/components/custom/ReportTabContent";
 import SummaryFooter from "@/components/custom/SummaryFooter";
 import { useGetReorderReportQuery } from "@/features/api/inventory";
 import { priceParser } from "@/helpers/parser";
+import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { AddStockLink } from "@/components/custom/RestockLinks";
+
+const num = (v) => Number(v || 0).toLocaleString();
+const numberCell = { headerClassName: "text-end", cellClassName: "text-end" };
+
+const reorderColumns = [
+   {
+      key: "product_name",
+      title: "Product",
+      render: (value, item) => (
+         <div className='flex min-w-0 flex-col gap-0.5'>
+            <span className='block truncate text-sm font-semibold text-foreground'>{value}</span>
+            {item.variant_name && item.variant_name !== "Default" && (
+               <span className='block truncate text-xs text-neutral-500'>{item.variant_name}</span>
+            )}
+         </div>
+      ),
+   },
+   {
+      key: "on_hand",
+      title: "On hand",
+      width: "100px",
+      ...numberCell,
+      // Red once stock is at or below the reorder level: that's why the row is on this report
+      render: (value, item) => {
+         const low = Number(value) <= Number(item.reorder_level);
+         return (
+            <span className={cn("text-sm font-semibold tabular-nums", low ? "text-red-700" : "text-foreground")}>{num(value)}</span>
+         );
+      },
+   },
+   {
+      key: "reorder_level",
+      title: "Reorder at",
+      width: "100px",
+      ...numberCell,
+      render: (value) => <span className='text-sm font-medium text-neutral-600 tabular-nums'>{num(value)}</span>,
+   },
+   {
+      key: "safe_qty_level",
+      title: "Safe level",
+      width: "100px",
+      ...numberCell,
+      render: (value) => <span className='text-sm font-medium text-neutral-600 tabular-nums'>{num(value)}</span>,
+   },
+   {
+      key: "order_qty",
+      title: "Order",
+      width: "100px",
+      ...numberCell,
+      render: (value) => <span className='text-sm font-semibold text-foreground tabular-nums'>+{num(value)}</span>,
+   },
+   {
+      key: "vendor",
+      title: "Vendor",
+      width: "150px",
+      render: (value) =>
+         value ? (
+            <span className='block truncate text-sm font-medium text-foreground' title={value}>
+               {value}
+            </span>
+         ) : (
+            <span className='text-sm text-neutral-500'>—</span>
+         ),
+   },
+   {
+      key: "order_value",
+      title: "Order value",
+      width: "130px",
+      ...numberCell,
+      render: (value) => <span className='text-sm font-semibold text-foreground tabular-nums'>{priceParser(value)}</span>,
+   },
+   {
+      key: "restock",
+      title: "",
+      width: "130px",
+      ...numberCell,
+      // Straight from the restock list to Add stock: variant, suggested quantity and last supplier filled in
+      render: (_, item) => (
+         <AddStockLink
+            variant={{ id: item.variant_id, variant_name: item.variant_name, current_qty: item.on_hand, safe_qty_level: item.safe_qty_level }}
+            quantity={item.order_qty}
+            supplierId={item.vendor_id}
+         />
+      ),
+   },
+];
 
 export default function ReorderReportTab({ dateRange }) {
    const { data } = useGetReorderReportQuery({ dateRange }, { refetchOnMountOrArgChange: true });
@@ -13,108 +101,25 @@ export default function ReorderReportTab({ dateRange }) {
       return data.data.reduce((sum, item) => sum + (parseFloat(item.order_value) || 0), 0);
    }, [data]);
 
-   const reorderColumns = [
-      {
-         key: "product_name",
-         title: "Product",
-         render: (value, item) => (
-            <div className='flex flex-col gap-0.5'>
-               <span className='font-semibold text-sm text-foreground'>{value}</span>
-               <span className='inline-flex items-center gap-1'>
-                  <span className='px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 text-xs font-semibold'>
-                     {item.variant_name}
-                  </span>
-               </span>
-            </div>
-         ),
-      },
-      {
-         key: "reorder_level",
-         title: "Reorder Lvl",
-         width: "90px",
-         cellClassName: "text-center",
-         render: (value) => (
-            <span className='inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-xs font-bold tabular-nums'>
-               {value}
-            </span>
-         ),
-      },
-      {
-         key: "on_hand",
-         title: "On Hand",
-         width: "90px",
-         cellClassName: "text-center",
-         render: (value, item) => {
-            const isLow = Number(value) <= Number(item.reorder_level);
-            return (
-               <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold tabular-nums ${isLow ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
-                  {value}
-               </span>
-            );
-         },
-      },
-      {
-         key: "safe_qty_level",
-         title: "Safe Lvl",
-         width: "90px",
-         cellClassName: "text-center",
-         render: (value) => (
-            <span className='text-xs font-semibold text-blue-600 tabular-nums'>{value}</span>
-         ),
-      },
-      {
-         key: "order_qty",
-         title: "Min Order Qty",
-         width: "100px",
-         cellClassName: "text-center",
-         render: (value) => (
-            <span className='inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold tabular-nums'>
-               +{value}
-            </span>
-         ),
-      },
-      {
-         key: "vendor",
-         title: "Vendor",
-         width: "120px",
-         render: (value) => (
-            <span className='text-xs text-muted-foreground'>{value || "—"}</span>
-         ),
-      },
-      {
-         key: "order_value",
-         title: "Order Value",
-         width: "110px",
-         cellClassName: "text-end",
-         render: (value) => (
-            <span className='text-sm font-bold text-foreground tabular-nums'>{priceParser(value)}</span>
-         ),
-      },
-   ];
-
    return (
       <ReportTabContent
          icon={AlertTriangle}
-         iconColor='text-orange-500'
-         title='Reorder Report — Restock Suggestions'
-         description='Items hitting minimum threshold — immediate action required'
+         title='Reorder Report'
+         description='Items at or below their reorder level, and how many to order to get back to the safe level.'
          query={{
             useQuery: useGetReorderReportQuery,
             params: { dateRange },
             options: { refetchOnMountOrArgChange: true },
          }}
          columns={reorderColumns}
-         emptyMessage='✓ All items adequately stocked'
+         emptyMessage='All items are adequately stocked'
          footer={
             <SummaryFooter
                items={[
                   {
-                     label: "Total Reorder Cost",
+                     label: "Total reorder cost",
+                     description: `${num(data?.data?.length ?? 0)} item${data?.data?.length === 1 ? "" : "s"} to restock`,
                      value: priceParser(totalReorderCost),
-                     bgColor: "bg-primary/5",
-                     borderColor: "border-primary/20",
-                     labelColor: "text-primary",
-                     valueColor: "text-primary",
                   },
                ]}
             />

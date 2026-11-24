@@ -1,9 +1,11 @@
 import PageLayout from "@/layout/PageLayout";
 import { HOME, ORDERS } from "@/constants/routes";
 import {
+   Ban,
    CheckCircle2,
    CreditCard,
    EyeIcon,
+   Minus,
    Package,
    Printer,
    ReceiptText,
@@ -22,10 +24,12 @@ import {
    useGetAllOrdersQuery,
    useGetOrderStatisticsQuery,
    useRefundOrderMutation,
+   useVoidOrderMutation,
    useVoidRefundOrderMutation,
 } from "@/features/api/order";
 import { useState, useCallback, useMemo } from "react";
 import ILineChart from "@/components/custom/LineChart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import ViewOrder from "@/components/modals/orders/View";
 import { useModalState } from "@/hooks/useModalState";
@@ -33,8 +37,11 @@ import { useConfirmation } from "@/helpers/confirmAction";
 import { toast } from "sonner";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import RefundOrder from "@/components/modals/orders/RefundOrder";
-import { printInvoice } from "@/helpers/printInvoice";
-import { describeOrderItem } from "@/helpers/orderItems";
+import { printOrderReceipt } from "@/helpers/printInvoice";
+import VoidOrder from "@/components/modals/orders/VoidOrder";
+import { canRefund, canVoidRefund, canVoidSale, orderStatus } from "@/helpers/orderStatus";
+
+const MANAGER_ROLES = ["admin", "supervisor"];
 
 function computeStats(data = []) {
    const total = data.reduce((sum, d) => sum + (d.total || 0), 0);
@@ -58,82 +65,64 @@ function computeStats(data = []) {
 }
 
 const STAT_CONFIGS = [
-   {
-      key: "totalOrders",
-      title: "Total Orders",
-      icon: ShoppingCart,
-      chartColor: "var(--chart-6)",
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-   },
-   {
-      key: "totalCompleted",
-      title: "Completed",
-      icon: CheckCircle2,
-      chartColor: "var(--chart-1)",
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-   },
-   {
-      key: "totalRefunded",
-      title: "Refunded",
-      icon: RefreshCcw,
-      chartColor: "var(--chart-2)",
-      iconBg: "bg-rose-50",
-      iconColor: "text-rose-600",
-   },
-   {
-      key: "totalItemsOrdered",
-      title: "Items Ordered",
-      icon: Package,
-      chartColor: "var(--chart-4)",
-      iconBg: "bg-violet-50",
-      iconColor: "text-violet-600",
-   },
+   { key: "totalOrders", title: "Total orders", icon: ShoppingCart },
+   { key: "totalCompleted", title: "Completed", icon: CheckCircle2 },
+   { key: "totalRefunded", title: "Refunded", icon: RefreshCcw },
+   { key: "totalItemsOrdered", title: "Items ordered", icon: Package },
 ];
 
-function OrderStatCard({ data = [], title, icon: Icon, chartColor, accent, iconBg, iconColor }) {
+function OrderStatCardSkeleton() {
+   return (
+      <div className='rounded-xl border border-neutral-200 bg-white p-4' aria-hidden='true'>
+         <div className='flex items-center justify-between'>
+            <Skeleton className='h-4 w-24' />
+            <Skeleton className='size-4' />
+         </div>
+         <Skeleton className='mt-3 h-8 w-20' />
+         <Skeleton className='mt-2 h-3.5 w-32' />
+         <Skeleton className='mt-3 h-12 w-full' />
+      </div>
+   );
+}
+
+function OrderStatCard({ data = [], title, icon: Icon, isLoading }) {
    const { total, trend } = computeStats(data);
 
+   if (isLoading) return <OrderStatCardSkeleton />;
+
+   const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
+
    return (
-      <div className='relative rounded-xl overflow-hidden border bg-white hover:shadow-md transition-all duration-200'>
-         <div className={cn("h-1 w-full")} />
-         <div className='p-4'>
-            <div className='flex items-start justify-between mb-2'>
-               <div>
-                  <p className='text-sm font-semibold text-muted-foreground tracking-widest uppercase'>{title}</p>
-                  <p className='text-3xl font-bold tabular-nums mt-1 text-foreground leading-none'>
-                     {total.toLocaleString()}
-                  </p>
-               </div>
-               <div className={cn("p-2 rounded-lg", iconBg)}>
-                  <Icon className={cn("size-4", iconColor)} />
-               </div>
-            </div>
-
-            {trend !== null ? (
-               <div
-                  className={cn(
-                     "inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mb-3",
-                     trend >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-600",
-                  )}
-               >
-                  {trend >= 0 ? <TrendingUp className='size-3' /> : <TrendingDown className='size-3' />}
-                  {`${trend >= 0 ? "+" : ""}${trend}% vs last week`}
-               </div>
-            ) : (
-               <div className='h-6 mb-3' />
-            )}
-
-            <ILineChart
-               data={data}
-               mode='linear'
-               xAxisKey='week'
-               wrapperClassName='!p-0 !border-0 !shadow-none bg-transparent'
-               chartClassName='h-16 w-full'
-               config={{ total: { label: "Total", color: chartColor } }}
-            />
+      <div className='rounded-xl border border-neutral-200 bg-white p-4'>
+         <div className='flex items-center justify-between gap-2'>
+            <p className='text-sm font-medium text-neutral-600'>{title}</p>
+            <Icon className='size-4 text-neutral-400' aria-hidden='true' />
          </div>
+         <p className='mt-2 text-3xl leading-none font-bold tracking-tight text-foreground tabular-nums'>
+            {total.toLocaleString()}
+         </p>
+         {/* Neutral on purpose: "up" is good for orders but bad for refunds. */}
+         <p className='mt-2 flex h-5 items-center gap-1 text-xs text-neutral-500 tabular-nums'>
+            {trend !== null && (
+               <>
+                  <TrendIcon className='size-3.5' aria-hidden='true' />
+                  <span className='font-semibold text-neutral-700'>
+                     {trend > 0 ? "+" : ""}
+                     {trend}%
+                  </span>
+                  vs last week
+               </>
+            )}
+         </p>
+
+         <ILineChart
+            data={data}
+            mode='linear'
+            xAxisKey='week'
+            wrapperClassName='!p-0 !border-0 !shadow-none bg-transparent mt-2'
+            chartClassName='h-12 w-full'
+            config={{ total: { label: "Total", color: "var(--primary)" } }}
+         />
       </div>
    );
 }
@@ -144,53 +133,79 @@ const PAYMENT_METHOD_ICONS = {
    gcash: ShoppingBag,
 };
 
+
+const primaryText = "text-sm font-medium text-foreground";
+const secondaryText = "text-xs text-neutral-500";
+
 const columns = [
    {
       key: "id",
       title: "Order",
-      width: "130px",
+      width: "160px",
       render: (value, item) => (
-         <div className='flex flex-col'>
-            <span className='font-mono text-sm font-bold text-foreground tracking-wider'>#{padwithZero(value)}</span>
-            <span className='text-sm text-muted-foreground font-mono'>{item.order_number}</span>
-            {item.invoice_number && (
-               <span className='text-xs text-muted-foreground font-mono'>INV {item.invoice_number}</span>
-            )}
+         <div className='flex flex-col gap-0.5'>
+            <span className={cn(primaryText, "font-semibold tabular-nums")}>#{padwithZero(value)}</span>
+            <span className={cn(secondaryText, "tabular-nums")}>{item.order_number}</span>
+         </div>
+      ),
+   },
+   {
+      key: "invoice_number",
+      title: "Invoice",
+      width: "120px",
+      render: (value) =>
+         value ? (
+            <span className={cn(primaryText, "tabular-nums")}>{value}</span>
+         ) : (
+            <span className='text-sm text-neutral-500'>—</span>
+         ),
+   },
+   {
+      key: "created_at",
+      title: "Date",
+      width: "150px",
+      render: (value) => (
+         <div className='flex flex-col gap-0.5'>
+            <span className={primaryText}>{dateParser(value, "PP")}</span>
+            <span className={cn(secondaryText, "tabular-nums")}>{dateParser(value, "p")}</span>
          </div>
       ),
    },
    {
       key: "payments.payment_method",
       title: "Payment",
-      width: "190px",
-      render: (value, item) => {
-         const isCompleted = item?.payments?.status === "Completed";
+      width: "120px",
+      render: (value) => {
          const PayIcon = PAYMENT_METHOD_ICONS[value?.toLowerCase()] ?? CreditCard;
          return (
-            <div className='flex flex-col gap-1'>
-               <div className='flex items-center gap-1.5'>
-                  <span className='inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700 px-2 py-0.5 rounded-lg capitalize'>
-                     <PayIcon className='size-3 text-gray-500' />
-                     {value}
-                  </span>
-               </div>
-               <span
-                  className={cn(
-                     "inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-full w-fit",
-                     isCompleted
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-amber-50 text-amber-700 border border-amber-200",
-                  )}
-               >
-                  <span
-                     className={cn(
-                        "size-1.5 rounded-full",
-                        isCompleted ? "bg-emerald-500" : "bg-amber-400 animate-pulse",
-                     )}
-                  />
-                  {item?.payments?.status}
-               </span>
-            </div>
+            <span className={cn(primaryText, "inline-flex items-center gap-2 capitalize")}>
+               <PayIcon className='size-4 text-neutral-400' aria-hidden='true' />
+               {value || "—"}
+            </span>
+         );
+      },
+   },
+   {
+      key: "items",
+      title: "Items",
+      width: "90px",
+      render: (value = []) => (
+         <span className={cn(primaryText, "tabular-nums")}>
+            {value.length} <span className='font-medium text-neutral-500'>{value.length === 1 ? "item" : "items"}</span>
+         </span>
+      ),
+   },
+   {
+      key: "payments.status",
+      title: "Status",
+      width: "120px",
+      render: (_, item) => {
+         const status = orderStatus(item);
+         return (
+            <span className={cn("inline-flex items-center gap-2 text-sm font-medium", status.text)}>
+               <span className={cn("size-2 rounded-full", status.dot)} aria-hidden='true' />
+               {status.label}
+            </span>
          );
       },
    },
@@ -198,24 +213,9 @@ const columns = [
       key: "order_total",
       title: "Total",
       width: "130px",
-      render: (value) => <span className='font-bold text-sm tabular-nums text-foreground'>{priceParser(value)}</span>,
-   },
-   {
-      key: "items",
-      title: "Items",
-      width: "95px",
-      render: (value) => (
-         <span className='inline-flex items-center gap-1 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full'>
-            <Package className='size-3' />
-            {value.length}
-         </span>
-      ),
-   },
-   {
-      key: "created_at",
-      width: "150px",
-      title: "Date Checkout",
-      render: (value) => <span className='text-sm font-semibold text-foreground'>{dateParser(value)}</span>,
+      headerClassName: "text-end",
+      cellClassName: "text-end",
+      render: (value) => <span className='text-sm font-semibold text-foreground tabular-nums'>{priceParser(value)}</span>,
    },
 ];
 
@@ -235,12 +235,14 @@ export default function Orders() {
    const { open: openModal, close: closeModal } = modal;
    const openViewModal = modal.is("view");
    const openRefundModal = modal.is("refund");
+   const openVoidModal = modal.is("void");
 
    const [params, setParams] = useState({});
 
    const [refundOrder] = useRefundOrderMutation();
    const [voidRefundOrder] = useVoidRefundOrderMutation();
-   const { data: orderStatistics } = useGetOrderStatisticsQuery({
+   const [voidOrder] = useVoidOrderMutation();
+   const { data: orderStatistics, isLoading: statsLoading } = useGetOrderStatisticsQuery({
       dateFrom: params.dateRange?.from,
       dateTo: params.dateRange?.to,
    });
@@ -250,6 +252,18 @@ export default function Orders() {
    const onCloseView = closeModal;
    const onCloseRefund = closeModal;
    const onRefundOrder = useCallback((item) => openModal("refund", item), [openModal]);
+   const onVoidOrder = useCallback((item) => openModal("void", item), [openModal]);
+
+   const onConfirmVoid = useCallback(
+      async (data) => {
+         closeModal();
+         const id = toast.loading("Voiding sale...");
+         const { success, message } = await exec(voidOrder, data);
+         if (!success) return toast.error(message || "The sale wasn't voided.", { id });
+         toast.success(message || `Order #${padwithZero(data.id)} voided`, { id });
+      },
+      [closeModal, exec, voidOrder],
+   );
 
    const onConfirmRefund = useCallback(async (data) => {
       closeModal();
@@ -267,7 +281,7 @@ export default function Orders() {
       const { success, message } = await exec(refundOrder, data);
 
       if (!success) {
-         toast.dismiss(id);
+         toast.error(message || "The refund wasn't processed.", { id });
          return;
       }
 
@@ -290,7 +304,7 @@ export default function Orders() {
       const { success, message } = await exec(voidRefundOrder, data?.id);
 
       if (!success) {
-         toast.dismiss(id);
+         toast.error(message || "The refund wasn't voided.", { id });
          return;
       }
 
@@ -322,52 +336,36 @@ export default function Orders() {
             key: "refund",
             label: "Refund Order",
             icon: ReceiptText,
-            show: (item) => {
-               return !item.refundedOrder;
-            },
+            // The API refuses refunds and voids from staff accounts too
+            roles: MANAGER_ROLES,
+            show: canRefund,
             action: onRefundOrder,
+         },
+         {
+            key: "void",
+            label: "Void Sale",
+            icon: Ban,
+            roles: MANAGER_ROLES,
+            show: canVoidSale,
+            action: onVoidOrder,
          },
          {
             key: "void_refund",
             label: "Void Refund",
             icon: TriangleAlert,
-            show: (item) => {
-               return Boolean(item.refundedOrder);
-            },
+            roles: MANAGER_ROLES,
+            show: canVoidRefund,
             action: onConfirmVoidRefund,
          },
          {
             key: "print_invoice",
             label: "Print Invoice",
             icon: Printer,
-            action: (item) => {
-               const transactionData = {
-                  cart: (item.items || []).map((orderItem) => {
-                     const line = describeOrderItem(orderItem);
-                     return {
-                        name: line.name,
-                        variant_option: line.isKit ? "Kit" : line.variantName,
-                        quantity: orderItem.quantity || 0,
-                        price: line.price,
-                     };
-                  }),
-                  paymentMethod: item.payments?.payment_method || "N/A",
-                  subtotal: item.order_total || 0,
-                  total: item.order_total || 0,
-                  amountTendered: item.payments?.amount_tendered || null,
-                  change: item.payments?.change_given || 0,
-                  orderNumber: item.order_number,
-               };
-
-               printInvoice(
-                  transactionData,
-                  item.invoice_number || item.order_number || item.id,
-                  new Date(item.created_at),
-               );
-            },
+            // Lines print at the prices they sold for, not today's
+            action: printOrderReceipt,
          },
       ],
-      [onViewOrder, onRefundOrder, onConfirmVoidRefund],
+      [onViewOrder, onRefundOrder, onVoidOrder, onConfirmVoidRefund],
    );
 
    return (
@@ -377,9 +375,9 @@ export default function Orders() {
          pageDescription='Manage your orders. View details, process refunds, and keep track of your order history all in one place.'
          route={ORDERS}
       >
-         <header className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full mt-2 sm:mt-4'>
+         <header className='mt-2 grid w-full grid-cols-1 gap-3 sm:mt-4 sm:grid-cols-2 lg:grid-cols-4'>
             {STAT_CONFIGS.map(({ key, ...cfg }) => (
-               <OrderStatCard key={key} data={orderStatistics?.[key] || []} {...cfg} />
+               <OrderStatCard key={key} data={orderStatistics?.[key] || []} isLoading={statsLoading} {...cfg} />
             ))}
          </header>
 
@@ -410,6 +408,7 @@ export default function Orders() {
          {openRefundModal && (
             <RefundOrder isOpen={openRefundModal} onClose={onCloseRefund} onConfirm={onConfirmRefund} order={modal.item} />
          )}
+         {openVoidModal && <VoidOrder isOpen={openVoidModal} onClose={closeModal} onConfirm={onConfirmVoid} order={modal.item} />}
       </PageLayout>
    );
 }

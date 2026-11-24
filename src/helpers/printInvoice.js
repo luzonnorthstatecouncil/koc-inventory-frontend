@@ -1,3 +1,5 @@
+import { orderToReceipt } from "./orderItems";
+
 /**
  * Print invoice by opening it in a new window/tab
  * @param {Object} transactionData - The transaction data including cart, payment info, totals
@@ -22,4 +24,10 @@ export const printInvoice = (transactionData, transactionId, timestamp = new Dat
    if (!invoiceWindow) {
       window.open('/invoice', '_blank');
    }
+};
+
+/** Print (or reprint) the receipt for a saved order. */
+export const printOrderReceipt = (order) => {
+   const { transactionData, transactionId, timestamp } = orderToReceipt(order);
+   printInvoice(transactionData, transactionId, timestamp);
 };

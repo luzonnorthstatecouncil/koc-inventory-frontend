@@ -3,110 +3,82 @@ import ReportTabContent from "@/components/custom/ReportTabContent";
 import SummaryFooter from "@/components/custom/SummaryFooter";
 import { useGetVelocityReportQuery } from "@/features/api/inventory";
 import { dateParser } from "@/helpers/parser";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-const VELOCITY_STYLES = {
-   fast: { pill: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
-   moderate: { pill: "bg-blue-50 text-blue-700", dot: "bg-blue-500" },
-   slow: { pill: "bg-amber-50 text-amber-700", dot: "bg-amber-400" },
-   dead: { pill: "bg-red-50 text-red-600", dot: "bg-red-500" },
+// Fast is the only "good" colour; moderate is plain; slow and dead are the ones to act on.
+const VELOCITY = {
+   fast: { label: "Fast", dot: "bg-emerald-500", text: "text-neutral-700" },
+   moderate: { label: "Moderate", dot: "bg-neutral-300", text: "text-neutral-700" },
+   slow: { label: "Slow", dot: "bg-amber-500", text: "text-amber-700" },
+   dead: { label: "Dead", dot: "bg-red-500", text: "text-red-700" },
 };
 
-function categoryColor(cat = "") {
-   const palette = [
-      "bg-sky-50 text-sky-700",
-      "bg-teal-50 text-teal-700",
-      "bg-indigo-50 text-indigo-700",
-      "bg-fuchsia-50 text-fuchsia-700",
-      "bg-lime-50 text-lime-700",
-      "bg-amber-50 text-amber-700",
-      "bg-rose-50 text-rose-700",
-      "bg-cyan-50 text-cyan-700",
-   ];
-   let hash = 0;
-   for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
-   return palette[Math.abs(hash) % palette.length];
-}
+const velocityColumns = [
+   {
+      key: "velocity",
+      title: "Velocity",
+      width: "120px",
+      render: (value) => {
+         const v = VELOCITY[value?.toLowerCase()] ?? VELOCITY.dead;
+         return (
+            <span className={cn("inline-flex items-center gap-2 text-sm font-medium", v.text)}>
+               <span className={cn("size-2 rounded-full", v.dot)} aria-hidden='true' />
+               {v.label}
+            </span>
+         );
+      },
+   },
+   {
+      key: "product_name",
+      title: "Product",
+      render: (value, item) => (
+         <div className='flex min-w-0 flex-col gap-0.5'>
+            <span className='block truncate text-sm font-semibold text-foreground'>{value}</span>
+            {item.category && <span className='block truncate text-xs text-neutral-500'>{item.category}</span>}
+         </div>
+      ),
+   },
+   {
+      key: "sold_30d",
+      title: "Sold (30d)",
+      width: "100px",
+      headerClassName: "text-end",
+      cellClassName: "text-end",
+      render: (value) => <span className='text-sm font-medium text-foreground tabular-nums'>{Number(value || 0).toLocaleString()}</span>,
+   },
+   {
+      key: "on_hand",
+      title: "On hand",
+      width: "90px",
+      headerClassName: "text-end",
+      cellClassName: "text-end",
+      render: (value) => <span className='text-sm font-medium text-foreground tabular-nums'>{Number(value || 0).toLocaleString()}</span>,
+   },
+   {
+      key: "last_update",
+      title: "Last update",
+      width: "140px",
+      render: (value) =>
+         value ? (
+            <div className='flex flex-col gap-0.5'>
+               <span className='text-sm font-medium text-foreground'>{dateParser(value, "PP")}</span>
+               <span className='text-xs text-neutral-500 tabular-nums'>{dateParser(value, "p")}</span>
+            </div>
+         ) : (
+            <span className='text-sm text-neutral-500'>—</span>
+         ),
+   },
+];
 
 export default function VelocityReportTab({ dateRange }) {
    const [summary, setSummary] = useState({ fast_movers: 0, moderate: 0, slow: 0, dead: 0 });
 
-   const velocityColumns = [
-      {
-         key: "velocity",
-         title: "Velocity",
-         width: "110px",
-         cellClassName: "text-center",
-         render: (value) => {
-            const key = value?.toLowerCase() ?? "dead";
-            const { pill, dot } = VELOCITY_STYLES[key] ?? VELOCITY_STYLES.dead;
-            const label = key.charAt(0).toUpperCase() + key.slice(1);
-            return (
-               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${pill}`}>
-                  <span className={`size-1.5 rounded-full ${dot}`} />
-                  {label}
-               </span>
-            );
-         },
-      },
-      {
-         key: "product_name",
-         title: "Product",
-         render: (value) => (
-            <span className='font-semibold text-sm text-foreground'>{value}</span>
-         ),
-      },
-      {
-         key: "category",
-         title: "Category",
-         width: "120px",
-         render: (value) => (
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${categoryColor(value)}`}>
-               {value}
-            </span>
-         ),
-      },
-      {
-         key: "sold_30d",
-         title: "Sold (30d)",
-         width: "90px",
-         cellClassName: "text-center",
-         render: (value) => (
-            <span className='text-sm font-bold text-emerald-600 tabular-nums'>{value}</span>
-         ),
-      },
-      {
-         key: "on_hand",
-         title: "On Hand",
-         width: "80px",
-         cellClassName: "text-center",
-         render: (value) => (
-            <span className='text-xs font-semibold text-foreground tabular-nums'>{value}</span>
-         ),
-      },
-      {
-         key: "last_update",
-         title: "Last Update",
-         width: "140px",
-         render: (value) => (
-            <span className='text-xs text-muted-foreground'>{dateParser(value)}</span>
-         ),
-      },
-   ];
-
    return (
       <ReportTabContent
          icon={Activity}
-         iconColor='text-blue-600'
          title='Sales Velocity Report'
-         description={
-            <span>
-               Identify fast movers vs dead stock.{" "}
-               <span className='text-primary font-semibold'>
-                  Note: Newly added items may take time to accumulate velocity data.
-               </span>
-            </span>
-         }
+         description='Fast movers vs. dead stock over the last 30 days. Newly added items take time to build up velocity.'
          columns={velocityColumns}
          emptyMessage='No sales data available'
          onMount={(data) => {
@@ -119,43 +91,20 @@ export default function VelocityReportTab({ dateRange }) {
          }}
          footer={
             <SummaryFooter
-               className='grid-cols-4'
                items={[
-                  {
-                     label: "Fast Movers",
-                     description: "≥5 units/day",
-                     value: summary.fast_movers,
-                     bgColor: "bg-emerald-50",
-                     borderColor: "border-emerald-200",
-                     labelColor: "text-emerald-700",
-                     valueColor: "text-emerald-900",
-                  },
-                  {
-                     label: "Moderate",
-                     description: "2–4 units/day",
-                     value: summary.moderate,
-                     bgColor: "bg-blue-50",
-                     borderColor: "border-blue-200",
-                     labelColor: "text-blue-700",
-                     valueColor: "text-blue-900",
-                  },
+                  { label: "Fast movers", description: "≥5 units/day", value: summary.fast_movers },
+                  { label: "Moderate", description: "2–4 units/day", value: summary.moderate },
                   {
                      label: "Slow",
                      description: "1 unit/day",
                      value: summary.slow,
-                     bgColor: "bg-amber-50",
-                     borderColor: "border-amber-200",
-                     labelColor: "text-amber-700",
-                     valueColor: "text-amber-900",
+                     tone: summary.slow > 0 ? "warning" : "default",
                   },
                   {
-                     label: "Dead Stock",
+                     label: "Dead stock",
                      description: "<1 unit/day",
                      value: summary.dead,
-                     bgColor: "bg-red-50",
-                     borderColor: "border-red-200",
-                     labelColor: "text-red-600",
-                     valueColor: "text-red-900",
+                     tone: summary.dead > 0 ? "danger" : "default",
                   },
                ]}
             />

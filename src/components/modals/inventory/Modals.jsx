@@ -13,8 +13,7 @@ import {
 import { useGetInventoryByIdQuery, useGetInventoryStocksQuery } from "@/features/api/inventory";
 import Modal from "@/components/custom/Modal";
 import View from "./View";
-import Create from "./Create";
-import Edit from "./Edit";
+import ManageItem from "./ManageItem";
 import Stocks from "./Stocks";
 import Orders from "./Orders";
 import { useGetOrdersByInventoryIdQuery } from "@/features/api/order";
@@ -111,27 +110,32 @@ export default function InventoryModals() {
             </Modal>
          )}
 
-         {openCreateModal && (
+         {(openCreateModal || openEditModal) && (
             <Modal
-               size='lg'
-               isOpen={openCreateModal}
-               title='Create Inventory Item'
-               description='Add a new item to the inventory.'
+               size='5xl'
+               isOpen={openCreateModal || openEditModal}
+               title={openEditModal ? 'Edit item' : 'Create item'}
+               description={openEditModal ? 'Update the item details and its variants.' : 'Add a new item and its variants to the inventory.'}
                secondaryAction={null}
                contentClassName='my-0'
                className='gap-4 pb-0'
                primaryAction={null}
             >
-               <Create onClose={onCreateClose} />
+               <ManageItem
+                  isEditing={openEditModal}
+                  item={openEditModal ? inventoryItem : undefined}
+                  isLoading={openEditModal && (isLoading || isFetching)}
+                  onClose={openEditModal ? onEditClose : onCreateClose}
+               />
             </Modal>
          )}
 
          {openBulkCreateModal && (
             <Modal
-               size='lg'
+               size='2xl'
                isOpen={openBulkCreateModal}
-               title='Bulk Import Items'
-               description='Import multiple inventory items from an Excel file.'
+               title='Import items'
+               description='Create many items at once from the Excel template. Every row is checked before anything is saved.'
                secondaryAction={null}
                contentClassName='my-0'
                className='gap-4 pb-0'
@@ -153,21 +157,6 @@ export default function InventoryModals() {
                primaryAction={null}
             >
                <BulkImportFailures data={bulkImportFailures} onClose={onBulkImportFailuresClose} />
-            </Modal>
-         )}
-
-         {openEditModal && (
-            <Modal
-               size='2xl'
-               isOpen={openEditModal}
-               title='Edit Inventory Item'
-               description='Modify the details of the inventory item.'
-               secondaryAction={null}
-               contentClassName='my-0'
-               className='gap-4 pb-0'
-               primaryAction={null}
-            >
-               <Edit item={inventoryItem} onClose={onEditClose} isLoading={isLoading || isFetching} />
             </Modal>
          )}
 
@@ -196,7 +185,7 @@ export default function InventoryModals() {
                isOpen={openOrdersModal}
                onClose={onOrdersClose}
                title={`View Orders for ${inventoryItem?.sku || "this item"}`}
-               size='xl'
+               size='4xl'
                description='Overview of all the orders for this inventory item.'
                secondaryAction={null}
                contentClassName='my-0'

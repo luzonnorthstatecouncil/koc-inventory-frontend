@@ -1,18 +1,16 @@
 import IButton from "./Button";
 import DataTable from "./Datatable";
 
+/** One report: a plain header (title, what it answers, actions) above its table and summary. */
 const ReportTabContent = ({
    icon: Icon,
-   iconColor,
    title,
    description,
    actionButtons = [],
    query,
-   tableData,
    columns,
    searchable = true,
    filterable = false,
-   paginated = true,
    initialPageSize = 10,
    emptyMessage,
    footer,
@@ -21,20 +19,17 @@ const ReportTabContent = ({
    onMount,
 }) => {
    return (
-      <div className='bg-white rounded-xl border border-gray-100 overflow-hidden'>
-         {/* Tab header */}
-         <div className='flex items-start justify-between gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/50'>
-            <div className='flex items-start gap-3'>
-               <div className={`mt-0.5 p-2 rounded-lg bg-white border border-gray-100 flex-shrink-0`}>
-                  <Icon className={`size-4 ${iconColor}`} />
-               </div>
-               <div>
-                  <p className='text-sm font-bold text-foreground leading-tight'>{title}</p>
-                  <div className='text-xs text-muted-foreground mt-0.5'>{description}</div>
+      <section className='flex flex-col gap-4'>
+         <header className='flex flex-wrap items-start justify-between gap-3'>
+            <div className='flex min-w-0 items-start gap-2.5'>
+               {Icon && <Icon className='mt-0.5 size-4 shrink-0 text-neutral-500' aria-hidden='true' />}
+               <div className='min-w-0'>
+                  <h2 className='text-base font-semibold text-foreground'>{title}</h2>
+                  {description && <div className='text-sm text-neutral-500'>{description}</div>}
                </div>
             </div>
             {actionButtons.length > 0 && (
-               <div className='flex gap-2 flex-shrink-0'>
+               <div className='flex shrink-0 gap-2'>
                   {actionButtons.map((button, index) => (
                      <IButton
                         key={index}
@@ -48,10 +43,12 @@ const ReportTabContent = ({
                   ))}
                </div>
             )}
-         </div>
+         </header>
 
-         {/* Table */}
-         <div className='p-4'>
+         {/* Headline totals first, where they're seen before scrolling through the rows */}
+         {footer}
+
+         <div>
             <DataTable
                tableClassName='bg-white'
                paginationClassName='bg-white'
@@ -64,12 +61,10 @@ const ReportTabContent = ({
                emptyMessage={emptyMessage}
                onMount={onMount}
             />
-            {footer}
             {children}
          </div>
-      </div>
+      </section>
    );
 };
 
 export default ReportTabContent;
-

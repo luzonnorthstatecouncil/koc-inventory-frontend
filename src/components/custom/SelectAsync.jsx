@@ -45,6 +45,7 @@ const SelectAsync = ({
    searchable = false,
    searchPlaceholder = "Search...",
    pageSize = 20,
+   fallbackLabel,
    ...props
 }) => {
    // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
@@ -129,8 +130,18 @@ const SelectAsync = ({
       }
    }, [debouncedSearchTerm, searchable]);
 
-   // Use server data or static options
-   const options = query?.useQuery ? allOptions : staticOptions;
+   // If using react-hook-form, get the current value from context
+   const selectedValue =
+      useForm && name && formContext ? (formContext.watch(name) ?? "") : (value ?? "");
+
+   // Use server data or static options. A saved value that isn't in the loaded page (e.g. editing)
+   // gets an option from `fallbackLabel`, so it shows and stays selected.
+   const loadedOptions = query?.useQuery ? allOptions : staticOptions;
+   const options = useMemo(() => {
+      if (!fallbackLabel || !selectedValue) return loadedOptions;
+      const loaded = loadedOptions.some((opt) => (typeof opt === "string" ? opt : opt?.value) == selectedValue);
+      return loaded ? loadedOptions : [{ value: String(selectedValue), label: fallbackLabel }, ...loadedOptions];
+   }, [loadedOptions, fallbackLabel, selectedValue]);
 
    // Handle different pagination response structures
    const paginationData = serverData?.pagination || {};
@@ -141,10 +152,6 @@ const SelectAsync = ({
          : false);
    const totalCount = paginationData.total || allOptions.length || 0;
    const isQueryLoading = isLoading || isFetching;
-
-   // If using react-hook-form, get the current value from context
-   const selectedValue =
-      useForm && name && formContext ? (formContext.watch(name) ?? "") : (value ?? "");
 
    // If using react-hook-form, update the form value
    const handleChange = useCallback(

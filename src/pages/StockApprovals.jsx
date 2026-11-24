@@ -1,6 +1,6 @@
 import PageLayout from "@/layout/PageLayout";
-import { HOME, INVENTORY, STOCK_APPROVALS } from "@/constants/routes";
-import { CheckIcon, EyeIcon, Package, User, XIcon } from "lucide-react";
+import { STOCK_APPROVALS } from "@/constants/routes";
+import { CheckIcon, EyeIcon, XIcon } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
 import {
    useApproveStockApprovalMutation,
@@ -14,7 +14,7 @@ import {
    setOpenViewStockModal,
    setSelectedStockApproval,
 } from "@/features/slice/inventorySlice";
-import { padwithZero } from "@/helpers/parser";
+import { dateParser, padwithZero } from "@/helpers/parser";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { toast } from "sonner";
@@ -23,101 +23,94 @@ import ViewStockApproval from "@/components/modals/inventory-stock/ViewStockAppr
 import { STOCK_ADJUSTMENT_TYPES, STOCK_REQUEST_STATUS } from "@/constants/options";
 import { cn } from "@/lib/utils";
 
-function nameInitials(name = "") {
-   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+const primaryText = "text-sm font-medium text-foreground";
+const secondaryText = "text-xs text-neutral-500";
+
+/** Pending needs action (amber); approved and rejected are outcomes (green / red). */
+function approvalStatus(item) {
+   const decided = Boolean(item?.approved_at);
+   if (decided && item?.rejection_reason) return { label: "Rejected", dot: "bg-red-500", text: "text-red-700" };
+   if (decided) return { label: "Approved", dot: "bg-emerald-500", text: "text-neutral-700" };
+   return { label: "Pending", dot: "bg-amber-500", text: "text-amber-700" };
 }
+
+const requestedAt = (item) => item.requested_at || item.created_at;
 
 const columns = [
    {
-      key: "id",
-      title: "ID",
-      width: "80px",
-      render: (value) => (
-         <span className='font-mono text-xs font-bold text-muted-foreground tracking-wider'>
-            #{padwithZero(value)}
-         </span>
-      ),
-   },
-   {
       key: "variant.inventory.name",
       title: "Product",
-      cellClassName: "font-medium",
-      render: (value, item) => (
-         <div className='flex items-center gap-3'>
-            <div className='flex-shrink-0 size-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center'>
-               <Package className='size-3.5 text-primary/60' />
-            </div>
-            <div className='flex flex-col gap-0.5 min-w-0'>
-               <div className='flex items-center gap-1.5 flex-wrap'>
-                  <span className='font-semibold text-sm text-foreground'>{value}</span>
-                  {item.variant?.variant_name && (
-                     <span className='text-sm font-semibold bg-violet-50 text-violet-600 border border-violet-200 px-1.5 py-0.5 rounded-md'>
-                        {item.variant.variant_name}
-                     </span>
-                  )}
-               </div>
-               <span className='text-sm text-muted-foreground font-mono tracking-wide'>
-                  {item.variant?.inventory?.sku}
+      render: (value, item) => {
+         const variant = item.variant?.variant_name;
+         const sku = item.variant?.inventory?.sku;
+         return (
+            <div className='flex min-w-0 flex-col gap-0.5'>
+               <span className={cn(primaryText, "truncate font-semibold")}>
+                  {value}
+                  {variant && variant !== "Default" && <span className='font-medium text-neutral-500'> · {variant}</span>}
+               </span>
+               <span className={cn(secondaryText, "truncate tabular-nums")}>
+                  #{padwithZero(item.id)}
+                  {sku && ` · ${sku}`}
                </span>
             </div>
-         </div>
-      ),
+         );
+      },
    },
    {
-      key: "quantity",
-      title: "Quantity",
-      width: "160px",
-      render: (value, item) => (
-         <div className='flex flex-col gap-1'>
-            <span className='inline-flex items-center gap-1 text-sm font-bold tabular-nums px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 w-fit'>
-               +{value}
-               <span className='text-xs font-normal text-emerald-500'>{item.variant?.inventory?.unit}</span>
-            </span>
-            <span className='text-sm text-muted-foreground'>
-               {item.supplier ? (
-                  <span className='font-medium text-foreground/70'>via {item.supplier.name}</span>
-               ) : (
-                  <span className='italic'>No supplier</span>
-               )}
-            </span>
-         </div>
-      ),
+      key: "supplier.name",
+      title: "Supplier",
+      width: "180px",
+      render: (_, item) =>
+         item.supplier?.name ? (
+            <span className={cn(primaryText, "block truncate")} title={item.supplier.name}>{item.supplier.name}</span>
+         ) : (
+            <span className='text-sm text-neutral-500'>No supplier</span>
+         ),
    },
    {
       key: "requested_by",
-      title: "Requested By",
-      width: "180px",
-      render: (value, item) => (
-         <div className='flex items-center gap-2.5'>
-            <div className='flex-shrink-0 size-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center'>
-               <span className='text-sm font-bold text-gray-600'>{nameInitials(item.requester?.full_name || "")}</span>
+      title: "Requested by",
+      width: "200px",
+      render: (_, item) => {
+         const at = requestedAt(item);
+         return (
+            <div className='flex min-w-0 flex-col gap-0.5'>
+               <span className={cn(primaryText, "block truncate")} title={item.requester?.full_name}>{item.requester?.full_name || "—"}</span>
+               <span className={cn(secondaryText, "block truncate tabular-nums")}>
+                  {at ? `${dateParser(at, "PP")} · ${dateParser(at, "p")}` : item.requester?.email}
+               </span>
             </div>
-            <div className='flex flex-col gap-0.5 min-w-0'>
-               <span className='text-xs font-semibold text-foreground truncate'>{item.requester?.full_name}</span>
-               <span className='text-xs text-muted-foreground truncate'>{item.requester?.email}</span>
-            </div>
-         </div>
-      ),
+         );
+      },
    },
    {
       key: "approved_at",
       title: "Status",
-      width: "120px",
-      render: (value, item) => {
-         const isApproved = Boolean(value) && !item.rejection_reason;
-         const isRejected = Boolean(value) && Boolean(item.rejection_reason);
-         const cfg = isApproved
-            ? { label: "Approved", dot: "bg-emerald-500", className: "bg-emerald-50 text-emerald-700 border-emerald-200" }
-            : isRejected
-            ? { label: "Rejected", dot: "bg-red-500", className: "bg-red-50 text-red-600 border-red-200" }
-            : { label: "Pending", dot: "bg-amber-400 animate-pulse", className: "bg-amber-50 text-amber-700 border-amber-200" };
+      width: "130px",
+      render: (_, item) => {
+         const status = approvalStatus(item);
          return (
-            <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border", cfg.className)}>
-               <span className={cn("size-1.5 rounded-full flex-shrink-0", cfg.dot)} />
-               {cfg.label}
+            <span className={cn("inline-flex items-center gap-2 text-sm font-medium", status.text)}>
+               <span className={cn("size-2 rounded-full", status.dot)} aria-hidden='true' />
+               {status.label}
             </span>
          );
       },
+   },
+   {
+      key: "quantity",
+      title: "Quantity",
+      width: "120px",
+      headerClassName: "text-end",
+      cellClassName: "text-end",
+      render: (value, item) => (
+         <span className={cn(primaryText, "tabular-nums")}>
+            {item.request_type === "remove" ? "−" : "+"}
+            {Number(value || 0).toLocaleString()}{" "}
+            <span className='text-neutral-500'>{item.variant?.inventory?.unit || "pcs"}</span>
+         </span>
+      ),
    },
 ];
 
@@ -223,37 +216,33 @@ export default function StockApprovals() {
 
    // Plain array: the handlers are re-created each render, so memoizing never cached anything
    const actions = [
-         {
-            key: "approve",
-            label: "Approve",
-            icon: CheckIcon,
-            className: "text-green-500",
-            action: onApprove,
-            show: (item) => !item.approved_at,
-         },
-         {
-            key: "reject",
-            label: "Reject",
-            icon: XIcon,
-            className: "text-destructive",
-            action: onReject,
-            show: (item) => !item.approved_at,
-         },
-         {
-            key: "view",
-            label: "View Details",
-            icon: EyeIcon,
-            action: onView,
-            show: (item) => Boolean(item.approved_at),
-         },
+      {
+         key: "approve",
+         label: "Approve",
+         icon: CheckIcon,
+         className: "text-emerald-700",
+         action: onApprove,
+         show: (item) => !item.approved_at,
+      },
+      {
+         key: "reject",
+         label: "Reject",
+         icon: XIcon,
+         className: "text-destructive",
+         action: onReject,
+         show: (item) => !item.approved_at,
+      },
+      {
+         key: "view",
+         label: "View Details",
+         icon: EyeIcon,
+         action: onView,
+         show: (item) => Boolean(item.approved_at),
+      },
    ];
 
    return (
-      <PageLayout
-        
-         pageTitle={`Stock ${STOCK_APPROVALS.title}`}
-         route={STOCK_APPROVALS}
-      >
+      <PageLayout pageTitle={`Stock ${STOCK_APPROVALS.title}`} route={STOCK_APPROVALS}>
          <main className='p-1 sm:p-2 w-full'>
             <DataTable
                query={{

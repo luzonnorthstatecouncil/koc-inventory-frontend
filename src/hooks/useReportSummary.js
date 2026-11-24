@@ -27,55 +27,51 @@ export function useReportSummary(inventoryData) {
       };
    }, [inventoryData]);
 
-   const summaryCards = useMemo(
-      () => [
+   // Neutral cards; `tone` colours only the note, and only when it needs attention
+   const summaryCards = useMemo(() => {
+      const items = summaryStats.totalInventoryItems;
+      const value = summaryStats.totalInventoryValue;
+      const health = summaryStats.stockHealthScore;
+      const out = summaryStats.outOfStock;
+      // The API has sent both spellings; missing means none, not "undefined"
+      const newThisMonth = Number(items.newItemsThisMonth ?? items.newSkusThisMonth ?? 0);
+      const needReorder = Number(value.itemsNeedReorder ?? 0);
+      const outCount = Number(out.count ?? 0);
+
+      return [
          {
-            title: "Total Inventory Items",
-            value: summaryStats.totalInventoryItems.count.toLocaleString(),
-            subtitle: "Number of unique variants",
-            change: `+${summaryStats.totalInventoryItems.newItemsThisMonth} items/variants this month`,
+            title: "Total inventory items",
+            value: Number(items.count ?? 0).toLocaleString(),
+            subtitle: "Unique items and variants",
+            note: `+${newThisMonth.toLocaleString()} this month`,
             icon: Package,
-            trend: "up",
-            color: "text-blue-600",
-            bgColor: "bg-blue-50",
-            priority: "info",
          },
          {
             title: "Total Inventory Value",
-            value: priceParser(summaryStats.totalInventoryValue.totalValue),
-            subtitle: "Sum of all items' value in stock",
-            change: `${summaryStats.totalInventoryValue.itemsNeedReorder} items need reorder`,
+            value: priceParser(value.totalValue),
+            subtitle: "Value of everything in stock",
+            note: needReorder > 0 ? `${needReorder.toLocaleString()} items need reorder` : "Nothing needs reorder",
+            tone: needReorder > 10 ? "warning" : "default",
             icon: TrendingUp,
-            trend: summaryStats.totalInventoryValue.itemsNeedReorder > 10 ? "warning" : "up",
-            color: "text-green-600",
-            bgColor: "bg-green-50",
-            priority: "high",
          },
          {
-            title: "Stock Health Score",
-            value: `${summaryStats.stockHealthScore.score}%`,
-            subtitle: `${summaryStats.stockHealthScore.healthyItems} items healthy`,
-            change: summaryStats.stockHealthScore.status,
+            title: "Stock health",
+            value: `${health.score ?? 0}%`,
+            subtitle: `${Number(health.healthyItems ?? 0).toLocaleString()} of ${Number(health.totalItems ?? 0).toLocaleString()} items healthy`,
+            note: health.status,
+            tone: health.status === "Poor" ? "warning" : "good",
             icon: Activity,
-            trend: summaryStats.stockHealthScore.status === "Poor" ? "warning" : "up",
-            color: summaryStats.stockHealthScore.status === "Poor" ? "text-orange-600" : "text-green-600",
-            bgColor: summaryStats.stockHealthScore.status === "Poor" ? "bg-orange-50" : "bg-green-50",
-            priority: "medium",
          },
          {
-            title: "Out of Stock",
-            value: summaryStats.outOfStock.count.toLocaleString(),
-            subtitle: summaryStats.outOfStock.status,
-            change: summaryStats.outOfStock.count > 0 ? "Action required" : "All stocked",
+            title: "Out of stock",
+            value: outCount.toLocaleString(),
+            subtitle: outCount > 0 ? "Items to restock now" : "Every item has stock",
+            note: outCount > 0 ? "Action required" : "All stocked",
+            tone: outCount > 0 ? "danger" : "good",
             icon: Clock,
-            trend: summaryStats.outOfStock.count > 0 ? "warning" : "up",
-            color: summaryStats.outOfStock.count > 0 ? "text-red-600" : "text-green-600",
-            bgColor: summaryStats.outOfStock.count > 0 ? "bg-red-50" : "bg-green-50",
-            priority: summaryStats.outOfStock.count > 0 ? "critical" : "low",
          },
-      ],
-      [summaryStats],
-   );
+      ];
+   }, [summaryStats]);
 
    return { summaryStats, summaryCards };
 }

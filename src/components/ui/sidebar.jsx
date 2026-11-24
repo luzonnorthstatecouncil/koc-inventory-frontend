@@ -14,8 +14,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "18rem";
-const SIDEBAR_WIDTH_MOBILE = "18rem";
+const SIDEBAR_WIDTH = "20rem";
+const SIDEBAR_WIDTH_MOBILE = "264px";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
@@ -159,7 +159,7 @@ function Sidebar({ side = "left", variant = "sidebar", collapsible = "offcanvas"
 
    return (
       <div
-         className='group peer text-sidebar-foreground hidden md:block max-lg:w-2/6'
+         className='group peer text-sidebar-foreground hidden lg:block'
          data-state={state}
          data-collapsible={state === "collapsed" ? collapsible : ""}
          data-variant={variant}
@@ -181,14 +181,14 @@ function Sidebar({ side = "left", variant = "sidebar", collapsible = "offcanvas"
          <div
             data-slot='sidebar-container'
             className={cn(
-               "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+               "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-out lg:flex",
                side === "left"
                   ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
                   : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
                // Adjust the padding for floating and inset variants.
                variant === "floating" || variant === "inset"
                   ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-                  : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+                  : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
                className,
             )}
             {...props}
@@ -205,7 +205,7 @@ function Sidebar({ side = "left", variant = "sidebar", collapsible = "offcanvas"
    );
 }
 
-function SidebarTrigger({ className, onClick, ...props }) {
+function SidebarTrigger({ className, onClick, children, ...props }) {
    const { toggleSidebar } = useSidebar();
 
    return (
@@ -221,8 +221,8 @@ function SidebarTrigger({ className, onClick, ...props }) {
          }}
          {...props}
       >
-         <PanelLeftIcon />
-         <span className='sr-only'>Toggle Sidebar</span>
+         {children ?? <PanelLeftIcon />}
+         {!props["aria-label"] && <span className='sr-only'>Toggle Sidebar</span>}
       </Button>
    );
 }

@@ -28,14 +28,14 @@ test.describe("Structure refactor", () => {
     await signIn(page);
     await page.goto("/inventory/suppliers");
     await page.getByRole("button", { name: "Add Supplier" }).click();
-    await expect(page.getByText("Create New Supplier")).toBeVisible();
+    await expect(page.getByText("Suppliers are chosen when receiving stock.")).toBeVisible();
     await page.getByPlaceholder("Enter supplier name").fill("Structure Test Supplies");
     await page.getByRole("button", { name: /^(Create|Save|Submit)/ }).last().click();
-    await page.getByRole("alertdialog", { name: "Create New Supplier" }).getByRole("button", { name: "Confirm" }).click();
+    await page.getByRole("alertdialog", { name: "Add this supplier?" }).getByRole("button", { name: "Confirm" }).click();
     await expect(page.getByText(/Supplier created successfully/)).toBeVisible();
     await expect(page.getByRole("row", { name: /Structure Test Supplies/ })).toBeVisible();
     await rowAction(page, "Structure Test Supplies", "View Details");
-    await expect(page.getByText("View Supplier")).toBeVisible();
+    await expect(page.getByRole("alertdialog").getByText("Structure Test Supplies")).toBeVisible();
   });
 
   test("ST-03 orders: view a refund, switch to its original order and back", async ({ page }) => {
@@ -45,16 +45,16 @@ test.describe("Structure refactor", () => {
     await rowAction(page, "RFD-", "View Details");
     const dialog = page.getByRole("alertdialog");
     await expect(dialog.getByText(/RFD-/).first()).toBeVisible();
-    await dialog.getByRole("button", { name: "View Original Order" }).click();
+    await dialog.getByRole("button", { name: "View original sale" }).click();
     await expect(dialog.getByText(/ORD-/).first()).toBeVisible();
-    await dialog.getByRole("button", { name: "View Refund Order" }).click();
+    await dialog.getByRole("button", { name: "Back to refund" }).click();
     await expect(dialog.getByText(/RFD-/).first()).toBeVisible();
   });
 
   test("ST-04 POS has no barcode scanner and still sells", async ({ page }) => {
     await signIn(page);
     await expect(page.getByText(/barcode/i)).toHaveCount(0);
-    await expect(page.getByText("T-Shirt - Default").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Add T-Shirt - Default,/ }).first()).toBeVisible();
   });
 });
 

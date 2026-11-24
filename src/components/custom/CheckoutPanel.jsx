@@ -25,15 +25,15 @@ export const DEDUCTION_REMARKS_OPTIONS = [
 ];
 
 const fieldClass =
-   "h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-neutral-400 hover:border-neutral-300 focus:border-primary focus:shadow-[0_0_0_3px_rgb(17_40_102/0.12)]";
+   "h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm lg:text-base text-foreground outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-neutral-400 hover:border-neutral-300 focus:border-primary focus:shadow-[0_0_0_3px_rgb(17_40_102/0.12)]";
 
-const labelClass = "text-xs font-semibold text-neutral-600";
+const labelClass = "text-xs lg:text-sm font-semibold text-neutral-600";
 
 const primaryButton =
-   "flex h-14 w-full items-center justify-between gap-3 rounded-xl bg-primary px-5 text-white shadow-[0_6px_16px_-6px_rgb(17_40_102/0.55)] transition-[background-color,box-shadow,transform] duration-150 hover:bg-[#0B1C4A] active:translate-y-px disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+   "flex h-12 lg:h-13 w-full items-center justify-between gap-3 rounded-xl bg-primary px-5 text-white shadow-[0_6px_16px_-6px_rgb(17_40_102/0.55)] transition-[background-color,box-shadow,transform] duration-150 hover:bg-[#0B1C4A] active:translate-y-px disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 const secondaryButton =
-   "flex h-11 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-semibold text-foreground transition-colors hover:bg-neutral-50 hover:border-neutral-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+   "flex h-11 items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm lg:text-base font-semibold text-foreground transition-colors hover:bg-neutral-50 hover:border-neutral-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -47,24 +47,24 @@ function quickAmounts(total) {
 /** The live receipt: what's owed, what was handed over, what goes back. */
 function AmountCard({ label, amount, children }) {
    return (
-      <div className='rounded-xl bg-primary px-4 pt-3.5 pb-4 text-white'>
+      <div className='rounded-xl bg-primary px-4 py-3 text-white'>
          <div className='flex items-baseline justify-between gap-3'>
-            <span className='text-[13px] font-medium text-white/70'>{label}</span>
-            <span className='text-[28px] leading-none font-bold tracking-[-0.02em] tabular-nums'>{amount}</span>
+            <span className='text-sm font-medium text-white/70'>{label}</span>
+            <span className='text-2xl lg:text-3xl leading-none font-bold tracking-[-0.02em] tabular-nums'>{amount}</span>
          </div>
-         {children && <div className='mt-3 flex flex-col gap-1.5 border-t border-white/15 pt-3'>{children}</div>}
+         {children && <div className='mt-2.5 flex flex-col gap-1 border-t border-white/15 pt-2.5'>{children}</div>}
       </div>
    );
 }
 
 function CardRow({ label, value, tone }) {
    return (
-      <div className='flex items-baseline justify-between text-[13px] tabular-nums'>
+      <div className='flex items-baseline justify-between text-sm tabular-nums'>
          <span className='text-white/70'>{label}</span>
          <span
             className={cn(
                "font-semibold",
-               tone === "strong" && "text-[15px] text-white",
+               tone === "strong" && "text-sm lg:text-base text-white",
                tone === "warn" && "text-amber-300",
                !tone && "text-white/90",
             )}
@@ -83,8 +83,8 @@ function SaleComplete({ completed, onPrintAgain, onNewSale }) {
                <Check className='size-4.5' strokeWidth={2.75} />
             </span>
             <div className='min-w-0'>
-               <p className='text-[15px] font-semibold text-foreground'>Sale recorded</p>
-               <p className='truncate text-[13px] tabular-nums text-neutral-600'>
+               <p className='text-sm lg:text-base font-semibold text-foreground'>Sale recorded</p>
+               <p className='truncate text-sm tabular-nums text-neutral-600'>
                   Invoice {completed.invoiceNumber} · {plural(completed.count, "item")} · receipt sent to printer
                </p>
             </div>
@@ -103,7 +103,7 @@ function SaleComplete({ completed, onPrintAgain, onNewSale }) {
             <button
                type='button'
                autoFocus
-               className='flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0B1C4A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+               className='flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm lg:text-base font-semibold text-white transition-colors hover:bg-[#0B1C4A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
                onClick={onNewSale}
             >
                New sale
@@ -126,6 +126,7 @@ export default function CheckoutPanel({
    onDeduct,
    onPrintAgain,
    onNewSale,
+   tillClosed = null, // shown instead of the sale form when no shift is open (deductions still work)
 }) {
    const dispatch = useDispatch();
    const { invoiceNumber, amountTendered, isDeduction, remarks, paymentMethod } = useSelector((s) => s.cart);
@@ -163,7 +164,7 @@ export default function CheckoutPanel({
    const showsDiscount = subtotal !== total && !isDeduction;
 
    return (
-      <div className='flex flex-col gap-4'>
+      <div className='flex flex-col gap-3'>
          {canDeduct && (
             <div
                role='radiogroup'
@@ -183,7 +184,7 @@ export default function CheckoutPanel({
                         aria-checked={active}
                         onClick={() => switchMode(opt.value)}
                         className={cn(
-                           "h-8 rounded-md text-[13px] transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-2 focus-visible:outline-primary",
+                           "h-8 rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-2 focus-visible:outline-primary",
                            active
                               ? "bg-white font-semibold text-foreground shadow-[0_1px_3px_rgb(15_23_42/0.12)]"
                               : "font-medium text-neutral-500 hover:text-foreground",
@@ -196,11 +197,12 @@ export default function CheckoutPanel({
             </div>
          )}
 
-         {!isDeduction ? (
-            <form onSubmit={submitSale} className='flex flex-col gap-4' noValidate>
+         {!isDeduction && tillClosed ? (
+            tillClosed
+         ) : !isDeduction ? (
+            <form onSubmit={submitSale} className='flex flex-col gap-3' noValidate>
                <AmountCard label='Total' amount={priceParser(total)}>
                   {showsDiscount && <CardRow label='Subtotal' value={priceParser(subtotal)} />}
-                  <CardRow label='Cash received' value={tendered > 0 ? priceParser(tendered) : "—"} />
                   {tendered > 0 && change < 0 ? (
                      <CardRow label='Still due' value={priceParser(-change)} tone='warn' />
                   ) : (
@@ -236,12 +238,12 @@ export default function CheckoutPanel({
                                  title={opt.disabled ? `${opt.label} — coming soon` : opt.label}
                                  onClick={() => dispatch(setPaymentMethod(opt.value))}
                                  className={cn(
-                                    "flex items-center justify-center gap-1.5 rounded-md text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-primary",
+                                    "flex items-center justify-center gap-1.5 rounded-md text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-primary",
                                     opt.disabled ? "w-8" : "px-3",
                                     selected
                                        ? "bg-white text-primary shadow-[0_1px_3px_rgb(15_23_42/0.12)]"
                                        : "text-neutral-600 hover:text-foreground",
-                                    opt.disabled && "cursor-not-allowed text-neutral-400 hover:text-neutral-400",
+                                    opt.disabled && "cursor-not-allowed text-neutral-500 hover:text-neutral-400",
                                  )}
                               >
                                  <Icon className='size-4' />
@@ -257,11 +259,11 @@ export default function CheckoutPanel({
                   <label className='flex flex-col gap-1.5'>
                      <span className={labelClass}>Cash received</span>
                      <div className='relative'>
-                        <span className='pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-lg font-semibold text-neutral-400'>
+                        <span className='pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-lg lg:text-xl font-semibold text-neutral-500'>
                            ₱
                         </span>
                         <input
-                           className={cn(fieldClass, "h-12 pl-8 text-xl font-bold tabular-nums")}
+                           className={cn(fieldClass, "h-11 pl-8 text-xl lg:text-2xl font-bold tabular-nums")}
                            inputMode='decimal'
                            value={amountTendered}
                            onChange={(e) => dispatch(setAmountTendered(e.target.value.replace(/[^\d.,]/g, "")))}
@@ -282,7 +284,7 @@ export default function CheckoutPanel({
                                  aria-pressed={picked}
                                  onClick={() => dispatch(setAmountTendered(value.toFixed(2)))}
                                  className={cn(
-                                    "h-9 truncate rounded-lg border px-2 text-[13px] font-semibold tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-primary",
+                                    "h-9 truncate rounded-lg border px-2 text-sm font-semibold tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-primary",
                                     picked
                                        ? "border-primary bg-primary/[0.06] text-primary"
                                        : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400",
@@ -297,26 +299,26 @@ export default function CheckoutPanel({
                </div>
 
                {error && (
-                  <p role='alert' className='rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700'>
+                  <p role='alert' className='rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700'>
                      {error}
                   </p>
                )}
 
                <div className='flex flex-col gap-2'>
                   <button type='submit' className={primaryButton} disabled={cantCharge}>
-                     <span className='flex items-center gap-2 text-base font-semibold'>
+                     <span className='flex items-center gap-2 text-base lg:text-lg font-semibold'>
                         {isSubmitting && <Loader2 className='size-5 animate-spin' />}
                         {isSubmitting ? "Recording sale…" : "Charge"}
                      </span>
                      {!isSubmitting && (
-                        <span className='text-base font-bold tabular-nums'>{priceParser(total)}</span>
+                        <span className='text-base lg:text-lg font-bold tabular-nums'>{priceParser(total)}</span>
                      )}
                   </button>
-                  <p className='flex min-h-4 items-center justify-center gap-1.5 text-xs text-neutral-500'>
+                  <p className='flex min-h-4 items-center justify-center gap-1.5 text-xs lg:text-sm text-neutral-500'>
                      {missing ?? (
                         <>
                            Press
-                           <kbd className='inline-flex h-5 items-center gap-1 rounded border border-neutral-200 bg-white px-1.5 font-sans text-[11px] font-semibold text-neutral-600'>
+                           <kbd className='inline-flex h-5 items-center gap-1 rounded border border-neutral-200 bg-white px-1.5 font-sans text-xs font-semibold text-neutral-600'>
                               Enter <CornerDownLeft className='size-3' />
                            </kbd>
                            to charge
@@ -329,12 +331,12 @@ export default function CheckoutPanel({
             <div className='flex flex-col gap-4'>
                <div className='rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3.5'>
                   <div className='flex items-baseline justify-between'>
-                     <span className='text-[13px] font-medium text-neutral-600'>Stock value removed</span>
-                     <span className='text-xl font-bold tracking-[-0.02em] tabular-nums text-foreground'>
+                     <span className='text-sm font-medium text-neutral-600'>Stock value removed</span>
+                     <span className='text-xl lg:text-2xl font-bold tracking-[-0.02em] tabular-nums text-foreground'>
                         {priceParser(subtotal)}
                      </span>
                   </div>
-                  <p className='mt-2 text-[13px] leading-relaxed text-neutral-600'>
+                  <p className='mt-2 text-sm leading-relaxed text-neutral-600'>
                      Removes the items from stock without a sale. Total is {priceParser(0)}.
                      {deductionNeedsApproval && " A State Officer approves it before stock changes."}
                   </p>
@@ -346,7 +348,7 @@ export default function CheckoutPanel({
                   showAll={false}
                   value={remarks}
                   options={DEDUCTION_REMARKS_OPTIONS}
-                  triggerClassName='h-11 rounded-lg border-neutral-200 bg-white text-[15px]'
+                  triggerClassName='h-11 rounded-lg border-neutral-200 bg-white text-sm lg:text-base'
                   onValueChange={(opt) => opt && dispatch(setRemarks(opt.value))}
                />
 
@@ -356,7 +358,7 @@ export default function CheckoutPanel({
                      aria-label='Confirm deduction'
                      className='flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50/60 p-4'
                   >
-                     <p className='text-sm font-semibold text-foreground'>
+                     <p className='text-sm lg:text-base font-semibold text-foreground'>
                         {deductionNeedsApproval ? "Request removal of" : "Remove"} {plural(itemCount, "item")} from stock as “
                         {remarks}”?{!deductionNeedsApproval && " This can’t be undone."}
                      </p>
@@ -372,7 +374,7 @@ export default function CheckoutPanel({
                               await onDeduct();
                               setAskDeduct(false);
                            }}
-                           className='flex h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-800 disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700'
+                           className='flex h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 text-sm lg:text-base font-semibold text-white transition-colors hover:bg-red-800 disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700'
                         >
                            {isSubmitting && <Loader2 className='size-4 animate-spin' />}
                            {deductionNeedsApproval ? "Send request" : "Deduct"}
@@ -382,7 +384,7 @@ export default function CheckoutPanel({
                ) : (
                   <button
                      type='button'
-                     className={cn(primaryButton, "justify-center text-base font-semibold")}
+                     className={cn(primaryButton, "justify-center text-base lg:text-lg font-semibold")}
                      disabled={!itemCount || !remarks}
                      onClick={() => setAskDeduct(true)}
                   >

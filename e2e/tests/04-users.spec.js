@@ -5,7 +5,7 @@ const { signIn, fillField, chooseOption, rowAction, confirmDialog, uiLogin, watc
 const openCreate = async (page) => {
   await page.goto("/user-management");
   await page.getByRole("button", { name: "New User" }).click();
-  return page.getByRole("alertdialog").filter({ hasText: "Create New User" });
+  return page.getByRole("alertdialog").filter({ hasText: "Give someone access to the system." });
 };
 
 test.describe.serial("Phase 2: User management", () => {
@@ -14,7 +14,7 @@ test.describe.serial("Phase 2: User management", () => {
     const dlg = await openCreate(page);
     let calls = 0;
     page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/v1/users")) calls++; });
-    await dlg.getByRole("button", { name: /Create User|Submit|Save/ }).last().click();
+    await dlg.getByRole("button", { name: /Create user|Submit|Save/ }).last().click();
     await expect(dlg.getByText(/required/i).first()).toBeVisible();
     expect(calls).toBe(0);
   });
@@ -22,11 +22,11 @@ test.describe.serial("Phase 2: User management", () => {
   test("U-02 invalid email is rejected client-side", async ({ page }) => {
     await signIn(page);
     const dlg = await openCreate(page);
-    await fillField(dlg, "Full Name", "Bad Email");
+    await fillField(dlg, "Full name", "Bad Email");
     await fillField(dlg, "Username", "bademail");
     await fillField(dlg, "Email", "not-an-email");
     await chooseOption(page, dlg, "Role", "Staff");
-    await dlg.getByRole("button", { name: /Create User|Submit|Save/ }).last().click();
+    await dlg.getByRole("button", { name: /Create user|Submit|Save/ }).last().click();
     await expect(dlg.getByText(/valid email|invalid/i).first()).toBeVisible();
   });
 
@@ -34,11 +34,11 @@ test.describe.serial("Phase 2: User management", () => {
     const issues = watch(page);
     await signIn(page);
     const dlg = await openCreate(page);
-    await fillField(dlg, "Full Name", "Sam Supervisor");
+    await fillField(dlg, "Full name", "Sam Supervisor");
     await fillField(dlg, "Username", "sup_ui");
     await fillField(dlg, "Email", "sup_ui@example.com");
     await chooseOption(page, dlg, "Role", "Supervisor");
-    await dlg.getByRole("button", { name: /Create User|Submit|Save/ }).last().click();
+    await dlg.getByRole("button", { name: /Create user|Submit|Save/ }).last().click();
     await confirmDialog(page);
     await expect(page.getByText(/email could not be sent/i).first()).toBeVisible();
     // Credentials modal with a generated password
@@ -49,22 +49,22 @@ test.describe.serial("Phase 2: User management", () => {
   test("U-04 create staff with a chosen password; duplicate username is refused", async ({ page }) => {
     await signIn(page);
     let dlg = await openCreate(page);
-    await fillField(dlg, "Full Name", "Stan Staff");
+    await fillField(dlg, "Full name", "Stan Staff");
     await fillField(dlg, "Username", "staff_ui");
     await fillField(dlg, "Email", "staff_ui@example.com");
     await chooseOption(page, dlg, "Role", "Staff");
-    await fillField(dlg, "New Password (Optional)", "staffpass1");
-    await dlg.getByRole("button", { name: /Create User|Submit|Save/ }).last().click();
+    await fillField(dlg, "Password (optional)", "staffpass1");
+    await dlg.getByRole("button", { name: /Create user|Submit|Save/ }).last().click();
     await confirmDialog(page);
     await expect(page.getByText(/User created successfully/i).first()).toBeVisible();
 
     await page.keyboard.press("Escape");
     dlg = await openCreate(page);
-    await fillField(dlg, "Full Name", "Dupe Person");
+    await fillField(dlg, "Full name", "Dupe Person");
     await fillField(dlg, "Username", "staff_ui");
     await fillField(dlg, "Email", "dupe@example.com");
     await chooseOption(page, dlg, "Role", "Staff");
-    await dlg.getByRole("button", { name: /Create User|Submit|Save/ }).last().click();
+    await dlg.getByRole("button", { name: /Create user|Submit|Save/ }).last().click();
     await confirmDialog(page);
     await expect(page.getByText(/already exists/i).first()).toBeVisible();
   });
@@ -78,7 +78,7 @@ test.describe.serial("Phase 2: User management", () => {
     await page.goto("/user-management");
     await rowAction(page, "Stan Staff", "Edit User");
     const dlg = page.getByRole("alertdialog").last();
-    await fillField(dlg, "Full Name", "Stan Staff Edited");
+    await fillField(dlg, "Full name", "Stan Staff Edited");
     await dlg.getByRole("button", { name: /Save|Update|Submit/ }).last().click();
     await confirmDialog(page);
     await expect(page.getByRole("row", { name: /Stan Staff Edited/ })).toBeVisible();

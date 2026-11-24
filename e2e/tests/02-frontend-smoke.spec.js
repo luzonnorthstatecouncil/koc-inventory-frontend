@@ -1,10 +1,10 @@
 // Frontend smoke after optimization/cleanup: lazy pages load cleanly, POS sale + receipt,
 // refund keeps "Other" details, dropdowns request all suppliers.
 const { test, expect } = require("@playwright/test");
-const { uiLogin, apiToken, api, watch } = require("./helpers");
+const { uiLogin, apiToken, api, watch, ensureShiftOpen } = require("./helpers");
 
 const PAGES = [
-  ["/sales", "Quickly process sales"],
+  ["/sales", "Current sale"],
   ["/transactions", "Transaction History"],
   ["/inventory/items", "Items"],
   ["/inventory/stocks", "Inventory Stocks"],
@@ -35,16 +35,14 @@ test.describe("Frontend smoke", () => {
   test("S-02 POS sale with invoice number, receipt opens, order recorded", async ({ page, context, request }) => {
     await uiLogin(page, "admin", "test");
     await expect(page).toHaveURL(/\/sales/);
-    await page.getByText("T-Shirt - Default").first().click();
-    await page.getByRole("radio", { name: /cash/i }).or(page.getByText("Cash", { exact: true })).first().click();
-    await page.getByRole("button", { name: "Process Transaction" }).click();
-    await page.getByPlaceholder("e.g., INV-2026-001").fill("inv-smoke-1");
-    await page.getByRole("button", { name: "Continue to Payment" }).click();
-    await page.getByRole("button", { name: "500" }).click();
-    await page.getByRole("button", { name: "Submit" }).click();
+    await ensureShiftOpen(page); // the till needs an open shift
+    await page.getByRole("button", { name: /^Add T-Shirt - Default,/ }).first().click();
+    await page.getByPlaceholder("e.g. 20481").fill("inv-smoke-1");
+    await page.getByRole("button", { name: "₱500", exact: true }).click();
     const popup = context.waitForEvent("page");
-    await page.getByRole("alertdialog").getByRole("button", { name: "Process Payment" }).click();
-    await expect(page.getByText(/Transaction processed successfully/)).toBeVisible();
+    await page.getByRole("button", { name: /^Charge/ }).click();
+    await expect(page.getByText("Sale recorded")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Current sale" })).toContainText(/Change due\s*PHP 250\.00/);
     const receipt = await popup;
     await expect(receipt.getByText(/INV-SMOKE-1/i).first()).toBeVisible();
 
@@ -64,7 +62,7 @@ test.describe("Frontend smoke", () => {
     await page.getByRole("combobox").first().click();
     await page.getByRole("option", { name: "Other" }).click();
     await page.getByPlaceholder(/Customer requested a refund/).fill("Box arrived crushed");
-    await page.getByRole("button", { name: "Save Changes" }).click();
+    await page.getByRole("button", { name: /^Refund PHP / }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Yes, Refund" }).click();
     await expect(page.getByText(/refunded successfully/i).first()).toBeVisible();
 

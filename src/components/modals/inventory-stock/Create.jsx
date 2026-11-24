@@ -9,48 +9,19 @@ import { toast } from "sonner";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import IButton from "@/components/custom/Button";
 import ITextarea from "@/components/custom/Textarea";
-import { Separator } from "@/components/ui/separator";
 import DatePicker from "@/components/custom/DatePicker";
-import Details from "@/components/custom/Details";
-import InputNumber from "@/components/custom/InputNumber";
 import ILineChart from "@/components/custom/LineChart";
-import { AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import ISelect from "@/components/custom/Select";
 import { manageStockDefaultValues, manageStockSchema } from "@/lib/zod/schema/manageStock";
-import Title from "@/components/custom/Title";
-import Paragraph from "@/components/custom/Paragraph";
-import SelectAsync from "@/components/custom/SelectAsync";
 import { useUser } from "@/hooks/useUser";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import IInput from "@/components/custom/Input";
+import { cn } from "@/lib/utils";
 
 const chartConfig = {
-   total_in: {
-      label: "Received",
-      color: "var(--chart-1)",
-   },
-   total_out: {
-      label: "Sold/Out",
-      color: "var(--chart-2)",
-   },
+   total_in: { label: "Received", color: "var(--primary)" },
+   total_out: { label: "Sold / out", color: "var(--color-neutral-400)" },
 };
-
-// This is the custom footer content
-const CustomFooter = ({ percentage = 0, direction = "up" }) => (
-   <div className='space-y-1'>
-      <Title size='sm' className='flex gap-2 leading-none font-medium'>
-         Trending up by {percentage}% this month{" "}
-         {direction === "up" ? (
-            <TrendingUp className='size-4 text-green-600' />
-         ) : (
-            <TrendingDown className='size-4 text-destructive' />
-         )}
-      </Title>
-      <Paragraph className='text-muted-foreground leading-none'>
-         Showing total stocks received from the last 6 months
-      </Paragraph>
-   </div>
-);
 
 /** Keeps the form's has_expiry flag in sync with the selected item (a hook can't live in the render callback). */
 function SyncHasExpiry({ form, inventory }) {
@@ -63,7 +34,19 @@ function SyncHasExpiry({ form, inventory }) {
    return null;
 }
 
-export default function Create({ onClose, inventoryOptions }) {
+function SectionTitle({ title, hint }) {
+   return (
+      <div>
+         <h3 className='text-sm font-semibold text-foreground'>{title}</h3>
+         {hint && <p className='text-xs text-neutral-500'>{hint}</p>}
+      </div>
+   );
+}
+
+/**
+ * Add a stock batch. `prefill` ({ variantId, quantity, supplierId }) comes from the restock shortcuts.
+ */
+export default function Create({ onClose, inventoryOptions, prefill }) {
    const { confirm } = useConfirmation();
    const [createStock] = useCreateStockMutation();
    const { data: supplierList = [] } = useGetSupplierListQuery({
@@ -72,19 +55,18 @@ export default function Create({ onClose, inventoryOptions }) {
    });
    const exec = useCatchQuery();
    const user = useUser();
+   const isSupervisor = user?.role === "supervisor";
 
    const today = new Date();
    const minDateExpiry = new Date(today.setDate(today.getDate() + 1));
 
    const onSubmit = useCallback(
       async (data) => {
-         const isSupervisor = user?.role === "supervisor";
-
          const confirmed = await confirm({
-            title: isSupervisor ? "Request New Stocks" : "Submit New Stocks",
+            title: isSupervisor ? "Request this stock?" : "Add this stock?",
             message: isSupervisor
-               ? "This will send a request to the administrator to approve the new stock. Do you want to proceed?"
-               : "Are you sure you want to submit this new stock?",
+               ? "An administrator has to approve the new stock before it's added."
+               : "The batch will be added to the item's stock.",
          });
 
          if (!confirmed) return;
@@ -97,204 +79,177 @@ export default function Create({ onClose, inventoryOptions }) {
          toast.success(message);
          onClose();
       },
-      [confirm, createStock, exec, onClose, user?.role],
+      [confirm, createStock, exec, onClose, isSupervisor],
    );
 
    return (
-      <>
-         <Form
-            className='flex flex-col gap-4'
-            onSubmit={onSubmit}
-            schema={manageStockSchema}
-            defaultValues={manageStockDefaultValues}
-         >
-            {(form) => {
-               const formErrors = form.formState.errors;
-               const formValues = form.watch();
-               const inventory = inventoryOptions.find((item) => item.id == formValues.variant_id);
-               const hasPendingStockRequest = inventory?.has_pending_request;
+      <Form
+         className='flex flex-col gap-5'
+         onSubmit={onSubmit}
+         schema={manageStockSchema}
+         defaultValues={{
+            ...manageStockDefaultValues,
+            ...(prefill?.variantId != null && { variant_id: String(prefill.variantId) }),
+            ...(prefill?.quantity && { quantity: Number(prefill.quantity) }),
+            ...(prefill?.supplierId != null && { supplier_id: String(prefill.supplierId) }),
+         }}
+      >
+         {(form) => {
+            const formValues = form.watch();
+            const inventory = inventoryOptions.find((item) => item.id == formValues.variant_id);
+            const pending = Boolean(inventory?.has_pending_request);
+            const current = Number(inventory?.current_qty) || 0;
+            const max = Number(inventory?.max_qty_level) || 0;
+            const room = Math.max(max - current, 0);
 
-               return (
-                  <div className='grid grid-cols-2 gap-x-4'>
-                     <SyncHasExpiry form={form} inventory={inventory} />
-                     <div>
-                        {hasPendingStockRequest && (
-                           <Alert className='mb-4 border border-destructive bg-red-50'>
-                              <AlertDescription className='text-xs text-destructive flex items-center gap-2'>
-                                 <span>
-                                    <AlertTriangle className='size-4' />
-                                 </span>
-                                 There is a pending stock request for this item. Adding stock now
-                                 may affect the pending request.
-                              </AlertDescription>
-                           </Alert>
-                        )}
+            return (
+               <>
+                  <SyncHasExpiry form={form} inventory={inventory} />
 
+                  <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
+                     {/* Which item, and where its stock stands */}
+                     <div className='flex flex-col gap-3'>
+                        <SectionTitle title='Item' hint='Choose the item and variant this batch is for.' />
                         <ISelect
                            showAll={false}
-                           label='Inventory Variant'
+                           label='Item'
                            name='variant_id'
-                           className='w-full mb-2'
-                           placeholder='Choose variant'
+                           className='w-full'
+                           placeholder='Choose item'
                            options={optionParser(inventoryOptions, "id", "name")}
                         />
+
+                        {inventory && (
+                           <dl className='grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-neutral-200 bg-neutral-200'>
+                              {[
+                                 { label: "In stock", value: current },
+                                 { label: "Max level", value: max },
+                                 { label: "Room left", value: room },
+                              ].map((fact) => (
+                                 <div key={fact.label} className='flex flex-col gap-0.5 bg-white px-3 py-2.5'>
+                                    <dt className='text-xs text-neutral-500'>{fact.label}</dt>
+                                    <dd className='text-base font-semibold text-foreground tabular-nums'>
+                                       {fact.value.toLocaleString()}
+                                    </dd>
+                                 </div>
+                              ))}
+                           </dl>
+                        )}
+
+                        {pending && (
+                           <div className='flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900'>
+                              <TriangleAlert className='mt-0.5 size-4 shrink-0 opacity-70' aria-hidden='true' />
+                              <p className='text-sm'>
+                                 This item already has a stock request waiting for approval. Approve or reject it before adding
+                                 more.
+                              </p>
+                           </div>
+                        )}
 
                         <ILineChart
                            data={inventory?.line_chart_data || []}
                            config={chartConfig}
-                           title='Stocks Received'
+                           title='Received vs. sold, last 6 months'
                            xAxisKey='month'
-                           contentClassName='h-40'
-                           wrapperClassName='bg-white mb-4'
-                           emptyMessage={
-                              !formValues.variant_id
-                                 ? "Choose inventory item above to view stocks "
-                                 : "This stock does not have any stocks."
-                           }
-                           footer={
-                              inventory?.line_chart_data.length ? (
-                                 <CustomFooter percentage={inventory?.trend_percentage || 0} />
-                              ) : null
-                           }
+                           contentClassName='h-36'
+                           wrapperClassName='bg-white'
+                           emptyMessage={!formValues.variant_id ? "Choose an item to see its stock history." : "No stock history yet."}
                         />
                      </div>
 
-                     <div className='relative mb-3'>
-                        {inventory && (
-                           <header className='mb-3 border-b pb-3'>
-                              <Title size='2xl'>
-                                 {inventory.current_qty} stock
-                                 {inventory.current_qty > 1 && "s"}
-                              </Title>
-                              <Paragraph size='sm'>
-                                 Max Quantity Level: {inventory.max_qty_level}
-                              </Paragraph>
-                           </header>
-                        )}
-                        <div className='flex items-center justify-between gap-3 mb-3'>
-                           <div className='flex flex-col'>
-                              <Details
-                                 label='Number of Item'
-                                 description='Enter the number of items to add.'
-                              />
-                              {formErrors.quantity && (
-                                 <span className='text-destructive text-xs'>
-                                    {formErrors.quantity.message}
-                                 </span>
-                              )}
-                           </div>
-                           <InputNumber
-                              max={
-                                 inventory ? inventory?.max_qty_level - inventory?.current_qty : ""
-                              }
-                              requireMax
+                     {/* The batch itself */}
+                     <div className='flex flex-col gap-4 lg:border-l lg:border-neutral-200 lg:pl-6'>
+                        <SectionTitle title='Batch' hint='What arrived, when, and from whom.' />
+
+                        <div className='flex flex-col gap-1'>
+                           <IInput
                               name='quantity'
-                              steps={10}
-                              disabled={hasPendingStockRequest}
+                              label='Quantity'
+                              type='number'
+                              min={1}
+                              max={inventory ? room : undefined}
+                              placeholder='0'
+                              disabled={pending}
+                              className='tabular-nums'
                            />
+                           {inventory && (
+                              <p className={cn("text-xs", room > 0 ? "text-neutral-500" : "text-red-700")}>
+                                 {room > 0
+                                    ? `Up to ${room.toLocaleString()} more before reaching the max level.`
+                                    : "This item is at its max level."}
+                              </p>
+                           )}
                         </div>
 
-                        <div className='flex items-center justify-between gap-3 mb-3'>
-                           <div className='flex flex-col'>
-                              <Details
-                                 label='Received At'
-                                 description='Enter the received date of this batch.'
-                              />
-                              {formErrors.received_at && (
-                                 <span className='text-destructive text-xs'>
-                                    {formErrors.received_at.message}
-                                 </span>
-                              )}
-                           </div>
+                        <fieldset className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                            <DatePicker
-                              showError={false}
                               showClear={false}
                               name='received_at'
-                              label={null}
+                              label='Received'
                               type='date'
                               maxDate={new Date()}
-                              className='bg-white'
-                              disabled={hasPendingStockRequest}
+                              wrapperClassName='w-full' triggerClassName='bg-white'
+                              disabled={pending}
                            />
-                        </div>
-
-                        <div className='flex items-center justify-between gap-3 mb-3'>
-                           <div className='flex flex-col'>
-                              <Details
-                                 label='Expires At'
-                                 description={
-                                    inventory?.has_expiry
-                                       ? "Enter the expiration date of this batch."
-                                       : "This item doesn't track expiration dates."
-                                 }
-                              />
-                              {formErrors.expires_at && (
-                                 <span className='text-destructive text-xs'>
-                                    {formErrors.expires_at.message}
-                                 </span>
-                              )}
-                           </div>
                            <DatePicker
                               showClear={false}
-                              showError={false}
                               name='expires_at'
-                              label={null}
+                              label={inventory && !inventory.has_expiry ? "Expires (not tracked)" : "Expires"}
                               type='date'
                               minDate={minDateExpiry}
-                              className='bg-white'
-                              disabled={hasPendingStockRequest || !inventory?.has_expiry}
+                              wrapperClassName='w-full' triggerClassName='bg-white'
+                              disabled={pending || !inventory?.has_expiry}
                            />
-                        </div>
-
-                        <Separator className='my-4' />
+                        </fieldset>
 
                         <ISelect
                            showAll={false}
-                           label="Supplier's Name"
+                           label='Supplier'
                            name='supplier_id'
-                           className='w-full mb-4'
+                           className='w-full'
                            placeholder='Choose supplier'
                            options={optionParser(supplierList?.data, "id", "name")}
-                           disabled={hasPendingStockRequest}
+                           disabled={pending}
                         />
 
                         <IInput
-                           wrapperClassName='mb-4'
                            name='reference_no'
-                           label='Invoice Number (Optional)'
-                           placeholder='Enter invoice number'
+                           label='Invoice no. (optional)'
+                           placeholder="From the supplier's receipt"
                            parse='reference_no'
-                           description='If available, enter the invoice number from the supplier`s receipt.'
-                           disabled={hasPendingStockRequest}
+                           disabled={pending}
                         />
 
                         <ITextarea
                            name='remarks'
-                           label='Remarks (Optional)'
-                           placeholder='e.g. Purchased from supplier, etc.'
+                           label='Remarks (optional)'
+                           placeholder='e.g. Delivered by the supplier'
+                           rows={2}
                            className='bg-white'
-                           disabled={hasPendingStockRequest}
+                           disabled={pending}
                         />
                      </div>
-
-                     <div className='flex items-center justify-end gap-2 mt-auto col-span-2'>
-                        <IButtonConfirm
-                           title='Cancel Creation'
-                           message='Are you sure you want to cancel? All unsaved changes will be lost.'
-                           asButton
-                           onConfirm={onClose}
-                           isDirty={form.formState.isDirty}
-                        >
-                           Cancel
-                        </IButtonConfirm>
-                        <IButton type='submit' variant='default' disabled={hasPendingStockRequest}>
-                           Add Stock
-                        </IButton>
-                     </div>
                   </div>
-               );
-            }}
-         </Form>
-      </>
+
+                  <footer className='-mx-3 flex items-center justify-end gap-2 border-t border-neutral-200 px-3 pt-3 pb-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6'>
+                     <IButtonConfirm
+                        title='Discard this batch?'
+                        message='The details you entered will be lost.'
+                        cancelLabel='Keep editing'
+                        confirmLabel='Discard'
+                        asButton
+                        onConfirm={onClose}
+                        isDirty={form.formState.isDirty}
+                     >
+                        Cancel
+                     </IButtonConfirm>
+                     <IButton type='submit' variant='default' disabled={pending}>
+                        {isSupervisor ? "Request stock" : "Add stock"}
+                     </IButton>
+                  </footer>
+               </>
+            );
+         }}
+      </Form>
    );
 }

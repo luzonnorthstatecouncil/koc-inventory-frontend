@@ -1,6 +1,14 @@
 import { appendArray, clearArray, clearStates, setState } from "@/helpers/sliceHelpers";
 import { createSlice } from "@reduxjs/toolkit";
 
+/**
+ * Random key sent with each checkout. A retry of the same sale (e.g. after a timeout) reuses
+ * it, so the server returns the sale it already recorded instead of charging twice. Any cart
+ * change makes it a different sale, so the key rotates.
+ */
+const newClientRef = () =>
+   globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+
 const initialState = {
    cart: [],
    // Cash is the only enabled method, so it's selected from the start.
@@ -12,7 +20,17 @@ const initialState = {
    invoiceNumber: "",
    isDeduction: false,
    remarks: "Internal Use",
+   clientRef: newClientRef(),
 };
+
+/** Wraps a reducer that changes the cart so the checkout key rotates with it. */
+const changesCart = (reducer) => ({
+   reducer: (state, action) => {
+      reducer(state, action);
+      state.clientRef = action.meta.clientRef;
+   },
+   prepare: (payload) => ({ payload, meta: { clientRef: newClientRef() } }),
+});
 
 /**
  * A kit and a variant can share the same numeric id, so cart lines are
@@ -24,16 +42,16 @@ const cartSlice = createSlice({
    name: "cart",
    initialState,
    reducers: {
-      addCart: appendArray("cart"),
+      addCart: changesCart(appendArray("cart")),
       // payload: { id, isKit, data }
-      updateCart: (state, action) => {
+      updateCart: changesCart((state, action) => {
          state.cart = state.cart.map((item) => (isSameCartLine(item, action.payload) ? action.payload.data : item));
-      },
+      }),
       // payload: { id, isKit }
-      removeFromCart: (state, action) => {
+      removeFromCart: changesCart((state, action) => {
          state.cart = state.cart.filter((item) => !isSameCartLine(item, action.payload));
-      },
-      clearCart: clearArray("cart"),
+      }),
+      clearCart: changesCart(clearArray("cart")),
       setPaymentMethod: setState("paymentMethod"),
       setSearchQuery: setState("searchQuery"),
       setCategory: setState("category"),
@@ -42,8 +60,8 @@ const cartSlice = createSlice({
       setInvoiceNumber: setState("invoiceNumber"),
       setIsDeduction: setState("isDeduction"),
       setRemarks: setState("remarks"),
-      setCart: setState("cart"),
-      resetCheckout: clearStates(initialState),
+      setCart: changesCart(setState("cart")),
+      resetCheckout: changesCart(clearStates(initialState)),
    },
 });
 

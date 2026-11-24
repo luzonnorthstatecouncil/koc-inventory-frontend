@@ -5,29 +5,34 @@ import { rejectStockApprovalSchema } from "@/lib/zod/schema/manageStock";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import IButton from "@/components/custom/Button";
 import { useSelector } from "react-redux";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { AlertTriangle, Package, Scale, User, Building2 } from "lucide-react";
+import { padwithZero } from "@/helpers/parser";
+
+function Fact({ label, children }) {
+   return (
+      <div className='flex items-baseline justify-between gap-4'>
+         <dt className='shrink-0 text-sm text-neutral-600'>{label}</dt>
+         <dd className='min-w-0 truncate text-end text-sm font-medium text-foreground tabular-nums'>{children}</dd>
+      </div>
+   );
+}
 
 export default function RejectStockApproval({ isOpen, onClose, onSubmit }) {
    const { selectedStockApproval } = useSelector((state) => state.inventory);
-
-   const requesterName = selectedStockApproval?.requester?.full_name || "";
-   const initials = requesterName
-      .split(" ")
-      .filter(Boolean)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+   const inventory = selectedStockApproval?.variant?.inventory;
+   const variant = selectedStockApproval?.variant?.variant_name;
+   const isRemove = selectedStockApproval?.request_type === "remove";
 
    return (
       <Modal
          isOpen={isOpen}
          contentClassName='my-0'
-         title='Reject Stock Request'
-         description={`Provide a reason for rejecting stock request #${selectedStockApproval?.id || ""}`}
+         className='pb-0'
+         title='Reject stock request'
+         description={
+            selectedStockApproval?.id
+               ? `Request #${padwithZero(selectedStockApproval.id)}. The requester sees your reason.`
+               : "The requester sees your reason."
+         }
          size='md'
          primaryAction={null}
          secondaryAction={null}
@@ -44,83 +49,39 @@ export default function RejectStockApproval({ isOpen, onClose, onSubmit }) {
          >
             {(form) => (
                <>
-                  {/* Warning Banner */}
-                  <div className='flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3'>
-                     <AlertTriangle className='mt-0.5 size-4 shrink-0 text-destructive' />
-                     <p className='text-sm text-destructive leading-snug'>
-                        This action will reject the stock request. The requester will be notified with your reason.
+                  {/* What's being rejected */}
+                  <section className='flex flex-col gap-1'>
+                     <p className='text-2xl font-bold tracking-tight text-foreground tabular-nums'>
+                        {isRemove ? "−" : "+"}
+                        {Number(selectedStockApproval?.quantity || 0).toLocaleString()}{" "}
+                        <span className='text-base font-medium text-neutral-500'>{inventory?.unit || "pcs"}</span>
                      </p>
-                  </div>
+                     <p className='text-sm text-foreground'>
+                        <span className='font-semibold'>{inventory?.name || "Unknown item"}</span>
+                        {variant && variant !== "Default" && <span className='text-neutral-500'> · {variant}</span>}
+                     </p>
+                     {inventory?.sku && <p className='text-xs text-neutral-500 tabular-nums'>{inventory.sku}</p>}
+                  </section>
 
-                  {/* Merged Details Card — receipt style */}
-                  <div className='rounded-lg border border-outline overflow-hidden text-sm'>
-                     <div className='flex items-center gap-3 px-4 py-2.5 bg-muted/40'>
-                        <Package className='size-3.5 shrink-0 text-muted-foreground' />
-                        <span className='text-xs text-muted-foreground w-24 shrink-0'>Product</span>
-                        <div className='flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0'>
-                           <span className='font-semibold truncate'>
-                              {selectedStockApproval?.variant?.inventory?.name} —{" "}
-                              {selectedStockApproval?.variant?.variant_name}
-                           </span>
-                           <Badge variant='muted' className='shrink-0'>
-                              {selectedStockApproval?.variant?.inventory?.sku}
-                           </Badge>
-                        </div>
-                     </div>
-
-                     <Separator />
-
-                     <div className='flex items-center gap-3 px-4 py-2.5'>
-                        <Scale className='size-3.5 shrink-0 text-muted-foreground' />
-                        <span className='text-xs text-muted-foreground w-24 shrink-0'>Quantity</span>
-                        <span className='font-semibold'>
-                           {selectedStockApproval?.quantity}{" "}
-                           <span className='font-normal text-muted-foreground'>
-                              {selectedStockApproval?.variant?.inventory?.unit}
-                           </span>
-                        </span>
-                     </div>
-
-                     <Separator />
-
-                     <div className='flex items-center gap-3 px-4 py-2.5 bg-muted/40'>
-                        <Building2 className='size-3.5 shrink-0 text-muted-foreground' />
-                        <span className='text-xs text-muted-foreground w-24 shrink-0'>Supplier</span>
-                        <span className='font-semibold'>
-                           {selectedStockApproval?.supplier?.name || "Unknown Supplier"}
-                        </span>
-                     </div>
-
-                     <Separator />
-
-                     <div className='flex items-center gap-3 px-4 py-2.5'>
-                        <Avatar className='size-5 shrink-0'>
-                           <AvatarFallback className='bg-primary/10 text-xs font-semibold text-primary'>
-                              {initials || <User className='size-3' />}
-                           </AvatarFallback>
-                        </Avatar>
-                        <span className='text-xs text-muted-foreground w-24 shrink-0'>Requested By</span>
-                        <div className='min-w-0'>
-                           <span className='font-semibold'>{requesterName || "—"}</span>
-                           <span className='text-muted-foreground ml-1.5 text-xs truncate'>
-                              {selectedStockApproval?.requester?.email}
-                           </span>
-                        </div>
-                     </div>
-                  </div>
+                  <dl className='flex flex-col gap-1.5 rounded-xl bg-neutral-50 px-4 py-3'>
+                     <Fact label='Supplier'>{selectedStockApproval?.supplier?.name || "Unknown supplier"}</Fact>
+                     <Fact label='Requested by'>{selectedStockApproval?.requester?.full_name || "—"}</Fact>
+                  </dl>
 
                   <ITextarea
                      name='rejection_reason'
-                     label='Rejection Reason'
+                     label='Reason'
                      placeholder='Please provide a detailed reason for rejection...'
                      rows={4}
                      required
                   />
 
-                  <div className='flex items-center justify-end gap-2'>
+                  <footer className='-mx-3 flex items-center justify-end gap-2 border-t border-neutral-200 px-3 pt-3 pb-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6'>
                      <IButtonConfirm
-                        title='Cancel Rejection'
-                        message='Are you sure you want to cancel? All unsaved changes will be lost.'
+                        title='Discard this rejection?'
+                        message='The request stays pending.'
+                        cancelLabel='Keep editing'
+                        confirmLabel='Discard'
                         asButton
                         onConfirm={onClose}
                         isDirty={form.formState.isDirty}
@@ -130,7 +91,7 @@ export default function RejectStockApproval({ isOpen, onClose, onSubmit }) {
                      <IButton type='submit' variant='destructive'>
                         Reject Approval
                      </IButton>
-                  </div>
+                  </footer>
                </>
             )}
          </Form>

@@ -40,7 +40,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ICheckbox from "./Checkbox";
 import { useUser } from "@/hooks/useUser";
 import ITooltip from "./Tooltip";
-import { Skeleton } from "../ui/skeleton";
 
 const DataTable = ({
    // RTK Query integration (required)
@@ -421,7 +420,7 @@ const DataTable = ({
                            <IInput
                               useForm={false}
                               placeholder='Search...'
-                              className='bg-white !text-xs text-black w-full sm:w-70'
+                              className='bg-white !text-sm text-black w-full sm:w-70'
                               prefix={<SearchIcon className='size-4 text-black' />}
                               value={searchTerm}
                               onChange={(e) => {
@@ -465,7 +464,7 @@ const DataTable = ({
                                           });
                                        }}
                                        placeholder='Select date range'
-                                       triggerClassName='text-xs bg-white text-black [&>svg]:!text-black hover:bg-primary/10'
+                                       triggerClassName='text-sm bg-white text-black [&>svg]:!text-black hover:bg-primary/10'
                                        suffix={<Calendar className='size-3.5' />}
                                     />
                                  );
@@ -499,7 +498,7 @@ const DataTable = ({
                                     allValue='all'
                                     contentClassName='bg-white'
                                     variant='destructive'
-                                    triggerClassName={`text-xs bg-white text-black [&>svg]:!text-black hover:bg-primary/10 ${
+                                    triggerClassName={`text-sm bg-white text-black [&>svg]:!text-black hover:bg-primary/10 ${
                                        activeFilters[filter.key] && activeFilters[filter.key] !== "all"
                                           ? "font-semibold"
                                           : ""
@@ -540,8 +539,18 @@ const DataTable = ({
          </header>
 
          {/* Table */}
+         <div className='relative w-full'>
+         {isQueryLoading && (
+            <div
+               role='progressbar'
+               aria-label='Loading records'
+               className='pointer-events-none absolute inset-x-0 top-0 z-10 h-[3px] overflow-hidden rounded-t-lg bg-emphasis/25'
+            >
+               <div className='table-progress-bar h-full w-2/5 rounded-full bg-emphasis' />
+            </div>
+         )}
          <div className={cn("overflow-x-auto overflow-y-hidden w-full border rounded-lg", tableWrapperClassName)}>
-            <Table className={cn(tableClassName, "w-full")} {...props}>
+            <Table className={cn(tableClassName, "w-full")} aria-busy={isQueryLoading || undefined} {...props}>
                {caption && <TableCaption>{caption}</TableCaption>}
 
                <TableHeader>
@@ -562,22 +571,18 @@ const DataTable = ({
                   </TableRow>
                </TableHeader>
 
-               <TableBody className={cn(isPending && "opacity-50 transition-opacity")}>
-                  {isQueryLoading ? (
-                     Array.from({ length: 3 }).map((_, rowIndex) => (
-                        <TableRow key={rowIndex}>
-                           <TableCell colSpan={columnsWithActions.length} className='py-3'>
-                              <div className='flex items-center gap-3'>
-                                 <Skeleton className='h-8 w-8 rounded' />
-                                 <div className='flex-1 space-y-2'>
-                                    <Skeleton className='h-4 w-[60%]' />
-                                    <Skeleton className='h-3 w-[40%]' />
-                                 </div>
-                                 <Skeleton className='h-8 w-20' />
-                              </div>
-                           </TableCell>
-                        </TableRow>
-                     ))
+               <TableBody
+                  className={cn(
+                     "transition-opacity duration-150",
+                     (isPending || (isQueryLoading && tableData?.length > 0)) && "opacity-55",
+                  )}
+               >
+                  {isQueryLoading && !tableData?.length ? (
+                     <TableRow className='hover:bg-transparent'>
+                        <TableCell colSpan={columnsWithActions.length} className='py-10 text-center text-sm text-muted-foreground'>
+                           Loading records…
+                        </TableCell>
+                     </TableRow>
                   ) : tableData?.length > 0 ? (
                      tableData?.map((item, index) => (
                         <React.Fragment key={`${Date.now()}-${index}`}>
@@ -587,7 +592,8 @@ const DataTable = ({
                                     key={column.key || column.title}
                                     className={cn(
                                        column.cellClassName,
-                                       "py-1 max-w-40",
+                                       // Clip anything wider than the cell so long text never runs into the next column
+                                       "py-3 max-w-40 overflow-hidden",
                                        !actions.length && index === columnsWithActions.length - 1 && "text-end",
                                     )}
                                  >
@@ -644,6 +650,7 @@ const DataTable = ({
                   </TableFooter>
                )}
             </Table>
+         </div>
          </div>
 
          {/* Pagination */}

@@ -1,198 +1,230 @@
+/**
+ * Bulk-import templates with dropdowns and value rules on the cells, built from live data so
+ * staff can only pick real categories, units, items and suppliers. Loaded only on download.
+ */
 import { UNIT_OPTIONS } from "@/constants/options";
-import * as XLSX from "xlsx";
+import { stockItemLabel } from "@/helpers/bulkImport";
 
-/**
- * Downloads an Excel template for bulk import
- * @param {string} filename - Name of the file to download
- */
-export const downloadBulkImportTemplate = (filename = "bulk_import_template.xlsx") => {
-   // Sample data showing the expected format
-   const sampleData = [
-      {
-         "Item Name": "Laptop",
-         "Category ID": "1",
-         Unit: "pcs",
-         Price: 999.99,
-         Status: "active",
-         "Variant Name": "15-inch",
-         "Reorder Level": 5,
-         "Safe Qty Level": 40,
-         "Max Qty Level": 120,
-         Stocks: 50,
-         "Expiration Date": "2026-12-31",
-         "Date Received": "2025-01-15",
-      },
-      {
-         "Item Name": "Laptop",
-         "Category ID": "1",
-         Unit: "pcs",
-         Price: 999.99,
-         Status: "active",
-         "Variant Name": "17-inch",
-         "Reorder Level": 3,
-         "Safe Qty Level": 68,
-         "Max Qty Level": 150,
-         Stocks: 30,
-         "Expiration Date": "2026-12-31",
-         "Date Received": "2025-01-15",
-      },
-      {
-         "Item Name": "Mouse",
-         "Category ID": "2",
-         Unit: "pcs",
-         Price: 29.99,
-         Status: "active",
-         "Variant Name": "Wireless",
-         "Reorder Level": 10,
-         "Safe Qty Level": 20,
-         "Max Qty Level": 50,
-         Stocks: "",
-         "Expiration Date": "",
-         "Date Received": "2025-02-20",
-      },
-   ];
+const ROWS = 1000; // rows prepared with dropdowns / rules (matches the import limit)
+const NAVY = "FF112866";
 
-   // Create worksheet
-   const worksheet = XLSX.utils.json_to_sheet(sampleData);
-
-   // Set column widths
-   worksheet["!cols"] = [
-      { wch: 20 }, // Item Name
-      { wch: 12 }, // Category ID
-      { wch: 8 }, // Unit
-      { wch: 10 }, // Price
-      { wch: 10 }, // Status
-      { wch: 15 }, // Variant Name
-      { wch: 15 }, // Reorder Level
-      { wch: 15 }, // Safe Qty Level
-      { wch: 15 }, // Max Qty Level
-      { wch: 10 }, // Stocks
-      { wch: 15 }, // Expiration Date
-      { wch: 15 }, // Date Received
-   ];
-
-   // Create workbook
-   const workbook = XLSX.utils.book_new();
-   XLSX.utils.book_append_sheet(workbook, worksheet, "Items");
-
-   // Add instructions sheet
-   const instructions = [
-      { Instruction: "1. Fill in the item details in the 'Items' sheet" },
-      { Instruction: "2. Each row represents one item-variant combination" },
-      { Instruction: "3. For items with multiple variants, add multiple rows with the same Item Name" },
-      { Instruction: "4. Item Name, Category ID, Unit, and Price are required fields" },
-      { Instruction: "5. Status can be 'active' or 'inactive' (defaults to active)" },
-      { Instruction: "6. Variant Name defaults to 'Default' if not provided" },
-      { Instruction: "7. Stock levels (Reorder, Safe, Max) are optional and default to 5, 10, 20" },
-      { Instruction: "8. Stocks field is optional - leave empty if not setting initial inventory" },
-      { Instruction: "9. Expiration Date is optional" },
-      { Instruction: "10. Expiration Date must be in YYYY-MM-DD format (e.g., 2026-12-31) when provided" },
-      { Instruction: "11. Date Received must be in YYYY-MM-DD format (e.g., 2025-01-15)" },
-      { Instruction: "12. Save the file and upload it in the Bulk Import dialog" },
-   ];
-
-   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
-   instructionsSheet["!cols"] = [{ wch: 80 }];
-   XLSX.utils.book_append_sheet(workbook, instructionsSheet, "Instructions");
-
-   const categories = [
-      { ID: "1", Name: "Apparel" },
-      { ID: "2", Name: "Miscellaneous" },
-      { ID: "3", Name: "Electronics" },
-      { ID: "4", Name: "Furniture" },
-   ];
-
-   const categoriesSheet = XLSX.utils.json_to_sheet(categories);
-   categoriesSheet["!cols"] = [{ wch: 10 }, { wch: 30 }];
-   XLSX.utils.book_append_sheet(workbook, categoriesSheet, "Categories");
-
-   const unitSheet = XLSX.utils.json_to_sheet(UNIT_OPTIONS.map((unit) => ({ Value: unit.value, Unit: unit.label })));
-   unitSheet["!cols"] = [{ wch: 15 }];
-   XLSX.utils.book_append_sheet(workbook, unitSheet, "Units");
-
-   const suppliers = [
-      { ID: "1", Name: "Supplier A", Status: "active" },
-      { ID: "2", Name: "Supplier B", Status: "active" },
-      { ID: "3", Name: "Supplier C", Status: "inactive" },
-   ];
-
-   const suppliersSheet = XLSX.utils.json_to_sheet(suppliers);
-   suppliersSheet["!cols"] = [{ wch: 10 }, { wch: 30 }, { wch: 12 }];
-   XLSX.utils.book_append_sheet(workbook, suppliersSheet, "Suppliers");
-
-   // Download file
-   XLSX.writeFile(workbook, filename);
+const todayDate = () => {
+   const d = new Date();
+   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
+async function newWorkbook() {
+   const { default: ExcelJS } = await import("exceljs");
+   const workbook = new ExcelJS.Workbook();
+   workbook.creator = "KofC Inventory";
+   workbook.created = new Date();
+   return workbook;
+}
+
+/** Header row: bold white on navy, frozen, with a note on each header cell. */
+function addDataSheet(workbook, name, columns) {
+   const sheet = workbook.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }] });
+   sheet.columns = columns.map((c) => ({ header: c.header, key: c.key, width: c.width ?? 16, style: c.style }));
+   const header = sheet.getRow(1);
+   header.font = { bold: true, color: { argb: "FFFFFFFF" } };
+   header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
+   header.alignment = { vertical: "middle" };
+   header.height = 22;
+   columns.forEach((c, i) => {
+      if (c.note) header.getCell(i + 1).note = c.note;
+   });
+   return sheet;
+}
+
+/** A reference sheet (lists the dropdowns point at); plain, read-only in spirit. */
+function addListSheet(workbook, name, headers, rows, widths = []) {
+   const sheet = workbook.addWorksheet(name);
+   sheet.addRow(headers).font = { bold: true };
+   rows.forEach((r) => sheet.addRow(r));
+   headers.forEach((_, i) => {
+      sheet.getColumn(i + 1).width = widths[i] ?? 24;
+   });
+   return sheet;
+}
+
+const listRule = (formula, title, message) => ({
+   type: "list",
+   allowBlank: true,
+   formulae: [formula],
+   showErrorMessage: true,
+   errorStyle: "stop",
+   errorTitle: title,
+   error: message,
+});
+
+const wholeRule = (min, title, message, max) => ({
+   type: "whole",
+   operator: max != null ? "between" : "greaterThanOrEqual",
+   allowBlank: true,
+   formulae: max != null ? [min, max] : [min],
+   showErrorMessage: true,
+   errorStyle: "stop",
+   errorTitle: title,
+   error: message,
+});
+
+const dateRule = (operator, date, title, message) => ({
+   type: "date",
+   operator,
+   allowBlank: true,
+   formulae: [date],
+   showErrorMessage: true,
+   errorStyle: "stop",
+   errorTitle: title,
+   error: message,
+});
+
+/** Applies a rule to a whole column's data rows (row 2 to ROWS + 1). */
+function ruleForColumn(sheet, colLetter, rule) {
+   sheet.dataValidations.add(`${colLetter}2:${colLetter}${ROWS + 1}`, rule);
+}
+
+function addInstructions(workbook, lines) {
+   const sheet = workbook.addWorksheet("Instructions");
+   sheet.getColumn(1).width = 110;
+   lines.forEach((line, i) => {
+      const row = sheet.addRow([line]);
+      if (i === 0) row.font = { bold: true, size: 13 };
+   });
+}
+
+async function save(workbook, filename) {
+   const buffer = await workbook.xlsx.writeBuffer();
+   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement("a");
+   a.href = url;
+   a.download = filename;
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Items template. `categories`: [{ id, name }] from the API. */
+export async function downloadBulkImportTemplate({ categories = [] } = {}, filename = "item_import_template.xlsx") {
+   const workbook = await newWorkbook();
+   const dateStyle = { numFmt: "yyyy-mm-dd" };
+
+   const sheet = addDataSheet(workbook, "Items", [
+      { header: "Item Name", key: "item_name", width: 28, note: "Required. Rows with the same Item Name become variants of one item." },
+      { header: "Category", key: "category", width: 22, note: "Required. Pick from the list." },
+      { header: "Unit", key: "unit", width: 10, note: "Required. Pick from the list." },
+      { header: "Price", key: "price", width: 12, note: "Required. More than 0, e.g. 250 or 99.50.", style: { numFmt: "#,##0.00" } },
+      { header: "Status", key: "status", width: 11, note: "active or inactive (defaults to active)." },
+      { header: "Variant Name", key: "variant_name", width: 18, note: "e.g. Small, Red. Leave blank for Default." },
+      { header: "Reorder Level", key: "reorder_level", width: 14, note: "Whole number. Defaults to 5." },
+      { header: "Safe Qty Level", key: "safe_qty_level", width: 15, note: "Whole number, at least the Reorder Level. Defaults to 10." },
+      { header: "Max Qty Level", key: "max_qty_level", width: 15, note: "Whole number, at least the Safe Qty Level. Defaults to 20." },
+      { header: "Stocks", key: "stocks", width: 10, note: "Optional starting quantity, up to the Max Qty Level." },
+      { header: "Expiration Date", key: "expiration_date", width: 16, note: "Only for items that expire. After today.", style: dateStyle },
+      { header: "Date Received", key: "date_received", width: 15, note: "When the starting stock arrived. Today or earlier.", style: dateStyle },
+   ]);
+
+   const categoryNames = [...new Set(categories.map((c) => String(c.name).trim()).filter(Boolean))];
+   addListSheet(workbook, "Categories", ["Category"], categoryNames.map((n) => [n]), [30]);
+   addListSheet(workbook, "Units", ["Unit", "Meaning"], UNIT_OPTIONS.map((u) => [u.value, u.label]), [10, 18]);
+
+   const catEnd = Math.max(categoryNames.length + 1, 2);
+   const unitEnd = UNIT_OPTIONS.length + 1;
+   ruleForColumn(sheet, "B", listRule(`Categories!$A$2:$A$${catEnd}`, "Unknown category", "Pick a category from the list."));
+   ruleForColumn(sheet, "C", listRule(`Units!$A$2:$A$${unitEnd}`, "Unknown unit", "Pick a unit from the list."));
+   ruleForColumn(sheet, "D", {
+      type: "decimal",
+      operator: "greaterThan",
+      allowBlank: true,
+      formulae: [0],
+      showErrorMessage: true,
+      errorStyle: "stop",
+      errorTitle: "Invalid price",
+      error: "Price must be a number more than 0.",
+   });
+   ruleForColumn(sheet, "E", listRule('"active,inactive"', "Invalid status", "Pick active or inactive."));
+   ruleForColumn(sheet, "G", wholeRule(0, "Invalid level", "Use a whole number of 0 or more."));
+   ruleForColumn(sheet, "H", wholeRule(0, "Invalid level", "Use a whole number of 0 or more."));
+   ruleForColumn(sheet, "I", wholeRule(1, "Invalid level", "Use a whole number of 1 or more."));
+   ruleForColumn(sheet, "J", wholeRule(0, "Invalid stocks", "Use a whole number of 0 or more."));
+   ruleForColumn(sheet, "K", dateRule("greaterThan", todayDate(), "Invalid date", "Expiration Date must be after today."));
+   ruleForColumn(sheet, "L", dateRule("lessThanOrEqual", todayDate(), "Invalid date", "Date Received can't be in the future."));
+
+   addInstructions(workbook, [
+      "How to fill in the Items sheet",
+      "",
+      "• One row per item variant. For an item with sizes or colours, add a row for each with the same Item Name.",
+      "• Rows with the same Item Name must have the same Category, Unit and Price.",
+      "• Category, Unit and Status are dropdowns: pick a value instead of typing it.",
+      "• Levels: Reorder Level ≤ Safe Qty Level ≤ Max Qty Level. Blank levels default to 5, 10 and 20.",
+      "• Stocks is optional. Leave it blank to create the item with no stock.",
+      "• Fill Expiration Date only for items that expire. If any row of an item has one, every row with Stocks needs one.",
+      "• Dates use YYYY-MM-DD, e.g. 2026-12-31.",
+      "• Up to 1,000 rows per file. Everything is checked when you upload, before anything is saved.",
+   ]);
+
+   workbook.views = [{ activeTab: 0 }];
+   await save(workbook, filename);
+}
+
 /**
- * Downloads an Excel template for bulk stock import
- * @param {Array} suppliers - List of supplier objects with id, name, status
- * @param {string} filename - Name of the file to download
+ * Stocks template. `options`: item variants (with sku, inventory_name, variant_name, current_qty,
+ * max_qty_level, has_expiry); `suppliers`: [{ id, name, status }].
  */
-export const downloadBulkStockImportTemplate = (suppliers = [], filename = "bulk_stock_import_template.xlsx") => {
-   const sampleData = [
-      {
-         SKU: "ITEM-001",
-         "Variant Name": "Default",
-         "Supplier ID": "1",
-         Quantity: 50,
-         "Invoice No": "INV-001",
-         "Received Date": "2026-04-16",
-         "Expiration Date": "2027-12-31",
-         Remarks: "Initial stock",
-      },
-      {
-         SKU: "ITEM-002",
-         "Variant Name": "Large",
-         "Supplier ID": "2",
-         Quantity: 100,
-         "Invoice No": "INV-002",
-         "Received Date": "2026-04-16",
-         "Expiration Date": "",
-         Remarks: "",
-      },
-   ];
+export async function downloadBulkStockImportTemplate(
+   { options = [], suppliers = [] } = {},
+   filename = "stock_import_template.xlsx",
+) {
+   const workbook = await newWorkbook();
+   const dateStyle = { numFmt: "yyyy-mm-dd" };
 
-   const worksheet = XLSX.utils.json_to_sheet(sampleData);
-   worksheet["!cols"] = [
-      { wch: 15 }, // SKU
-      { wch: 20 }, // Variant Name
-      { wch: 12 }, // Supplier ID
-      { wch: 12 }, // Quantity
-      { wch: 18 }, // Invoice No
-      { wch: 15 }, // Received Date
-      { wch: 15 }, // Expiration Date
-      { wch: 30 }, // Remarks
-   ];
+   const sheet = addDataSheet(workbook, "Stocks", [
+      { header: "Item", key: "item", width: 46, note: "Required. Pick the item and variant from the list." },
+      { header: "Supplier", key: "supplier", width: 28, note: "Required. Pick from the list." },
+      { header: "Quantity", key: "quantity", width: 11, note: "Required. Whole number, within the room left (see the Item list sheet)." },
+      { header: "Invoice No", key: "invoice_no", width: 16, note: "Optional. From the supplier's receipt." },
+      { header: "Received Date", key: "received_at", width: 15, note: "Required. Today or earlier.", style: dateStyle },
+      { header: "Expiration Date", key: "expires_at", width: 16, note: "Only for items that track expiry. After today.", style: dateStyle },
+      { header: "Remarks", key: "remarks", width: 30, note: "Optional." },
+   ]);
 
-   const workbook = XLSX.utils.book_new();
-   XLSX.utils.book_append_sheet(workbook, worksheet, "Stocks");
-
-   const instructions = [
-      { Instruction: "1. Fill in the stock details in the 'Stocks' sheet" },
-      { Instruction: "2. Each row represents one stock batch entry" },
-      { Instruction: "3. SKU and Variant Name are used to identify the inventory item" },
-      { Instruction: "4. SKU, Variant Name, Supplier ID, Quantity, and Received Date are required fields" },
-      { Instruction: "5. Quantity must be a positive integer" },
-      { Instruction: "6. Received Date must be in YYYY-MM-DD format (e.g., 2026-04-16)" },
-      { Instruction: "7. Expiration Date is optional - leave empty for non-expiring items" },
-      { Instruction: "8. Expiration Date must be in YYYY-MM-DD format when provided" },
-      { Instruction: "9. Invoice No is optional" },
-      { Instruction: "10. Remarks is optional" },
-      { Instruction: "11. Save the file and upload it in the Bulk Import dialog" },
-   ];
-
-   const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
-   instructionsSheet["!cols"] = [{ wch: 80 }];
-   XLSX.utils.book_append_sheet(workbook, instructionsSheet, "Instructions");
-
-   const suppliersSheet = XLSX.utils.json_to_sheet(
-      suppliers.length > 0
-         ? suppliers.map((s) => ({ ID: s.id, Name: s.name, Status: s.status }))
-         : [{ ID: "", Name: "No suppliers found", Status: "" }]
+   const items = [...options].sort((a, b) => stockItemLabel(a).localeCompare(stockItemLabel(b)));
+   addListSheet(
+      workbook,
+      "Item list",
+      ["Item", "SKU", "In stock", "Max level", "Room left", "Tracks expiry"],
+      items.map((o) => {
+         const current = Number(o.current_qty || 0);
+         const max = Number(o.max_qty_level || 0);
+         return [stockItemLabel(o), o.sku, current, max, Math.max(max - current, 0), o.has_expiry ? "Yes" : "No"];
+      }),
+      [46, 18, 10, 11, 11, 13],
    );
-   suppliersSheet["!cols"] = [{ wch: 10 }, { wch: 30 }, { wch: 12 }];
-   XLSX.utils.book_append_sheet(workbook, suppliersSheet, "Suppliers");
+   const activeSuppliers = suppliers.filter((s) => !s.status || s.status === "active");
+   addListSheet(workbook, "Suppliers", ["Supplier"], activeSuppliers.map((s) => [s.name]), [32]);
 
-   XLSX.writeFile(workbook, filename);
-};
+   const itemEnd = Math.max(items.length + 1, 2);
+   const supplierEnd = Math.max(activeSuppliers.length + 1, 2);
+   ruleForColumn(sheet, "A", listRule(`'Item list'!$A$2:$A$${itemEnd}`, "Unknown item", "Pick an item from the list."));
+   ruleForColumn(sheet, "B", listRule(`Suppliers!$A$2:$A$${supplierEnd}`, "Unknown supplier", "Pick a supplier from the list."));
+   ruleForColumn(sheet, "C", wholeRule(1, "Invalid quantity", "Quantity must be a whole number of 1 or more."));
+   ruleForColumn(sheet, "E", dateRule("lessThanOrEqual", todayDate(), "Invalid date", "Received Date can't be in the future."));
+   ruleForColumn(sheet, "F", dateRule("greaterThan", todayDate(), "Invalid date", "Expiration Date must be after today."));
+
+   addInstructions(workbook, [
+      "How to fill in the Stocks sheet",
+      "",
+      "• One row per batch received.",
+      "• Item and Supplier are dropdowns: pick a value instead of typing it.",
+      "• Quantity can't go past the item's max level. The Item list sheet shows the room left for each item; rows for the same item add up.",
+      "• Fill Expiration Date only for items that track expiry (see the Item list sheet), and leave it blank for the others.",
+      "• Dates use YYYY-MM-DD, e.g. 2026-04-16.",
+      "• Up to 1,000 rows per file. Everything is checked when you upload, before anything is saved.",
+      "• Supervisors' imports are sent to an administrator for approval.",
+   ]);
+
+   workbook.views = [{ activeTab: 0 }];
+   await save(workbook, filename);
+}

@@ -4,7 +4,6 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useId, useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
-import { useSelector } from "react-redux";
 import { Textarea } from "../ui/textarea";
 
 export default function ITextarea({
@@ -28,7 +27,8 @@ export default function ITextarea({
 
    const error = errors?.[name]?.message;
    const isPassword = props.type === "password";
-   const isLoading = useSelector((state) => state.loading.isLoading);
+   // Only this field's own form submitting locks it, not requests elsewhere on the page.
+   const isLoading = Boolean(formContext?.formState?.isSubmitting);
    const [passwordVisible, setPasswordVisible] = useState(false);
 
    const preventSubmit = (e) => {

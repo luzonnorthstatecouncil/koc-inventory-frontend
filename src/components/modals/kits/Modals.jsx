@@ -1,7 +1,6 @@
 import { useGetKitByIdQuery } from "@/features/api/kit";
 import Modal from "@/components/custom/Modal";
-import Create from "./Create";
-import Edit from "./Edit";
+import ManageKit from "./ManageKit";
 import View from "./View";
 
 /** `modal` comes from useModalState() in the Kits page. */
@@ -20,16 +19,12 @@ export default function KitModals({ modal }) {
       refetchOnMountOrArgChange: true,
    });
 
-   const onViewClose = modal.close;
-   const onCreateClose = modal.close;
-   const onEditClose = modal.close;
-
    return (
       <>
          {openViewModal && (
             <Modal
                isOpen={openViewModal}
-               onClose={onViewClose}
+               onClose={modal.close}
                title='View Kit Details'
                size='2xl'
                description='Overview of the kit details and its components.'
@@ -38,40 +33,32 @@ export default function KitModals({ modal }) {
                className='gap-2'
                primaryAction={{
                   label: "Close",
-                  onConfirm: onViewClose,
+                  onConfirm: modal.close,
                }}
             >
                <View item={kitItem} isLoading={isLoading || isFetching} />
             </Modal>
          )}
 
-         {openCreateModal && (
+         {(openCreateModal || openEditModal) && (
             <Modal
-               size='2xl'
-               isOpen={openCreateModal}
-               title='Create New Kit'
-               description='Combine multiple items to create a new bundle.'
+               size='5xl'
+               isOpen={openCreateModal || openEditModal}
+               title={openEditModal ? "Edit kit" : "Create kit"}
+               description={
+                  openEditModal ? "Update the kit details and its components." : "Combine items into a bundle sold as one."
+               }
                secondaryAction={null}
                contentClassName='my-0'
                className='gap-4 pb-0'
                primaryAction={null}
             >
-               <Create onClose={onCreateClose} />
-            </Modal>
-         )}
-
-         {openEditModal && (
-            <Modal
-               size='2xl'
-               isOpen={openEditModal}
-               title='Edit Kit'
-               description='Modify kit details or update its components.'
-               secondaryAction={null}
-               contentClassName='my-0'
-               className='gap-4 pb-0'
-               primaryAction={null}
-            >
-               <Edit item={kitItem} onClose={onEditClose} isLoading={isLoading || isFetching} />
+               <ManageKit
+                  isEditing={openEditModal}
+                  item={openEditModal ? kitItem : undefined}
+                  isLoading={openEditModal && (isLoading || isFetching)}
+                  onClose={modal.close}
+               />
             </Modal>
          )}
       </>

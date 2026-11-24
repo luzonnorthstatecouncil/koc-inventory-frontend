@@ -30,13 +30,13 @@ export default function CartItem({ item, disabled = false }) {
    return (
       <li className='grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 border-b border-neutral-100 py-3.5 last:border-b-0'>
          <div className='min-w-0'>
-            <p className='truncate text-[14px] leading-5 font-semibold text-foreground'>{title}</p>
-            <p className='truncate text-xs leading-4 tabular-nums text-neutral-500'>
+            <p className='truncate text-sm lg:text-base leading-5 font-semibold text-foreground'>{title}</p>
+            <p className='truncate text-xs lg:text-sm leading-4 tabular-nums text-neutral-500'>
                {variant ? `${variant} · ` : ""}
                {priceParser(item.price)} each
             </p>
          </div>
-         <p className='text-right text-[14px] font-semibold tabular-nums text-foreground'>
+         <p className='text-right text-sm lg:text-base font-semibold tabular-nums text-foreground'>
             {priceParser(item.price * item.quantity)}
          </p>
 
@@ -56,7 +56,7 @@ export default function CartItem({ item, disabled = false }) {
                   )}
                </button>
                <span
-                  className='flex w-8 items-center justify-center border-x border-neutral-200 text-[13px] font-semibold tabular-nums text-foreground'
+                  className='flex w-8 items-center justify-center border-x border-neutral-200 text-sm font-semibold tabular-nums text-foreground'
                   aria-live='polite'
                >
                   {item.quantity}
@@ -72,7 +72,7 @@ export default function CartItem({ item, disabled = false }) {
                   <Plus className='size-3.5' strokeWidth={2.25} />
                </button>
             </div>
-            {atStockLimit && <span className='text-[11px] font-semibold text-amber-700'>Max stock</span>}
+            {atStockLimit && <span className='text-xs font-semibold text-amber-700'>Max stock</span>}
          </div>
       </li>
    );

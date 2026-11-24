@@ -1,0 +1,1 @@
+import{o as e}from"./orderItems-BiHxuhUM.js";const a=(i,t,n=new Date)=>{const o={transactionData:i,transactionId:t,timestamp:n.toISOString()};sessionStorage.setItem("invoiceData",JSON.stringify(o)),window.open("/invoice","_blank","width=400,height=800")||window.open("/invoice","_blank")},r=i=>{const{transactionData:t,transactionId:n,timestamp:o}=e(i);a(t,n,o)};export{r as p};

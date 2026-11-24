@@ -2,11 +2,14 @@
 const { test, expect } = require("@playwright/test");
 const { signIn, apiToken, api } = require("./helpers");
 
-const NAV = ["Sales", "Transaction History", "Items", "Kits", "Stocks", "Movements", "Suppliers", "Approvals", "User Management", "Reports", "Audit Logs"];
+// Sidebar link names
+const NAV = ["Sales", "Transactions", "Items", "Kits", "Stocks", "Movements", "Suppliers", "Approvals", "Users", "Reports", "Audit log"];
 const ACCESS = {
-  user: ["Sales", "Transaction History", "Items", "Kits", "Stocks", "Movements"],
-  supervisor: ["Sales", "Transaction History", "Items", "Kits", "Stocks", "Movements", "Suppliers", "Reports"],
+  user: ["Sales", "Transactions", "Items", "Kits", "Stocks", "Movements"],
+  supervisor: ["Sales", "Transactions", "Items", "Kits", "Stocks", "Movements", "Suppliers", "Reports"],
 };
+// Blocked pages, by route, with the sidebar link that would lead there
+const BLOCKED = { "/user-management": "Users", "/audit-logs": "Audit log", "/inventory/approvals": "Approvals", "/reports": "Reports", "/inventory/suppliers": "Suppliers" };
 
 test.beforeAll(async ({ request }) => {
   // Known passwords for a supervisor and a staff account
@@ -18,14 +21,12 @@ test.beforeAll(async ({ request }) => {
 });
 
 const sidebarHas = async (page, label) =>
-  page.locator("[data-sidebar='content']").getByRole("heading", { name: label, exact: true }).count();
+  page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: label, exact: true }).count();
 
 for (const [role, user, pass] of [["user", "staff_role", "staffpass1"], ["supervisor", "sup_ui", "suppass1"]]) {
   test(`R-${role} sidebar shows exactly the allowed modules`, async ({ page }) => {
     await signIn(page, user, pass);
-    await page.getByText("Sign Out").waitFor(); // sidebar shows a skeleton until the profile loads
-    const group = page.locator("[data-sidebar='content']").getByRole("heading", { name: "Inventory Management" });
-    if (await group.count()) { await group.click(); await page.waitForTimeout(300); }
+    await page.getByRole("button", { name: "Sign out" }).waitFor(); // sidebar shows a skeleton until the profile loads
     for (const label of NAV) {
       const visible = (await sidebarHas(page, label)) > 0;
       expect(visible, `${role}: "${label}" in sidebar`).toBe(ACCESS[role].includes(label));
@@ -34,8 +35,7 @@ for (const [role, user, pass] of [["user", "staff_role", "staffpass1"], ["superv
 
   test(`R-${role} blocked pages show a permission message`, async ({ page }) => {
     await signIn(page, user, pass);
-    const blocked = { "/user-management": "User Management", "/audit-logs": "Audit Logs", "/inventory/approvals": "Approvals", "/reports": "Reports", "/inventory/suppliers": "Suppliers" };
-    for (const [path, label] of Object.entries(blocked)) {
+    for (const [path, label] of Object.entries(BLOCKED)) {
       if (ACCESS[role].includes(label)) continue;
       await page.goto(path);
       await expect(page.getByText("You do not have permission to view this page."), path).toBeVisible();
@@ -65,14 +65,14 @@ test("R-supervisor stock-in becomes an approval request (UI message)", async ({ 
   expect(r.body.requiresApproval).toBe(true);
 });
 
-test("R-deduction toggle: hidden for staff, marked 'Needs admin approval' for supervisors", async ({ page, browser }) => {
+test("R-deduction toggle: hidden for staff, marked as needing approval for supervisors", async ({ page, browser }) => {
   await signIn(page, "staff_role", "staffpass1");
-  await expect(page.getByText("Quickly process sales and manage your cart.")).toBeVisible();
-  await expect(page.getByText("Internal Deduction?")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Sales", level: 1 })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Internal deduction" })).toHaveCount(0);
 
   const sup = await browser.newPage();
   await signIn(sup, "sup_ui", "suppass1");
-  await expect(sup.getByText("Internal Deduction?")).toBeVisible();
-  await expect(sup.getByText("Needs admin approval")).toBeVisible();
+  await sup.getByRole("radio", { name: "Internal deduction" }).click();
+  await expect(sup.getByText(/A State Officer approves it/)).toBeVisible();
   await sup.close();
 });

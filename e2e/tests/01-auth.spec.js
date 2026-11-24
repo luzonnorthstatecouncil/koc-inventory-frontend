@@ -44,9 +44,9 @@ test.describe("Phase 1: Auth & session", () => {
     const issues = watch(page);
     await uiLogin(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/sales/);
-    await expect(page.getByText("Quickly process sales and manage your cart.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sales", level: 1 })).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem("token"))).toBeTruthy();
-    await expect(page.getByText("Sign Out")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     expect(issues, issues.join("\n")).toEqual([]);
   });
 
@@ -60,7 +60,7 @@ test.describe("Phase 1: Auth & session", () => {
     await expect(page).toHaveURL(/\/sales/);
     await page.reload();
     await expect(page).toHaveURL(/\/sales/);
-    await expect(page.getByText("Sign Out")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     await page.goto("/login");
     await expect(page).not.toHaveURL(/\/login$/);
   });
@@ -68,8 +68,7 @@ test.describe("Phase 1: Auth & session", () => {
   test("P1-09 sign out clears the session and blocks protected pages", async ({ page }) => {
     await uiLogin(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/sales/);
-    await page.getByText("Sign Out").click();
-    await page.getByRole("alertdialog").getByRole("button").filter({ hasNotText: /cancel/i }).click();
+    await page.getByRole("button", { name: "Sign out" }).click(); // signs out directly (the shift stays open server-side)
     await expect(page).toHaveURL(/\/login/);
     expect(await page.evaluate(() => localStorage.getItem("token"))).toBeNull();
     await page.goto("/sales");
