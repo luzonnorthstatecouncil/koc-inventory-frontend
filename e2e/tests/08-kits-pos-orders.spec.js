@@ -51,33 +51,35 @@ test.describe.serial("Phase 8: Kits", () => {
 });
 
 test.describe.serial("Phase 9: POS", () => {
-  const addToCart = (page, name) => page.getByText(name, { exact: true }).first().click();
+  // Item tiles are buttons named "Add <item name>, <price>".
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const addToCart = (page, name) =>
+    page.getByRole("button", { name: new RegExp(`^Add ${escapeRe(name)},`) }).first().click();
 
   test("POS-01 cannot exceed available stock in the cart", async ({ page }) => {
     await signIn(page);
-    await page.getByRole("checkbox").filter({ hasText: "" }).first(); // page ready
     // Laptop has only a few units after the stock phases
     const available = await db.variantQty("Laptop");
     await addToCart(page, "Laptop - Default");
-    const plus = page.locator("button:has(svg.lucide-plus)").last();
-    for (let i = 1; i < available + 2; i++) await plus.click();
-    await expect(page.getByText("Cannot add more items than available in stock").first()).toBeVisible();
+    const plus = page.getByRole("button", { name: "One more Laptop - Default" });
+    for (let i = 1; i < available; i++) await plus.click();
+    await expect(plus).toBeDisabled();
+    await addToCart(page, "Laptop - Default"); // tapping the tile again is refused too
+    await expect(page.getByText(/Only \d+ of Laptop - Default in stock/).first()).toBeVisible();
   });
 
-  test("POS-02 checkout needs a payment method, and tender must cover the total", async ({ page }) => {
+  test("POS-02 charge needs an invoice number, and cash must cover the total", async ({ page }) => {
     await signIn(page);
     await addToCart(page, "T-Shirt - Default");
-    await page.getByRole("button", { name: "Process Transaction" }).click();
-    await expect(page.getByText("Please select a payment method.").first()).toBeVisible();
-    await page.getByText("Cash", { exact: true }).first().click();
-    await page.getByRole("button", { name: "Process Transaction" }).click();
-    await page.getByRole("button", { name: "Continue to Payment" }).click();
-    await expect(page.getByText("Please enter an invoice number.").first()).toBeVisible();
-    await page.getByPlaceholder("e.g., INV-2026-001").fill("INV-POS-2");
-    await page.getByRole("button", { name: "Continue to Payment" }).click();
-    await page.getByRole("button", { name: "50", exact: true }).click(); // less than 275
-    await page.getByRole("button", { name: "Submit" }).click();
-    await expect(page.getByText("Amount tendered is less than total.").first()).toBeVisible();
+    const charge = page.getByRole("button", { name: /^Charge/ });
+    await expect(charge).toBeDisabled();
+    await expect(page.getByText("Enter the invoice no. to charge")).toBeVisible();
+    await page.getByPlaceholder("e.g. 20481").fill("INV-POS-2");
+    await page.getByLabel("Cash received").fill("50"); // less than the total
+    await expect(charge).toBeDisabled();
+    await expect(page.getByText("Cash received is less than the total")).toBeVisible();
+    await page.getByRole("button", { name: "Exact" }).click();
+    await expect(charge).toBeEnabled();
   });
 
   test("POS-03 sell a kit and a loose item together; stock drops for both", async ({ page }) => {
@@ -86,14 +88,10 @@ test.describe.serial("Phase 9: POS", () => {
     await signIn(page);
     await addToCart(page, "Starter Pack");
     await addToCart(page, "T-Shirt - Default");
-    await page.getByText("Cash", { exact: true }).first().click();
-    await page.getByRole("button", { name: "Process Transaction" }).click();
-    await page.getByPlaceholder("e.g., INV-2026-001").fill("INV-POS-3");
-    await page.getByRole("button", { name: "Continue to Payment" }).click();
-    await page.getByRole("button", { name: "1000", exact: true }).click();
-    await page.getByRole("button", { name: "Submit" }).click();
-    await confirmDialog(page, "Process Payment");
-    await expect(page.getByText(/Transaction processed successfully/).first()).toBeVisible();
+    await page.getByPlaceholder("e.g. 20481").fill("INV-POS-3");
+    await page.getByLabel("Cash received").fill("1000");
+    await page.getByLabel("Cash received").press("Enter"); // Enter charges
+    await expect(page.getByText("Sale recorded")).toBeVisible();
     expect(await db.variantQty("Office Chair")).toBe(chairBefore - 1);
     expect(await db.variantQty("T-Shirt")).toBe(shirtBefore - 1);
   });
@@ -102,9 +100,9 @@ test.describe.serial("Phase 9: POS", () => {
     const before = await db.variantQty("T-Shirt");
     await signIn(page);
     await addToCart(page, "T-Shirt - Default");
-    await page.getByText("Internal Deduction?").locator("..").getByRole("checkbox").click();
-    await page.getByRole("button", { name: "Deduct Stock" }).click();
-    await confirmDialog(page, "Deduct Stock");
+    await page.getByRole("radio", { name: "Internal deduction" }).click();
+    await page.getByRole("button", { name: "Deduct 1 item" }).click();
+    await page.getByRole("alertdialog", { name: "Confirm deduction" }).getByRole("button", { name: "Deduct", exact: true }).click();
     await expect(page.getByText(/deduction/i).first()).toBeVisible();
     expect(await db.variantQty("T-Shirt")).toBe(before - 1);
   });

@@ -7,6 +7,7 @@ import confirmationReducer from "@/features/slice/confirmationSlice";
 import accountSlice from "@/features/slice/accountSlice";
 
 import { configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/query";
 import { baseApi } from "@/features/api/baseApi";
 
 // Feature APIs register their endpoints on baseApi when imported
@@ -32,3 +33,6 @@ export const store = configureStore({
    },
    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(baseApi.middleware),
 });
+
+// Lets queries opt into refetchOnFocus (Sales keeps stock current when staff come back to the tab).
+setupListeners(store.dispatch);

@@ -1,78 +1,90 @@
-import Form from "@/components/custom/Form";
-import PageLayout from "@/layout/PageLayout";
-import IInput from "@/components/custom/Input";
-import { HOME, POINT_OF_SALE } from "@/constants/routes";
-import { searchSchema } from "@/lib/zod/schema/search";
-import { Loader2, RefreshCcwIcon, SearchIcon, ShoppingCart, Trash2, Menu } from "lucide-react";
-import PointOfSaleItem from "@/components/custom/PointOfSaleItem";
-import ICard from "@/components/custom/Card";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addCart, clearCart, resetCheckout, setPaymentMethod, setSearchQuery, setShowLowStock, setShowProcessPayment, setShowInvoiceNumberModal, setCategory, setIsDeduction, setRemarks, setCart, isSameCartLine } from "@/features/slice/cartSlice";
-import CartItem from "@/components/custom/CartItem";
-import Fallback from "./Fallback";
-import Title from "@/components/custom/Title";
-import {
-   useGetInventoryListWithStockQuery,
-   useBulkDeductStocksMutation,
-} from "@/features/api/inventory";
-import Each from "@/components/custom/Each";
-import Suspense from "@/components/custom/Suspense";
-import { Button } from "@/components/ui/button";
-import Paragraph from "@/components/custom/Paragraph";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@radix-ui/react-dropdown-menu";
-import IButton from "@/components/custom/Button";
-import IRadioGroup from "@/components/custom/RadioGroup";
-import { PAYMENT_METHOD_OPTIONS } from "@/constants/payment";
-import { useConfirmation } from "@/helpers/confirmAction";
-import AnimatedNumber from "@/components/custom/AnimatedNumber";
+import { SearchIcon, ShoppingBasket, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { posTransactionSchema, cartItemSchema } from "@/lib/zod/schema/transaction";
-import { optionParser, priceParser } from "@/helpers/parser";
+import PageLayout from "@/layout/PageLayout";
+import { POINT_OF_SALE } from "@/constants/routes";
+import PointOfSaleItem from "@/components/custom/PointOfSaleItem";
+import CartItem from "@/components/custom/CartItem";
+import CheckoutPanel from "@/components/custom/CheckoutPanel";
 import ICheckbox from "@/components/custom/Checkbox";
-import ProcessPayment from "@/components/modals/pos/ProcessPayment";
-import InvoiceNumber from "@/components/modals/pos/InvoiceNumber";
+import {
+   addCart,
+   clearCart,
+   isSameCartLine,
+   resetCheckout,
+   setCart,
+   setCategory,
+   setSearchQuery,
+   setShowLowStock,
+} from "@/features/slice/cartSlice";
+import { useBulkDeductStocksMutation, useGetInventoryListWithStockQuery } from "@/features/api/inventory";
+import { useGetCategoryListQuery } from "@/features/api/category";
 import { useCheckoutOrderMutation } from "@/features/api/order";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
-import { useEffect } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { cartItemSchema, posTransactionSchema } from "@/lib/zod/schema/transaction";
 import { printInvoice } from "@/helpers/printInvoice";
-import ISelect from "@/components/custom/Select";
-import { useGetCategoryListQuery } from "@/features/api/category";
+import { cn } from "@/lib/utils";
+
+const isTypingTarget = (el) =>
+   el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
+
+function Chip({ active, children, ...props }) {
+   return (
+      <button
+         type='button'
+         aria-pressed={active}
+         className={cn(
+            "h-8 shrink-0 rounded-full border px-3 text-[13px] font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+            active
+               ? "border-primary bg-primary text-white"
+               : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-500",
+         )}
+         {...props}
+      >
+         {children}
+      </button>
+   );
+}
+
+function TileSkeleton() {
+   return (
+      <div className='flex min-h-[152px] flex-col rounded-xl border border-neutral-200 bg-white p-3.5' aria-hidden='true'>
+         <div className='h-2.5 w-1/3 animate-pulse rounded bg-neutral-100' />
+         <div className='mt-2.5 h-3.5 w-4/5 animate-pulse rounded bg-neutral-100' />
+         <div className='mt-auto mb-3 flex items-end justify-between'>
+            <div className='h-4.5 w-1/2 animate-pulse rounded bg-neutral-100' />
+            <div className='size-7 animate-pulse rounded-lg bg-neutral-100' />
+         </div>
+         <div className='border-t border-neutral-100 pt-2.5'>
+            <div className='h-3 w-1/3 animate-pulse rounded bg-neutral-100' />
+         </div>
+      </div>
+   );
+}
 
 export default function POS() {
    const dispatch = useDispatch();
-   const { confirm } = useConfirmation();
    const exec = useCatchQuery();
-   const [checkourOrder] = useCheckoutOrderMutation();
+   const [checkoutOrder] = useCheckoutOrderMutation();
    const [bulkDeduct] = useBulkDeductStocksMutation();
 
-   const {
-      searchQuery,
-      cart,
-      category,
-      paymentMethod,
-      showLowStock,
-      showProcessPayment,
-      showInvoiceNumberModal,
-      amountTendered,
-      invoiceNumber,
-      isDeduction,
-      remarks,
-   } = useSelector((state) => state.cart);
+   const { searchQuery, cart, category, paymentMethod, showLowStock, amountTendered, invoiceNumber, isDeduction, remarks } =
+      useSelector((state) => state.cart);
 
    const role = useSelector((state) => state.user.user?.role);
    const canDeduct = role === "admin" || role === "supervisor";
    const deductionNeedsApproval = role === "supervisor";
 
-   const DEDUCTION_REMARKS_OPTIONS = [
-      { label: "Internal Use", value: "Internal Use" },
-      { label: "Damage", value: "Damage" },
-      { label: "Expired", value: "Expired" },
-      { label: "Freebies", value: "Freebies" },
-      { label: "Loss", value: "Loss" },
-      { label: "Sample", value: "Sample" },
-      { label: "Other", value: "Other" },
-   ];
+   const [search, setSearch] = useState("");
+   const debouncedSearch = useDebounce(search, 300);
+   const searchRef = useRef(null);
+   const pendingScanRef = useRef(null);
+
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   const [completed, setCompleted] = useState(null);
+   const [chargeError, setChargeError] = useState(null);
 
    const {
       data: inventoryItems,
@@ -80,441 +92,384 @@ export default function POS() {
       isLoading,
       refetch,
    } = useGetInventoryListWithStockQuery(
-      {
-         limit: 20,
-         search: searchQuery,
-         show_low_stock: showLowStock,
-         category,
-      },
-      {
-         refetchOnMountOrArgChange: true,
-      },
+      { limit: 20, search: searchQuery, show_low_stock: showLowStock, category },
+      { refetchOnMountOrArgChange: true, refetchOnFocus: true },
    );
 
    const { data: categoryList } = useGetCategoryListQuery();
 
+   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
    const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
    const total = isDeduction ? 0 : subtotal;
 
-   const onSubmit = ({ search, category }) => {
-      dispatch(setSearchQuery(search));
-      dispatch(setCategory(category));
-   };
-
-   const handleShowLowStock = (value) => {
-      dispatch(setShowLowStock(value));
-   };
-
-   const handleIsDeduction = (value) => {
-      dispatch(setIsDeduction(value));
-      if (value) {
-         dispatch(setPaymentMethod("none"));
-      } else {
-         dispatch(setPaymentMethod(null));
-      }
-   };
-
-   const addItemToCard = (item) => {
-      try {
-         // Validate item before adding to cart
-         const validatedItem = cartItemSchema.parse({
-            ...item,
-            quantity: 1,
-         });
-
-         if (item.current_qty <= 0) {
-            toast.error("Item is out of stock");
-            return;
-         }
-
-         const existingItem = cart.find(
-            (cartItem) => isSameCartLine(cartItem, item),
-         );
-
-         if (existingItem) {
-            const updatedItem = cartItemSchema.parse({
-               ...item,
-               quantity: existingItem.quantity + 1,
-            });
-
-            if (existingItem.quantity >= item.current_qty) {
-               toast.error("Cannot add more items than available in stock");
-               return;
-            }
-
-            // We need a custom update since the helper only checks id
-            const updatedCart = cart.map((cartItem) =>
-               isSameCartLine(cartItem, item)
-                  ? updatedItem
-                  : cartItem,
-            );
-            dispatch(setCart(updatedCart));
-         } else {
-            dispatch(addCart(validatedItem));
-         }
-      } catch (error) {
-         console.error("Add to cart validation failed:", error);
-      }
-   };
-
-   const removeAllFromCart = async () => {
-      if (!cart.length) return;
-
-      const confirmed = await confirm({
-         title: "Remove all items from cart",
-         description: "Are you sure you want to remove all items from the cart?",
-         variant: "destructive",
-      });
-
-      if (confirmed) {
-         dispatch(setPaymentMethod(null));
-         dispatch(clearCart());
-      }
-   };
-
-   const handlePaymentMethod = (method) => {
-      if (cart.length === 0) {
-         toast.error("Cart is empty. Please add items before selecting a payment method.");
-         return;
-      }
-
-      dispatch(setPaymentMethod(method));
-   };
-
-   const onProcessPayment = () => {
-      // Pre-validation checks for better UX
-      if (!cart.length) {
-         toast.error("Cart is empty. Please add items to cart before checkout.");
-         return;
-      }
-
-      if (isDeduction) {
-         onCheckout();
-         return;
-      }
-
-      if (!paymentMethod) {
-         toast.error("Please select a payment method.");
-         return;
-      }
-
-      // Show invoice number modal first
-      dispatch(setShowInvoiceNumberModal(true));
-   };
-
-   const onInvoiceNumberSubmit = () => {
-      dispatch(setShowInvoiceNumberModal(false));
-      dispatch(setShowProcessPayment(true));
-   };
-
-   const onInvoiceNumberClose = () => {
-      dispatch(setShowInvoiceNumberModal(false));
-   };
-
-   const onProcessPaymentClose = () => {
-      dispatch(setShowProcessPayment(false));
-   };
-
-   const onCheckout = async () => {
-      const transactionData = {
-         cart,
-         paymentMethod: isDeduction ? "none" : paymentMethod,
-         subtotal,
-         total,
-         type: isDeduction ? "deduction" : "sale",
-         remarks: isDeduction ? remarks : null,
-      };
-
-      try {
-         // Skip validation for deduction since payment fields are missing
-         let validatedTransaction = transactionData;
-         if (!isDeduction) {
-            validatedTransaction = posTransactionSchema.parse(transactionData);
-         }
-
-         const confirmed = await confirm({
-            title: isDeduction ? "Confirm Stock Deduction" : "Process Transaction",
-            message: isDeduction
-               ? `Are you sure you want to deduct ${cart.length} item(s) from inventory? This action cannot be undone.`
-               : `Process payment of ${priceParser(
-                    total.toFixed(2).toLocaleString("en-US", {
-                       minimumFractionDigits: 2,
-                    }),
-                 )} via ${paymentMethod}?`,
-            confirmLabel: isDeduction ? "Deduct Stock" : "Process Payment",
-            cancelLabel: "Cancel",
-            variant: isDeduction ? "destructive" : "default",
-         });
-
-         if (!confirmed) return;
-
-         const payload = {
-            ...validatedTransaction,
-            invoiceNumber: isDeduction ? `DDC-${Date.now()}` : invoiceNumber,
-            total: Number(validatedTransaction.total.toFixed(2)),
-            amountTendered: isDeduction ? 0 : Number(amountTendered).toFixed(2),
-            change: isDeduction
-               ? 0
-               : Number(
-                    Number(amountTendered).toFixed(2) -
-                       Number(validatedTransaction.total).toFixed(2),
-                 ).toFixed(2),
-         };
-
-         const id = toast.loading(isDeduction ? "Deducting stock..." : "Processing transaction...");
-
-         const checkoutAction = isDeduction ? bulkDeduct : checkourOrder;
-
-         const result = await exec(checkoutAction, payload);
-
-         if (result.success) {
-            const data = result.result;
-            toast.success(data.message || "Transaction processed successfully", { id });
-
-            if (!isDeduction) {
-               const invoiceInfo = {
-                  cart: cart,
-                  paymentMethod: payload.paymentMethod,
-                  subtotal: payload.subtotal,
-                  total: payload.total,
-                  amountTendered: payload.amountTendered,
-                  change: payload.change,
-               };
-               printInvoice(
-                  invoiceInfo,
-                  payload.invoiceNumber || data?.id || `TXN-${Date.now()}`,
-                  new Date(),
-               );
-            }
-
-            dispatch(resetCheckout());
-            refetch();
-         } else {
-            toast.error(result.message || "Failed to process transaction", { id });
-         }
-      } catch (error) {
-         console.log(error);
-         toast.error("Failed to process transaction. Please try again.");
-      }
-   };
-
+   // A fresh sale every time the page opens.
    useEffect(() => {
       dispatch(resetCheckout());
    }, [dispatch]);
 
+   useEffect(() => {
+      dispatch(setSearchQuery(debouncedSearch.trim()));
+   }, [debouncedSearch, dispatch]);
+
+   // "/" focuses the search, like most web tools.
+   useEffect(() => {
+      const onKey = (e) => {
+         if (e.key === "/" && !e.metaKey && !e.ctrlKey && !isTypingTarget(e.target)) {
+            e.preventDefault();
+            searchRef.current?.focus();
+         }
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+   }, []);
+
+   const cartQtyFor = useCallback((item) => cart.find((line) => isSameCartLine(line, item))?.quantity ?? 0, [cart]);
+
+   const addItemToCart = useCallback(
+      (item) => {
+         if (completed) setCompleted(null);
+         setChargeError(null);
+
+         if (Number(item.current_qty) <= 0) {
+            toast.error(`${item.name} is out of stock`);
+            return;
+         }
+
+         const existing = cart.find((line) => isSameCartLine(line, item));
+
+         try {
+            if (existing) {
+               if (existing.quantity >= Number(item.current_qty)) {
+                  toast.error(`Only ${item.current_qty} of ${item.name} in stock`);
+                  return;
+               }
+               const updated = cartItemSchema.parse({ ...item, quantity: existing.quantity + 1 });
+               dispatch(setCart(cart.map((line) => (isSameCartLine(line, item) ? updated : line))));
+            } else {
+               dispatch(addCart(cartItemSchema.parse({ ...item, quantity: 1 })));
+            }
+         } catch (error) {
+            console.error("Add to cart validation failed:", error);
+            toast.error(`${item.name} can't be sold: its details are incomplete.`);
+         }
+      },
+      [cart, completed, dispatch],
+   );
+
+   // Barcode scanners type the code and press Enter. Run the search right away, then add
+   // the item when the code matches one SKU exactly, or when only one item comes back.
+   const onSearchKeyDown = (e) => {
+      if (e.key === "Escape" && search) {
+         setSearch("");
+         return;
+      }
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const code = search.trim();
+      if (!code) return;
+      pendingScanRef.current = code;
+      dispatch(setSearchQuery(code));
+   };
+
+   useEffect(() => {
+      const code = pendingScanRef.current;
+      if (!code || isFetching || searchQuery !== code || !inventoryItems) return;
+      pendingScanRef.current = null;
+
+      const exact = inventoryItems.filter((i) => String(i.sku ?? "").toLowerCase() === code.toLowerCase());
+      const match = exact.length === 1 ? exact[0] : inventoryItems.length === 1 ? inventoryItems[0] : null;
+
+      if (match) {
+         addItemToCart(match);
+         setSearch("");
+         dispatch(setSearchQuery(""));
+      }
+   }, [inventoryItems, isFetching, searchQuery, addItemToCart, dispatch]);
+
+   const hasFilters = Boolean(searchQuery || category || showLowStock);
+   const clearFilters = () => {
+      setSearch("");
+      dispatch(setSearchQuery(""));
+      dispatch(setCategory(null));
+      dispatch(setShowLowStock(false));
+   };
+
+   const onClear = () => {
+      if (!cart.length) return;
+      const previous = cart;
+      dispatch(clearCart());
+      setChargeError(null);
+      toast("Cart cleared", {
+         action: { label: "Undo", onClick: () => dispatch(setCart(previous)) },
+      });
+   };
+
+   const onCharge = async () => {
+      setChargeError(null);
+      const tendered = parseFloat(String(amountTendered ?? "").replace(/,/g, "")) || 0;
+
+      const parsed = posTransactionSchema.safeParse({ cart, paymentMethod, subtotal, total });
+      if (!parsed.success) {
+         setChargeError(parsed.error.issues[0]?.message ?? "Check the sale details and try again.");
+         return;
+      }
+
+      // Same request body as before: the parsed sale (cart lines as id/quantity/isKit) plus payment fields.
+      const payload = {
+         ...parsed.data,
+         invoiceNumber: String(invoiceNumber).trim().toUpperCase(),
+         total: Number(total.toFixed(2)),
+         amountTendered: tendered.toFixed(2),
+         change: (tendered - total).toFixed(2),
+      };
+
+      setIsSubmitting(true);
+      const result = await exec(checkoutOrder, payload);
+      setIsSubmitting(false);
+
+      if (!result.success) {
+         setChargeError(result.message || "The sale wasn't recorded. Try again.");
+         return;
+      }
+
+      const invoiceInfo = {
+         cart,
+         paymentMethod: payload.paymentMethod,
+         subtotal: payload.subtotal,
+         total: payload.total,
+         amountTendered: payload.amountTendered,
+         change: payload.change,
+      };
+      const printedAt = new Date();
+      const receiptId = payload.invoiceNumber || result.result?.id || `TXN-${Date.now()}`;
+      printInvoice(invoiceInfo, receiptId, printedAt);
+
+      setCompleted({
+         invoiceNumber: receiptId,
+         count: itemCount,
+         total: payload.total,
+         amountTendered: Number(payload.amountTendered),
+         change: Number(payload.change),
+         invoiceInfo,
+         printedAt,
+      });
+      dispatch(resetCheckout());
+      refetch();
+   };
+
+   const onDeduct = async () => {
+      setIsSubmitting(true);
+      const result = await exec(bulkDeduct, {
+         cart,
+         paymentMethod: "none",
+         subtotal,
+         total: 0,
+         type: "deduction",
+         remarks,
+         invoiceNumber: `DDC-${Date.now()}`,
+         amountTendered: 0,
+         change: 0,
+      });
+      setIsSubmitting(false);
+
+      if (!result.success) {
+         toast.error(result.message || "The deduction wasn't recorded. Try again.");
+         return;
+      }
+
+      toast.success(
+         result.result?.message ||
+            (deductionNeedsApproval ? "Deduction sent for approval" : `${itemCount} items removed from stock`),
+      );
+      dispatch(resetCheckout());
+      refetch();
+   };
+
+   const categories = useMemo(() => categoryList ?? [], [categoryList]);
+   const showSkeleton = isLoading || (isFetching && !inventoryItems);
+
    return (
       <PageLayout route={POINT_OF_SALE}>
-         <main className='flex flex-col lg:flex-row items-start gap-3 w-full h-full relative'>
-            <section className='w-full h-full lg:py-6'>
-               <Title className='text-lg md:text-4xl'>Sales</Title>
-               <Paragraph className='text-sm md:text-base text-muted-foreground mb-4'>
-                  Quickly process sales and manage your cart.
-               </Paragraph>
-               <header className='flex flex-col lg:flex-row items-start lg:items-center gap-2 mb-4'>
-                  <Form
-                     onSubmit={onSubmit}
-                     schema={searchSchema}
-                     mode='onChange'
-                     debounce={0.5}
-                     className='gap-2 flex flex-col lg:flex-row items-stretch lg:items-center w-full lg:w-auto'
-                  >
-                     <IInput
-                        preventEnterSubmit
-                        name='search'
-                        placeholder='Search'
-                        prefix={<SearchIcon className='size-4 text-black' />}
+         <div className='flex w-full flex-col lg:min-h-screen lg:flex-row lg:items-stretch'>
+            {/* Catalogue */}
+            <section className='flex min-w-0 flex-1 flex-col gap-4 lg:py-7 lg:pr-7'>
+               <header className='flex flex-wrap items-center gap-3'>
+                  <h1 className='mr-auto text-2xl font-bold tracking-tight text-foreground'>Sales</h1>
+                  <label className='relative w-full sm:w-auto sm:min-w-80 sm:max-w-md sm:flex-1'>
+                     <span className='sr-only'>Search items</span>
+                     <SearchIcon className='pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-neutral-500' />
+                     <input
+                        ref={searchRef}
+                        type='search'
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={onSearchKeyDown}
+                        placeholder='Search name, SKU or scan a barcode'
+                        autoComplete='off'
+                        className='h-11 w-full rounded-md border border-neutral-300 bg-white pr-11 pl-10 text-[15px] text-foreground outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-neutral-400 focus:border-primary focus:shadow-[0_0_0_3px_rgb(17_40_102/0.12)] [&::-webkit-search-cancel-button]:hidden'
                      />
-                     <ISelect
-                        name='category'
-                        placeholder='Filter by Category'
-                        options={optionParser(categoryList, "id", "name")}
-                     />
-                  </Form>
-
-                  <section className='flex items-center gap-2'>
-                     <IButton
-                        className='select-none text-xs'
-                        variant='ghost'
-                        onClick={() => refetch()}
-                     >
-                        <RefreshCcwIcon className='size-4' />
-                        <span className='hidden sm:inline'>Refresh</span>
-                     </IButton>
-
-                     <div className='lg:ml-auto space-y-1'>
-                        <ICheckbox
-                           name='low_stock'
-                           label='Show Item with low stocks'
-                           useForm={false}
-                           onChange={handleShowLowStock}
-                        />
-                     </div>
-                  </section>
+                     {search ? (
+                        <button
+                           type='button'
+                           aria-label='Clear search'
+                           onClick={() => {
+                              setSearch("");
+                              searchRef.current?.focus();
+                           }}
+                           className='absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-neutral-500 hover:bg-neutral-100'
+                        >
+                           <X className='size-4' />
+                        </button>
+                     ) : (
+                        <kbd className='pointer-events-none absolute top-1/2 right-2.5 hidden h-6 min-w-6 -translate-y-1/2 items-center justify-center rounded border border-neutral-300 bg-neutral-50 px-1.5 text-xs font-semibold text-neutral-500 sm:flex'>
+                           /
+                        </kbd>
+                     )}
+                  </label>
                </header>
-               <div className='mt-4 flex flex-wrap gap-2 sm:gap-3 md:gap-4 relative bg-white'>
-                  <Suspense
-                     loading={isFetching || isLoading}
-                     className='mb-40'
-                     loader={
-                        <div className='flex items-center gap-2'>
-                           <Loader2 className='animate-spin size-6 text-muted-foreground' />
-                           <Paragraph size='sm'>Loading items...</Paragraph>
-                        </div>
-                     }
-                  >
-                     <Each
-                        of={inventoryItems}
-                        fallbackClassName='mt-0 h-80!'
-                        fallback={
-                           searchQuery
-                              ? "No items found with this filter"
-                              : "No item with available stocks found"
-                        }
-                        render={(item) => (
-                           <PointOfSaleItem
-                              key={`${item.isKit ? "kit" : "variant"}-${item.id}`}
-                              onClick={() => addItemToCard(item)}
-                              included={cart.some((cartItem) => isSameCartLine(cartItem, item))}
-                              {...item}
-                           />
-                        )}
-                     />
-                  </Suspense>
+
+               <div className='flex items-center gap-3'>
+                  <div className='-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-0.5' role='group' aria-label='Category'>
+                     <Chip active={!category} onClick={() => dispatch(setCategory(null))}>
+                        All
+                     </Chip>
+                     {categories.map((c) => (
+                        <Chip
+                           key={c.id}
+                           active={String(category) === String(c.id)}
+                           onClick={() => dispatch(setCategory(String(c.id)))}
+                        >
+                           {c.name}
+                        </Chip>
+                     ))}
+                  </div>
+                  <ICheckbox
+                     name='pos-include-low-stock'
+                     label='Include low stock'
+                     useForm={false}
+                     checked={showLowStock}
+                     onChange={(value) => dispatch(setShowLowStock(value === true))}
+                     className='shrink-0'
+                     labelClassName='text-[13px] font-medium text-neutral-700'
+                  />
                </div>
-            </section>
 
-            <div className='bg-sidebar text-primary-foreground w-full lg:w-130 lg:h-screen lg:sticky! lg:top-0 lg:bottom-0 lg:right-0 flex flex-col border-t lg:border-l lg:border-t-0 px-3 sm:px-4 py-4 sm:py-6 border-outline/50 mt-4 lg:mt-0'>
-               <header className='flex items-center justify-between mb-2'>
-                  <Title className='mb-2 select-none flex items-center gap-2 text-xl sm:text-2xl'>
-                     Cart
-                     <ShoppingCart className='size-4 sm:size-5' strokeWidth={2.5} />
-                  </Title>
-
-                  <Button
-                     variant='destructive'
-                     className='select-none text-xs'
-                     onClick={removeAllFromCart}
+               {showSkeleton ? (
+                  <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
+                     {Array.from({ length: 12 }).map((_, i) => (
+                        <TileSkeleton key={i} />
+                     ))}
+                  </div>
+               ) : inventoryItems?.length ? (
+                  <div
+                     className={cn(
+                        "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 transition-opacity duration-150",
+                        isFetching && "opacity-60",
+                     )}
                   >
-                     <Trash2 className='size-4' />
-                     <span className='hidden sm:inline'>Remove All</span>
-                  </Button>
-               </header>
-
-               {cart.length > 0 ? (
-                  <ScrollArea className='max-h-60 md:max-h-2/3 lg:max-h-[calc(100vh-26rem)] mb-2'>
-                     <div className='space-y-2'>
-                        <Each of={cart} render={(item) => <CartItem key={`${item.isKit ? "kit" : "variant"}-${item.id}`} item={item} />} />
-                     </div>
-                  </ScrollArea>
+                     {inventoryItems.map((item) => (
+                        <PointOfSaleItem
+                           key={`${item.isKit ? "kit" : "variant"}-${item.id}`}
+                           {...item}
+                           cartQty={cartQtyFor(item)}
+                           onClick={() => addItemToCart(item)}
+                        />
+                     ))}
+                  </div>
                ) : (
-                  <div className='h-40 sm:h-60 lg:h-1/2'>
-                     <Fallback message='No items added' />
+                  <div className='flex flex-col items-center gap-1 rounded-lg border border-dashed border-neutral-300 px-6 py-14 text-center'>
+                     <p className='text-[15px] font-semibold text-foreground'>
+                        {hasFilters ? "No items match these filters" : "No items with stock to sell"}
+                     </p>
+                     <p className='text-[13px] text-neutral-600'>
+                        {hasFilters
+                           ? "Try another search or category, or include low-stock items."
+                           : "Items appear here once they have stock that hasn’t expired."}
+                     </p>
+                     {hasFilters && (
+                        <button
+                           type='button'
+                           onClick={clearFilters}
+                           className='mt-3 h-9 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-foreground hover:bg-neutral-100'
+                        >
+                           Clear filters
+                        </button>
+                     )}
                   </div>
                )}
+            </section>
 
-               <ICard
-                  cardClassName='mt-auto bg-primary shadow-md py-2 sm:py-3 h-85'
-                  cardContentClassName='flex flex-col gap-1 h-full px-2 sm:px-3'
-               >
-                  <section className='space-y-1 sm:space-y-2 mb-4 sm:mb-7'>
-                     <div className='flex items-center justify-between'>
-                        <Paragraph className='!text-xs sm:!text-sm text-primary-foreground'>
-                           Subtotal
-                        </Paragraph>
-                        <Paragraph className='!text-xs sm:!text-sm !text-primary-foreground !font-semibold'>
-                           <AnimatedNumber value={subtotal} prefix='PHP ' />
-                        </Paragraph>
-                     </div>
+            {/* Current sale */}
+            <aside
+               aria-label='Current sale'
+               className='mt-6 flex flex-col rounded-xl border border-neutral-200 bg-white lg:sticky lg:top-0 lg:mt-0 lg:h-screen lg:w-[400px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0'
+            >
+               <div className='flex items-center gap-2.5 border-b border-neutral-100 px-6 py-4'>
+                  <h2 className='text-[17px] font-bold tracking-[-0.01em] text-foreground'>Current sale</h2>
+                  <span
+                     className={cn(
+                        "flex h-5.5 min-w-5.5 items-center justify-center rounded-full px-2 text-xs font-semibold tabular-nums",
+                        itemCount ? "bg-primary text-white" : "bg-neutral-100 text-neutral-500",
+                     )}
+                     aria-label={itemCount === 1 ? "1 item" : `${itemCount} items`}
+                  >
+                     {itemCount}
+                  </span>
+                  <button
+                     type='button'
+                     onClick={onClear}
+                     disabled={!cart.length || isSubmitting}
+                     className='ml-auto flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold text-neutral-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:text-neutral-300 disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:outline-primary'
+                  >
+                     <Trash2 className='size-3.5' />
+                     Clear
+                  </button>
+               </div>
 
-                     <Separator className='my-2 sm:my-2.5 border border-dashed border-gray-400' />
-
-                     <div className='flex items-center justify-between'>
-                        <Paragraph className='!text-base sm:!text-lg text-primary-foreground'>
-                           Total
-                        </Paragraph>
-                        <Paragraph className='!text-base sm:!text-lg !text-primary-foreground font-bold'>
-                           <AnimatedNumber value={total} prefix='PHP ' className='font-bold' />
-                        </Paragraph>
-                     </div>
-                  </section>
-
-                  <section className='mt-auto sm:mb-3'>
-                     {/* Admins deduct directly; supervisors' deductions go to approval; staff can't deduct */}
-                     {canDeduct && (
-                        <div className='flex items-center justify-between pl-3 pr-1 py-2 rounded-lg bg-white/10'>
-                           <Paragraph className='!text-xs sm:!text-sm text-primary-foreground font-medium'>
-                              Internal Deduction?
-                              {deductionNeedsApproval && (
-                                 <span className='block text-[11px] font-normal opacity-80'>Needs admin approval</span>
-                              )}
-                           </Paragraph>
-                           <ICheckbox
-                              name='is_deduction'
-                              label=''
-                              useForm={false}
-                              checked={isDeduction}
-                              onChange={handleIsDeduction}
-                           />
+               <div className='min-h-32 flex-1 overflow-y-auto px-6 [scrollbar-color:var(--color-neutral-300)_transparent] [scrollbar-width:thin]'>
+                  {cart.length ? (
+                     <ul>
+                        {cart.map((item) => (
+                           <CartItem key={`${item.isKit ? "kit" : "variant"}-${item.id}`} item={item} disabled={isSubmitting} />
+                        ))}
+                     </ul>
+                  ) : (
+                     !completed && (
+                        <div className='flex flex-col items-center py-12 text-center'>
+                           <span className='mb-3 flex size-11 items-center justify-center rounded-full bg-neutral-100 text-neutral-400'>
+                              <ShoppingBasket className='size-5' />
+                           </span>
+                           <p className='text-[15px] font-semibold text-foreground'>No items yet</p>
+                           <p className='mt-1 text-[13px] text-neutral-600'>Tap an item, or type its SKU and press Enter.</p>
                         </div>
-                     )}
+                     )
+                  )}
+               </div>
 
-                     {isDeduction && (
-                        <ISelect
-                           label='Deduction Remark'
-                           useForm={false}
-                           value={remarks}
-                           options={DEDUCTION_REMARKS_OPTIONS}
-                           triggerClassName='text-black'
-                           className='mt-3'
-                           onValueChange={(val) => dispatch(setRemarks(val.value))}
-                        />
-                     )}
-
-                     {!isDeduction && (
-                        <>
-                           <Paragraph className='!text-xs sm:!text-sm mt-3 mb-2 text-primary-foreground'>
-                              Payment Method
-                           </Paragraph>
-                           <IRadioGroup
-                              className='grid grid-cols-3 gap-1 sm:gap-2'
-                              value={paymentMethod}
-                              options={PAYMENT_METHOD_OPTIONS}
-                              iconAsLabel
-                              iconClassName='size-5 sm:size-7 group-hover:scale-110 transition-all'
-                              checkedClassName='bg-white text-primary font-bold'
-                              itemClassName='bg-white/50 border-2 border-outline/30 text-black p-2 sm:p-3 flex items-center justify-center rounded-md cursor-pointer flex flex-col gap-1 items-center group transition-all'
-                              onChange={handlePaymentMethod}
-                           />
-                        </>
-                     )}
-                  </section>
-
-                  <section>
-                     <IButton
-                        variant='emphasis'
-                        className='w-full text-sm sm:text-base'
-                        onClick={onProcessPayment}
-                     >
-                        {isDeduction ? "Deduct Stock" : "Process Transaction"}
-                     </IButton>
-                  </section>
-               </ICard>
-            </div>
-
-         </main>
-
-         <InvoiceNumber
-            isOpen={showInvoiceNumberModal}
-            onSubmit={onInvoiceNumberSubmit}
-            onClose={onInvoiceNumberClose}
-         />
-
-         <ProcessPayment
-            isOpen={showProcessPayment}
-            onSubmit={onCheckout}
-            onClose={onProcessPaymentClose}
-            total={total}
-         />
+               <div className='border-t border-neutral-200 bg-neutral-50/70 px-6 pt-5 pb-6'>
+                  <CheckoutPanel
+                     itemCount={itemCount}
+                     subtotal={subtotal}
+                     total={total}
+                     canDeduct={canDeduct}
+                     deductionNeedsApproval={deductionNeedsApproval}
+                     isSubmitting={isSubmitting}
+                     completed={completed}
+                     error={chargeError}
+                     onCharge={onCharge}
+                     onDeduct={onDeduct}
+                     onPrintAgain={() =>
+                        completed && printInvoice(completed.invoiceInfo, completed.invoiceNumber, completed.printedAt)
+                     }
+                     onNewSale={() => {
+                        setCompleted(null);
+                        dispatch(resetCheckout());
+                        searchRef.current?.focus();
+                     }}
+                  />
+               </div>
+            </aside>
+         </div>
       </PageLayout>
    );
 }
