@@ -6,13 +6,11 @@ import Title from "@/components/custom/Title";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useBulkCreateItemsMutation } from "@/features/api/inventory";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
-import { downloadBulkImportTemplate } from "@/helpers/downloadExcelTemplate";
 import { setBulkImportFailures, setOpenBulkImportFailuresModal } from "@/features/slice/inventorySlice";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { useCallback, useState, useRef } from "react";
 import { FileSpreadsheet, Upload, X, Download } from "lucide-react";
-import * as XLSX from "xlsx";
 
 export default function BulkCreate({ onClose }) {
    const dispatch = useDispatch();
@@ -25,51 +23,7 @@ export default function BulkCreate({ onClose }) {
    const [isProcessing, setIsProcessing] = useState(false);
    const fileInputRef = useRef(null);
 
-   const handleFileSelect = useCallback((e) => {
-      const selectedFile = e.target.files?.[0];
-      if (!selectedFile) return;
-
-      if (!selectedFile.name.match(/\.(xlsx|xls|csv)$/)) {
-         toast.error("Please select a valid Excel file (.xlsx, .xls, or .csv)");
-         return;
-      }
-
-      if (selectedFile.size > 5 * 1024 * 1024) {
-         toast.error("File size must not exceed 5MB");
-         return;
-      }
-
-      setFile(selectedFile);
-      parseExcelFile(selectedFile);
-   }, []);
-
-   const parseExcelFile = useCallback((file) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-         try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-            const items = transformExcelData(jsonData);
-            setParsedData(items);
-         } catch (error) {
-            toast.error("Failed to parse Excel file: " + error.message);
-            setFile(null);
-         }
-      };
-
-      reader.onerror = () => {
-         toast.error("Failed to read file");
-         setFile(null);
-      };
-
-      reader.readAsArrayBuffer(file);
-   }, []);
-
+   // Defined in dependency order: each callback only references ones declared above it
    const transformExcelData = useCallback((data) => {
       const items = [];
 
@@ -105,6 +59,53 @@ export default function BulkCreate({ onClose }) {
 
       return items;
    }, []);
+
+   const parseExcelFile = useCallback((file) => {
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+         try {
+            // Spreadsheet parser loads only when a file is actually imported
+            const XLSX = await import("xlsx");
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            const items = transformExcelData(jsonData);
+            setParsedData(items);
+         } catch (error) {
+            toast.error("Failed to parse Excel file: " + error.message);
+            setFile(null);
+         }
+      };
+
+      reader.onerror = () => {
+         toast.error("Failed to read file");
+         setFile(null);
+      };
+
+      reader.readAsArrayBuffer(file);
+   }, [transformExcelData]);
+
+   const handleFileSelect = useCallback((e) => {
+      const selectedFile = e.target.files?.[0];
+      if (!selectedFile) return;
+
+      if (!selectedFile.name.match(/\.(xlsx|xls|csv)$/)) {
+         toast.error("Please select a valid Excel file (.xlsx, .xls, or .csv)");
+         return;
+      }
+
+      if (selectedFile.size > 5 * 1024 * 1024) {
+         toast.error("File size must not exceed 5MB");
+         return;
+      }
+
+      setFile(selectedFile);
+      parseExcelFile(selectedFile);
+   }, [parseExcelFile]);
 
    const handleBulkImport = useCallback(async () => {
       const confirmed = await confirm({
@@ -163,7 +164,7 @@ export default function BulkCreate({ onClose }) {
       }
 
       onClose();
-   }, [parsedData, confirm, exec, bulkCreateItems, onClose]);
+   }, [confirm, parsedData, exec, bulkCreateItems, onClose, dispatch]);
 
    const handleRemoveFile = useCallback(() => {
       setFile(null);
@@ -172,16 +173,6 @@ export default function BulkCreate({ onClose }) {
          fileInputRef.current.value = "";
       }
    }, []);
-
-   const columns = [
-      { key: "item_name", label: "Item Name" },
-      { key: "variant_name", label: "Variant" },
-      { key: "category_id", label: "Category ID" },
-      { key: "unit", label: "Unit" },
-      { key: "price", label: "Price", render: (row) => `$${row.price.toFixed(2)}` },
-      { key: "stocks", label: "Stocks", render: (row) => row.stocks ?? "-" },
-      { key: "expiration_date", label: "Expiration Date", render: (row) => row.expiration_date || "-" },
-   ];
 
    return (
       <div className='flex flex-col gap-4'>
@@ -195,7 +186,7 @@ export default function BulkCreate({ onClose }) {
                   inventory. You can download a template to get started.
                </Paragraph>
             </header>
-            <IButton type='button' variant='outline' size='sm' onClick={() => downloadBulkImportTemplate()}>
+            <IButton type='button' variant='outline' size='sm' onClick={async () => (await import("@/helpers/downloadExcelTemplate")).downloadBulkImportTemplate()}>
                <Download className='mr-2 h-4 w-4' />
                Download Template
             </IButton>

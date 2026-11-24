@@ -57,7 +57,6 @@ function DetailRow({ icon: Icon, label, value, valueClassName }) {
 export default function ViewStockApproval({ isOpen, onClose, stockApproval }) {
    const isApproved = Boolean(stockApproval?.approved_at) && !stockApproval?.rejection_reason;
    const isRejected = Boolean(stockApproval?.rejection_reason);
-   const isPending = !Boolean(stockApproval?.approved_at);
 
    const statusConfig = isApproved
       ? { label: "Approved", pill: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" }

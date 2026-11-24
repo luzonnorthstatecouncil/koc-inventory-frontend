@@ -1,11 +1,8 @@
 import { USER_TAGS } from "@/constants/redux-tags";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseApi } from "./baseApi";
 import { urlParams } from "@/helpers/urlParams";
 
-export const userApi = createApi({
-   reducerPath: "userApi",
-   baseQuery: baseQuery,
+export const userApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       getUserList: builder.query({
          query: (params) => {

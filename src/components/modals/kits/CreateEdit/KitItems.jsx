@@ -42,13 +42,16 @@ export default function KitItems() {
                   Select items and specify quantities for this bundle.
                </Paragraph>
             </div>
+            {/* A real button (via asChild) so it is keyboard-focusable; it was a clickable <span> */}
             <Badge
+               asChild
                variant='default'
                className='text-xs px-3 h-8 rounded-md cursor-pointer select-none active:scale-95 flex gap-1.5 items-center'
-               onClick={handleAppend}
             >
-               <Plus className='size-3.5' />
-               Add Item
+               <button type='button' onClick={handleAppend}>
+                  <Plus className='size-3.5' />
+                  Add Item
+               </button>
             </Badge>
          </header>
 

@@ -12,7 +12,7 @@ import {
    setOpenBulkImportFailuresModal,
    setBulkImportFailures,
 } from "@/features/slice/inventoryStockSlice";
-import { useGetInventoryAsOptionsQuery, useGetInventoryStockByIdQuery } from "@/features/api/inventory";
+import { useGetInventoryAsOptionsQuery } from "@/features/api/inventory";
 import View from "./View";
 import Edit from "./Edit";
 import AdjustExpiry from "./AdjustExpiry";
@@ -31,7 +31,7 @@ export default function InventoryStockModals() {
       selectedStock,
    } = useSelector((state) => state.inventoryStock);
 
-   const { openUserStockRequestsModal, selectedUserId, selectedUserName } = useSelector((state) => state.inventory);
+   const { openUserStockRequestsModal } = useSelector((state) => state.inventory);
 
    const {
       data: inventoryOptions,

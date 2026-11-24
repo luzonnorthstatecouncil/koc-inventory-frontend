@@ -1,12 +1,9 @@
-import { APPROVAL_TAGS, INVENTORY_TAGS, STOCKS_TAGS } from "@/constants/redux-tags";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { STOCK_CHANGE_TAGS } from "@/constants/redux-tags";
+import { APPROVAL_TAGS, INVENTORY_TAGS, KIT_TAGS, STOCKS_TAGS } from "@/constants/redux-tags";
+import { baseApi } from "./baseApi";
 import { tableUrlParams, urlParams } from "@/helpers/urlParams";
-import { get } from "react-hook-form";
 
-export const inventoryApi = createApi({
-   reducerPath: "inventoryApi",
-   baseQuery: baseQuery,
+export const inventoryApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       getInventoryList: builder.query({
          query: (params) => {
@@ -71,7 +68,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.LIST],
+         invalidatesTags: [INVENTORY_TAGS.LIST, KIT_TAGS.LIST, STOCKS_TAGS.LIST],
       }),
       bulkCreateItems: builder.mutation({
          query: (data) => ({
@@ -79,7 +76,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.LIST],
+         invalidatesTags: [INVENTORY_TAGS.LIST, KIT_TAGS.LIST, STOCKS_TAGS.LIST],
       }),
       editItem: builder.mutation({
          query: (data) => ({
@@ -87,14 +84,14 @@ export const inventoryApi = createApi({
             method: "PUT",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST],
+         invalidatesTags: [INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, KIT_TAGS.LIST, STOCKS_TAGS.LIST],
       }),
       deleteItem: builder.mutation({
          query: (data) => ({
             url: `/v1/inventory/${data.id}`,
             method: "DELETE",
          }),
-         invalidatesTags: [INVENTORY_TAGS.LIST],
+         invalidatesTags: [INVENTORY_TAGS.LIST, KIT_TAGS.LIST, STOCKS_TAGS.LIST],
       }),
 
       // Stocks
@@ -126,7 +123,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST, ...STOCK_CHANGE_TAGS])],
       }),
       bulkCreateStocks: builder.mutation({
          query: (data) => ({
@@ -134,7 +131,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST, ...STOCK_CHANGE_TAGS])],
       }),
       removeStock: builder.mutation({
          query: (data) => ({
@@ -142,7 +139,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST, ...STOCK_CHANGE_TAGS])],
       }),
       bulkDeductStocks: builder.mutation({
          query: (data) => ({
@@ -150,7 +147,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.DETAIL, INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST, ...STOCK_CHANGE_TAGS])],
       }),
       flushExpiredStocks: builder.mutation({
          query: (data) => ({
@@ -158,7 +155,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST, INVENTORY_TAGS.DETAIL],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.LIST, STOCKS_TAGS.LIST, INVENTORY_TAGS.DETAIL, ...STOCK_CHANGE_TAGS])],
       }),
       adjustStocks: builder.mutation({
          query: (data) => ({
@@ -166,7 +163,7 @@ export const inventoryApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST, ...STOCK_CHANGE_TAGS])],
       }),
       updateStockExpiry: builder.mutation({
          query: (data) => ({
@@ -174,7 +171,7 @@ export const inventoryApi = createApi({
             method: "PATCH",
             body: data,
          }),
-         invalidatesTags: [INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST],
+         invalidatesTags: [...new Set([INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST, ...STOCK_CHANGE_TAGS])],
       }),
       getAllStockApprovals: builder.query({
          query: (params) => {
@@ -189,7 +186,7 @@ export const inventoryApi = createApi({
             method: "PATCH",
             body: data,
          }),
-         invalidatesTags: [APPROVAL_TAGS.LIST, STOCKS_TAGS.LIST, INVENTORY_TAGS.DETAIL],
+         invalidatesTags: [...new Set([APPROVAL_TAGS.LIST, STOCKS_TAGS.LIST, INVENTORY_TAGS.DETAIL, ...STOCK_CHANGE_TAGS])],
       }),
       rejectStockApproval: builder.mutation({
          query: (data) => ({
@@ -197,14 +194,7 @@ export const inventoryApi = createApi({
             method: "PATCH",
             body: data,
          }),
-         invalidatesTags: [APPROVAL_TAGS.LIST, STOCKS_TAGS.LIST, INVENTORY_TAGS.DETAIL],
-      }),
-      getUserStockRequests: builder.query({
-         query: (params) => {
-            const queryParams = urlParams(params);
-            return `/v1/approvals/user-requests?${queryParams}`;
-         },
-         providesTags: [APPROVAL_TAGS.LIST],
+         invalidatesTags: [...new Set([APPROVAL_TAGS.LIST, STOCKS_TAGS.LIST, INVENTORY_TAGS.DETAIL, ...STOCK_CHANGE_TAGS])],
       }),
       getInventoryAuditTrails: builder.query({
          query: ({ id, ...params }) => {
@@ -244,6 +234,5 @@ export const {
    useGetAllStockApprovalsQuery,
    useApproveStockApprovalMutation,
    useRejectStockApprovalMutation,
-   useGetUserStockRequestsQuery,
    useGetInventoryAuditTrailsQuery,
 } = inventoryApi;

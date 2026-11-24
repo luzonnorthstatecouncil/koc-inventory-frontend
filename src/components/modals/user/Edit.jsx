@@ -43,7 +43,7 @@ export default function EditUser({ isOpen, onClose }) {
 
       toast.success(message);
       onClose();
-   }, []);
+   }, [confirm, exec, onClose, selectedUser.full_name, updateUser]);
 
    return (
       <>

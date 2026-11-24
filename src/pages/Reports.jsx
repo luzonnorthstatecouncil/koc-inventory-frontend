@@ -6,16 +6,12 @@ import ITabs from "@/components/custom/Tabs";
 import StatCard from "@/components/custom/StatCard";
 import ReorderReportTab from "@/components/custom/reports/ReorderReportTab";
 import VelocityReportTab from "@/components/custom/reports/VelocityReportTab";
-import { useState } from "react";
 import { useGetInventoryStatusReportQuery, useGetReportDashboardStatusQuery } from "@/features/api/inventory";
 import { useReportSummary } from "@/hooks/useReportSummary";
-import { exportToCSV, getInventoryStatusColumns } from "@/helpers/exportReports";
 import { toast } from "sonner";
 
-const breadcrumbItems = [{ label: HOME.title }, { label: REPORTS.title }];
-
 export default function Reports() {
-   const [dateRange, setDateRange] = useState("7");
+   const dateRange = "7"; // fixed 7-day window (no picker on this page)
 
    const { data: inventoryData } = useGetInventoryStatusReportQuery(
       { page: 1, pageSize: 1000, show_low_stock: true },
@@ -29,12 +25,14 @@ export default function Reports() {
 
    const { summaryCards } = useReportSummary(dashboardData);
 
-   const handleExport = () => {
+   const handleExport = async () => {
       if (!inventoryData || inventoryData.length === 0) {
          toast.error("No data available to export");
          return;
       }
 
+      // Spreadsheet/PDF libraries load only when exporting
+      const { exportToCSV, getInventoryStatusColumns } = await import("@/helpers/exportReports");
       const columns = getInventoryStatusColumns();
       const filename = `inventory-summary-report-${new Date().toISOString().split("T")[0]}.xlsx`;
       exportToCSV(inventoryData, columns, filename);
@@ -42,7 +40,7 @@ export default function Reports() {
    };
 
    return (
-      <PageLayout breadcrumbItems={breadcrumbItems} route={REPORTS}>
+      <PageLayout route={REPORTS}>
          <div className='space-y-5 w-full'>
             {/* Page header */}
             <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-primary/5 via-primary/[0.03] to-transparent border border-primary/10 rounded-2xl px-5 py-4'>

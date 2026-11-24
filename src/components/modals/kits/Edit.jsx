@@ -2,7 +2,7 @@ import ITabs from "@/components/custom/Tabs";
 import IButton from "@/components/custom/Button";
 import Form from "@/components/custom/Form";
 import { createKitSchema } from "@/lib/zod/schema/createKit";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useEditKitMutation } from "@/features/api/kit";

@@ -44,7 +44,7 @@ export default function Create({ onClose }) {
          toast.success(message);
          onClose();
       },
-      [confirm]
+      [confirm, createNewItem, exec, onClose]
    );
 
    const detailKeys = ["name", "category_id", "unit"];

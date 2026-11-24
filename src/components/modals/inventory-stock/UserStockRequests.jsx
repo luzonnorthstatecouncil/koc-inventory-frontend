@@ -3,7 +3,7 @@ import DataTable from "@/components/custom/Datatable";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import Paragraph from "@/components/custom/Paragraph";
-import { useGetAllStockApprovalsQuery, useGetUserStockRequestsQuery } from "@/features/api/inventory";
+import { useGetAllStockApprovalsQuery } from "@/features/api/inventory";
 import { padwithZero } from "@/helpers/parser";
 
 const columns = [

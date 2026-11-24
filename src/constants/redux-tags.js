@@ -34,3 +34,7 @@ export const KIT_TAGS = {
    LIST: "KIT_LIST",
    DETAIL: "KIT_DETAIL",
 };
+
+// Everything that shows stock levels; invalidated by any mutation that moves stock
+// (sales, refunds, stock in/out, adjustments, approvals, flushes, deductions).
+export const STOCK_CHANGE_TAGS = [INVENTORY_TAGS.LIST, INVENTORY_TAGS.DETAIL, STOCKS_TAGS.LIST, STOCKS_TAGS.DETAIL, KIT_TAGS.LIST];

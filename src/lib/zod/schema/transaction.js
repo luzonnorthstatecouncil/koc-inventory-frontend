@@ -24,4 +24,6 @@ export const cartItemSchema = z.object({
    price: stringNumberRequired("Price"),
    quantity: z.number().int().min(1, "Quantity must be at least 1").default(1),
    isKit: z.boolean().optional().default(false),
+   // Available stock at the time it was added; used to cap the +/- controls
+   current_qty: z.preprocess((v) => (v == null ? undefined : Number(v)), z.number().optional()),
 });

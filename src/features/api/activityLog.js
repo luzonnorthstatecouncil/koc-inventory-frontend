@@ -1,11 +1,8 @@
 import { ACTIVITY_LOG_TAGS } from "@/constants/redux-tags";
 import { urlParams } from "@/helpers/urlParams";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseApi } from "./baseApi";
 
-export const activityLogApi = createApi({
-   reducerPath: "activityLogApi",
-   baseQuery: baseQuery,
+export const activityLogApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       getLogs: builder.query({
          query: (params) => {

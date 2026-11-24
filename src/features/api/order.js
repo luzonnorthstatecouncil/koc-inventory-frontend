@@ -1,11 +1,9 @@
+import { STOCK_CHANGE_TAGS } from "@/constants/redux-tags";
 import { ORDER_TAGS } from "@/constants/redux-tags";
 import { urlParams } from "@/helpers/urlParams";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseApi } from "./baseApi";
 
-export const orderApi = createApi({
-   reducerPath: "orderApi",
-   baseQuery: baseQuery,
+export const orderApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       getAllOrders: builder.query({
          query: (params) => {
@@ -31,22 +29,23 @@ export const orderApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [ORDER_TAGS],
+         invalidatesTags: [...new Set([ORDER_TAGS, ...STOCK_CHANGE_TAGS])],
       }),
       refundOrder: builder.mutation({
-         query: ({ id: orderId, reason }) => ({
-            url: `/v1/orders/${orderId}/refund/`,
+         query: ({ id: orderId, reason, reason_details }) => ({
+            url: `/v1/orders/${orderId}/refund`,
             method: "POST",
-            body: { reason },
+            // The details typed for "Other" used to be dropped; store them with the reason
+            body: { reason: reason_details?.trim() ? `${reason}: ${reason_details.trim()}` : reason },
          }),
-         invalidatesTags: [ORDER_TAGS],
+         invalidatesTags: [...new Set([ORDER_TAGS, ...STOCK_CHANGE_TAGS])],
       }),
       voidRefundOrder: builder.mutation({
          query: (refundId) => ({
-            url: `/v1/orders/${refundId}/void-refund/`,
+            url: `/v1/orders/${refundId}/void-refund`,
             method: "POST",
          }),
-         invalidatesTags: [ORDER_TAGS],
+         invalidatesTags: [...new Set([ORDER_TAGS, ...STOCK_CHANGE_TAGS])],
       }),
    }),
 });

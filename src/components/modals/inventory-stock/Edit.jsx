@@ -9,10 +9,9 @@ import ISelect from "@/components/custom/Select";
 import InputNumber from "@/components/custom/InputNumber";
 import ITextarea from "@/components/custom/Textarea";
 
-import { cn } from "@/lib/utils";
 import { addOthers } from "@/helpers/parser";
 import { AlertCircle, AlertTriangle, PackageMinus, PackagePlus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Separator } from "@/components/ui/separator";
 import { ADJUSTMENT_STOCK_REMARKS_OPTIONS, REMOVE_STOCK_REMARKS_OPTIONS } from "@/constants/options";
 import { useConfirmation } from "@/helpers/confirmAction";
@@ -20,7 +19,7 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { toast } from "sonner";
 import { editStockDefaultValues, editStockSchema } from "@/lib/zod/schema/manageStock";
 import { useFormContext } from "react-hook-form";
-import { useAdjustStocksMutation, useRemoveStockMutation } from "@/features/api/inventory";
+import { useAdjustStocksMutation } from "@/features/api/inventory";
 import ModalSkeleton from "@/components/custom/ModalSkeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -62,7 +61,7 @@ export default function Edit({ item, onClose }) {
 
       toast.success(message);
       onClose();
-   }, []);
+   }, [adjustStock, confirm, exec, item.current_quantity, item.reference_no, onClose]);
 
    return (
       <Form

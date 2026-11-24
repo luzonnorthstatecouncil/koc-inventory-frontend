@@ -3,7 +3,6 @@ import { Minus, Plus } from "lucide-react";
 import IButton from "./Button";
 import { useCallback } from "react";
 import IInput from "./Input";
-import { fa } from "zod/v4/locales";
 import Paragraph from "./Paragraph";
 import Title from "./Title";
 import { cn } from "@/lib/utils";
@@ -44,7 +43,7 @@ export default function InputNumber({
       if (requireMax && !max) return;
       setValue(name, Math.max(0, value - steps));
       clearErrors(name);
-   }, [name, value, requireMax, max, setValue, clearErrors]);
+   }, [requireMax, max, setValue, name, value, steps, clearErrors]);
 
    return (
       <div className={inputWrapperClassName}>
@@ -63,6 +62,7 @@ export default function InputNumber({
             <IButton
                disabled={(requireMax && !max) || disabled || disablePrev}
                onClick={handleDecrement}
+               aria-label={label ? `Decrease ${label}` : "Decrease"}
                type='button'
                className='bg-white hover:bg-gray-100 text-black border border-outline rounded-full size-10'
             >
@@ -71,6 +71,7 @@ export default function InputNumber({
 
             <IInput
                name={name}
+               aria-label={typeof label === "string" ? label : undefined}
                max={max}
                showError={false}
                disabled={(requireMax && !max) || disabled}
@@ -86,6 +87,7 @@ export default function InputNumber({
             <IButton
                disabled={(requireMax && !max) || disabled || disableNext}
                onClick={handleIncrement}
+               aria-label={label ? `Increase ${label}` : "Increase"}
                type='button'
                className='bg-white hover:bg-gray-100 text-black border border-outline rounded-full size-10'
             >

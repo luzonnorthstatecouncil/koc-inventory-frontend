@@ -1,10 +1,7 @@
 import { USER_TAGS } from "@/constants/redux-tags";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseApi } from "./baseApi";
 
-export const authApi = createApi({
-   reducerPath: "api",
-   baseQuery: baseQuery,
+export const authApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       signInUser: builder.mutation({
          query: (data) => ({

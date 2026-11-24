@@ -28,16 +28,13 @@ import { useState, useCallback, useMemo } from "react";
 import ILineChart from "@/components/custom/LineChart";
 
 import ViewOrder from "@/components/modals/orders/View";
-import { useDispatch, useSelector } from "react-redux";
-import { setOpenRefundModal, setOpenViewModal, setSelectedOrder } from "@/features/slice/orderSlice";
+import { useModalState } from "@/hooks/useModalState";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { toast } from "sonner";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import RefundOrder from "@/components/modals/orders/RefundOrder";
-import { exportOrdersToExcel } from "@/helpers/exportReports";
 import { printInvoice } from "@/helpers/printInvoice";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: ORDERS.title }];
+import { describeOrderItem } from "@/helpers/orderItems";
 
 function computeStats(data = []) {
    const total = data.reduce((sum, d) => sum + (d.total || 0), 0);
@@ -156,6 +153,9 @@ const columns = [
          <div className='flex flex-col'>
             <span className='font-mono text-sm font-bold text-foreground tracking-wider'>#{padwithZero(value)}</span>
             <span className='text-sm text-muted-foreground font-mono'>{item.order_number}</span>
+            {item.invoice_number && (
+               <span className='text-xs text-muted-foreground font-mono'>INV {item.invoice_number}</span>
+            )}
          </div>
       ),
    },
@@ -228,11 +228,13 @@ const stockFilters = [
 ];
 
 export default function Orders() {
-   const dispatch = useDispatch();
+   const modal = useModalState();
    const { confirm } = useConfirmation();
    const exec = useCatchQuery();
 
-   const { openViewModal, openRefundModal } = useSelector((state) => state.order);
+   const { open: openModal, close: closeModal } = modal;
+   const openViewModal = modal.is("view");
+   const openRefundModal = modal.is("refund");
 
    const [params, setParams] = useState({});
 
@@ -244,28 +246,13 @@ export default function Orders() {
    });
    const { data: ordersData } = useGetAllOrdersQuery({});
 
-   const onViewOrder = useCallback((item) => {
-      dispatch(setOpenViewModal(true));
-      dispatch(setSelectedOrder(item));
-   }, []);
-
-   const onCloseView = useCallback(() => {
-      dispatch(setOpenViewModal(false));
-      dispatch(setSelectedOrder(null));
-   }, []);
-
-   const onCloseRefund = useCallback(() => {
-      dispatch(setOpenRefundModal(false));
-      dispatch(setSelectedOrder(null));
-   }, []);
-
-   const onRefundOrder = useCallback(async (item) => {
-      dispatch(setOpenRefundModal(true));
-      dispatch(setSelectedOrder(item));
-   }, []);
+   const onViewOrder = useCallback((item) => openModal("view", item), [openModal]);
+   const onCloseView = closeModal;
+   const onCloseRefund = closeModal;
+   const onRefundOrder = useCallback((item) => openModal("refund", item), [openModal]);
 
    const onConfirmRefund = useCallback(async (data) => {
-      dispatch(setOpenRefundModal(false));
+      closeModal();
 
       const confirmed = await confirm({
          title: "Confirm Refund",
@@ -277,7 +264,7 @@ export default function Orders() {
 
       const id = toast.loading("Processing refund...");
 
-      const { success, result, message } = await exec(refundOrder, data);
+      const { success, message } = await exec(refundOrder, data);
 
       if (!success) {
          toast.dismiss(id);
@@ -285,10 +272,10 @@ export default function Orders() {
       }
 
       toast.success(message || `Order #${padwithZero(data.id)} refunded successfully`, { id });
-   }, []);
+   }, [closeModal, confirm, exec, refundOrder]);
 
    const onConfirmVoidRefund = useCallback(async (data) => {
-      dispatch(setOpenRefundModal(false));
+      closeModal();
 
       const confirmed = await confirm({
          title: "Confirm Void Refund",
@@ -300,7 +287,7 @@ export default function Orders() {
 
       const id = toast.loading("Processing void refund...");
 
-      const { success, result, message } = await exec(voidRefundOrder, data?.id);
+      const { success, message } = await exec(voidRefundOrder, data?.id);
 
       if (!success) {
          toast.dismiss(id);
@@ -308,15 +295,17 @@ export default function Orders() {
       }
 
       toast.success(message || `Order #${padwithZero(data.id)} voided refund successfully`, { id });
-   }, []);
+   }, [closeModal, confirm, exec, voidRefundOrder]);
 
-   const handleExportOrders = useCallback(() => {
+   const handleExportOrders = useCallback(async () => {
       if (!ordersData?.data || ordersData.data.length === 0) {
          toast.error("No orders available to export");
          return;
       }
 
       const filename = `orders-export-${new Date().toISOString().split("T")[0]}.xlsx`;
+      // Spreadsheet library loads only when exporting
+      const { exportOrdersToExcel } = await import("@/helpers/exportReports");
       exportOrdersToExcel(ordersData.data, filename);
       toast.success(`Orders exported successfully to ${filename}`);
    }, [ordersData]);
@@ -334,7 +323,7 @@ export default function Orders() {
             label: "Refund Order",
             icon: ReceiptText,
             show: (item) => {
-               return !Boolean(item.refundedOrder);
+               return !item.refundedOrder;
             },
             action: onRefundOrder,
          },
@@ -353,12 +342,15 @@ export default function Orders() {
             icon: Printer,
             action: (item) => {
                const transactionData = {
-                  cart: (item.items || []).map((orderItem) => ({
-                     name: `${orderItem.product?.inventory?.name || "Unknown Item"}`,
-                     variant_option: orderItem.product?.variant_name || "",
-                     quantity: orderItem.quantity || 0,
-                     price: orderItem.product?.inventory?.price || 0,
-                  })),
+                  cart: (item.items || []).map((orderItem) => {
+                     const line = describeOrderItem(orderItem);
+                     return {
+                        name: line.name,
+                        variant_option: line.isKit ? "Kit" : line.variantName,
+                        quantity: orderItem.quantity || 0,
+                        price: line.price,
+                     };
+                  }),
                   paymentMethod: item.payments?.payment_method || "N/A",
                   subtotal: item.order_total || 0,
                   total: item.order_total || 0,
@@ -367,7 +359,11 @@ export default function Orders() {
                   orderNumber: item.order_number,
                };
 
-               printInvoice(transactionData, item.id, new Date(item.created_at));
+               printInvoice(
+                  transactionData,
+                  item.invoice_number || item.order_number || item.id,
+                  new Date(item.created_at),
+               );
             },
          },
       ],
@@ -376,14 +372,14 @@ export default function Orders() {
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={ORDERS.title}
          pageDescription='Manage your orders. View details, process refunds, and keep track of your order history all in one place.'
          route={ORDERS}
       >
          <header className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full mt-2 sm:mt-4'>
-            {STAT_CONFIGS.map((cfg) => (
-               <OrderStatCard key={cfg.key} data={orderStatistics?.[cfg.key] || []} {...cfg} />
+            {STAT_CONFIGS.map(({ key, ...cfg }) => (
+               <OrderStatCard key={key} data={orderStatistics?.[key] || []} {...cfg} />
             ))}
          </header>
 
@@ -408,9 +404,11 @@ export default function Orders() {
             ]}
          />
 
-         {openViewModal && <ViewOrder isOpen={openViewModal} onClose={onCloseView} />}
+         {openViewModal && (
+            <ViewOrder isOpen={openViewModal} onClose={onCloseView} order={modal.item} onSelectOrder={modal.setItem} />
+         )}
          {openRefundModal && (
-            <RefundOrder isOpen={openRefundModal} onClose={onCloseRefund} onConfirm={onConfirmRefund} />
+            <RefundOrder isOpen={openRefundModal} onClose={onCloseRefund} onConfirm={onConfirmRefund} order={modal.item} />
          )}
       </PageLayout>
    );

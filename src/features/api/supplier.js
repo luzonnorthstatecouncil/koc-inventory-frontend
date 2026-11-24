@@ -1,11 +1,8 @@
 import { SUPPLIER_TAGS } from "@/constants/redux-tags";
 import { urlParams } from "@/helpers/urlParams";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseApi } from "./baseApi";
 
-export const supplierApi = createApi({
-   reducerPath: "supplierApi",
-   baseQuery: baseQuery,
+export const supplierApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       getSupplierList: builder.query({
          query: (params = {}) => {

@@ -2,7 +2,7 @@ import PageLayout from "@/layout/PageLayout";
 import { HOME, USER_MANAGEMENT } from "@/constants/routes";
 import { EditIcon, EyeIcon, Lock, TrashIcon } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
-import { useDeleteUserMutation, useGetUserListQuery, useResetPasswordMutation } from "@/features/api/users";
+import { useDeleteUserMutation, useGetUserListQuery } from "@/features/api/users";
 import ViewUser from "@/components/modals/user/View";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -21,8 +21,6 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import CreateUser from "@/components/modals/user/Create";
 import UserCredentialsModal from "@/components/modals/user/UserCredentialsModal";
 import { UserChangePasswordModal } from "@/components/modals/user/UserChangePassword";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: USER_MANAGEMENT.title }];
 
 const ROLE_STYLES = {
    admin: "bg-primary/10 text-primary",
@@ -113,7 +111,6 @@ export default function UserManagement() {
    const dispatch = useDispatch();
    const { confirm } = useConfirmation();
    const exec = useCatchQuery();
-   const [resetPassword] = useResetPasswordMutation();
    const [deleteUser] = useDeleteUserMutation();
    const { openViewModal, openEditModal, openCreateModal, openChangePasswordModal, credentials, showCredentialsModal } =
       useSelector((state) => state.user);
@@ -173,36 +170,6 @@ export default function UserManagement() {
       dispatch(setOpenChangePasswordModal(true));
    };
 
-   const onChangePassword = async (selectedUser) => {
-      const confirmed = await confirm({
-         title: "Confirm Password Change",
-         confirmLabel: "Change Password",
-         message: `Are you sure you want to change the password for ${selectedUser.full_name}?`,
-      });
-
-      if (!confirmed) return;
-
-      const id = toast.loading("Changing password...");
-      const { success, message, result: responseData } = await exec(resetPassword, selectedUser.id);
-
-      if (!success) {
-         toast.dismiss(id);
-         return;
-      }
-
-      toast.success(message, { id });
-
-      if (responseData?.username && responseData?.password) {
-         dispatch(
-            setCredentials({
-               username: responseData.username,
-               password: responseData.password,
-            }),
-         );
-         dispatch(setShowCredentialsModal(true));
-      }
-   };
-
    const actions = [
       {
          key: "view",
@@ -234,7 +201,7 @@ export default function UserManagement() {
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={USER_MANAGEMENT.title}
          pageDescription='Manage users and their permissions within the inventory system. Create new accounts, edit existing ones, and reset passwords as needed to ensure smooth operations.'
          route={USER_MANAGEMENT}

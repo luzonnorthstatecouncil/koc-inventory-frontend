@@ -8,7 +8,7 @@ export default function IButton({ children, icon, iconPosition, tooltipOffset = 
 
    if (!props.onClick && props.type !== "submit") {
       return (
-         <ITooltip label='Under Development' offset={tooltipOffset}>
+         <ITooltip label='Under Development' offset={tooltipOffset} asChild>
             <span>
                <Button {...props} disabled>
                   {children}

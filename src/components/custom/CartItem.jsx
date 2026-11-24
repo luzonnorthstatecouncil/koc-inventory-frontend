@@ -1,26 +1,35 @@
-import { Box, Minus, Plus, Trash2Icon } from "lucide-react";
+import { Minus, Plus, Trash2Icon } from "lucide-react";
 import { useDispatch } from "react-redux";
+import { toast } from "sonner";
 import { removeFromCart, updateCart } from "@/features/slice/cartSlice";
 import { priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 
 export default function CartItem({ item }) {
    const dispatch = useDispatch();
+   const lineKey = { id: item.id, isKit: item.isKit };
+   const atStockLimit = typeof item.current_qty === "number" && item.quantity >= item.current_qty;
 
    const handleQuantity = (isRemove) => {
       if (isRemove && item.quantity === 1) {
-         dispatch(removeFromCart(item.id));
+         dispatch(removeFromCart(lineKey));
          return;
       }
+
+      if (!isRemove && atStockLimit) {
+         toast.error("Cannot add more items than available in stock");
+         return;
+      }
+
       dispatch(
          updateCart({
-            id: item.id,
+            ...lineKey,
             data: { ...item, quantity: isRemove ? item.quantity - 1 : item.quantity + 1 },
          }),
       );
    };
 
-   const handleRemove = () => dispatch(removeFromCart(item.id));
+   const handleRemove = () => dispatch(removeFromCart(lineKey));
    const lineTotal = priceParser(item.price * item.quantity);
 
    return (
@@ -52,7 +61,10 @@ export default function CartItem({ item }) {
 
                <button
                   onClick={() => handleQuantity(false)}
-                  className='size-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors'
+                  className={cn(
+                     "size-6 rounded-md bg-gray-100 text-gray-600 flex items-center justify-center transition-colors",
+                     atStockLimit ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-200",
+                  )}
                >
                   <Plus className='size-3' />
                </button>

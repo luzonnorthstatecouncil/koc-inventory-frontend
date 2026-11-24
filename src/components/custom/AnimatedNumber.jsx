@@ -60,6 +60,9 @@ const AnimatedNumber = ({
             cancelAnimationFrame(animationRef.current);
          }
       };
+      // Only a new target value restarts the animation; adding displayValue/animate would
+      // restart it on every frame it renders.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [value]);
 
    useEffect(() => {

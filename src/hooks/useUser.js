@@ -4,13 +4,13 @@ import { setSession, setUser } from "@/features/slice/userSlice";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useLogout } from "./useLogout";
-import getToken from "../helpers/getToken";
+import { useToken } from "./useToken";
 import { useGetAuthUserQuery } from "@/features/api/users";
 
 export const useUser = () => {
    const dispatch = useDispatch();
    const logout = useLogout();
-   const token = getToken();
+   const token = useToken();
    const location = window.location.pathname;
 
    const { user, session } = useSelector((state) => state.user);
@@ -46,7 +46,7 @@ export const useUser = () => {
       if (!session) {
          dispatch(setSession(appSession));
       }
-   }, [session, dispatch]);
+   }, [session, dispatch, appSession]);
 
    useEffect(() => {
       if (isSuccess && userProfile) {
@@ -68,6 +68,9 @@ export const useUser = () => {
             logout(true);
          }, 1500);
       }
+      // logout and the error objects are new on every render; including them would re-run the
+      // forced sign-out repeatedly. The status flags above are what this reacts to.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [isSuccess, isUserError, isSessionError, user, userProfile, dispatch]);
 
    return user;

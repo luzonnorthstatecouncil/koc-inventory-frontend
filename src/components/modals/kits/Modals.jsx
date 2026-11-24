@@ -1,20 +1,15 @@
-import { useDispatch, useSelector } from "react-redux";
-import {
-   setOpenCreateModal,
-   setOpenEditModal,
-   setOpenViewModal,
-   setSelectedItem,
-} from "@/features/slice/kitSlice";
 import { useGetKitByIdQuery } from "@/features/api/kit";
 import Modal from "@/components/custom/Modal";
 import Create from "./Create";
 import Edit from "./Edit";
 import View from "./View";
 
-export default function KitModals() {
-   const { openViewModal, openCreateModal, openEditModal, selectedItem } = useSelector(
-      (state) => state.kit,
-   );
+/** `modal` comes from useModalState() in the Kits page. */
+export default function KitModals({ modal }) {
+   const openViewModal = modal.is("view");
+   const openCreateModal = modal.is("create");
+   const openEditModal = modal.is("edit");
+   const selectedItem = modal.item;
 
    const {
       data: kitItem,
@@ -25,22 +20,9 @@ export default function KitModals() {
       refetchOnMountOrArgChange: true,
    });
 
-   const dispatch = useDispatch();
-
-   const onViewClose = () => {
-      dispatch(setOpenViewModal(false));
-      dispatch(setSelectedItem(null));
-   };
-
-   const onCreateClose = () => {
-      dispatch(setOpenCreateModal(false));
-      dispatch(setSelectedItem(null));
-   };
-
-   const onEditClose = () => {
-      dispatch(setOpenEditModal(false));
-      dispatch(setSelectedItem(null));
-   };
+   const onViewClose = modal.close;
+   const onCreateClose = modal.close;
+   const onEditClose = modal.close;
 
    return (
       <>

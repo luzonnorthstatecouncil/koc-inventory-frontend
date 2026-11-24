@@ -15,7 +15,6 @@ const resolvers = new Map();
 export function ConfirmationDialog() {
    const dispatch = useDispatch();
    const { isOpen, dialog, dialogId } = useSelector((state) => state.confirmation);
-   const isLoading = useSelector((state) => state.loading.isLoading);
 
    const handleConfirm = () => {
       if (dialogId && resolvers.has(dialogId)) {
@@ -71,7 +70,9 @@ export function ConfirmationDialog() {
    );
 }
 
-// Hook to use the confirmation dialog
+// Hook to use the confirmation dialog. Kept beside <ConfirmationDialog /> (they share the resolver map);
+// the only cost is that edits here do a full reload instead of fast refresh in development.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useConfirmation() {
    const dispatch = useDispatch();
 

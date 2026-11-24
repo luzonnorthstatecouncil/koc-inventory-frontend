@@ -1,4 +1,4 @@
-import { useFormContext, useFieldArray, useWatch } from "react-hook-form";
+import { useFormContext, useFieldArray } from "react-hook-form";
 import IInput from "@/components/custom/Input";
 import Paragraph from "@/components/custom/Paragraph";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,12 +28,11 @@ export default function ItemVariants({ isCreate = true }) {
             <Paragraph size='sm'>
                {fields.length} Variant{fields.length === 1 ? "" : "s"}
             </Paragraph>
-            <Badge
-               variant='default'
-               className='text-xs p-2 h-7 rounded-md cursor-pointer select-none active:scale-98'
-               onClick={handleAppend}
-            >
-               Add Variant
+            {/* A real button (via asChild) so it is keyboard-focusable; it was a clickable <span> */}
+            <Badge asChild variant='default' className='text-xs p-2 h-7 rounded-md cursor-pointer select-none active:scale-98'>
+               <button type='button' onClick={handleAppend}>
+                  Add Variant
+               </button>
             </Badge>
          </header>
 

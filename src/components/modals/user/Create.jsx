@@ -13,15 +13,14 @@ import { createUserDefaultValues, createUserSchema } from "@/lib/zod/schema/crea
 import { useCallback } from "react";
 import { toast } from "sonner";
 import UserCredentialsModal from "./UserCredentialsModal";
-import { useDispatch, useSelector } from "react-redux";
 import { setCredentials, setShowCredentialsModal } from "@/features/slice/userSlice";
+import { useDispatch } from "react-redux";
 
 export default function CreateUser({ isOpen, onClose }) {
    const exec = useCatchQuery();
    const { confirm } = useConfirmation();
    const [createUser] = useCreateUserMutation();
    const dispatch = useDispatch();
-   const { credentials, showCredentialsModal } = useSelector((state) => state.user);
 
    const onSubmit = useCallback(async (data) => {
       const confirmed = await confirm({
@@ -48,8 +47,14 @@ export default function CreateUser({ isOpen, onClose }) {
       }
 
       toast.success(message, { id });
+      // If the email couldn't be sent, the admin is the only way the user gets these credentials
+      if (responseData?.email_sent === false && responseData?.password) {
+         dispatch(setCredentials({ username: responseData.username, password: responseData.password }));
+         dispatch(setShowCredentialsModal(true));
+      }
+
       onClose();
-   }, []);
+   }, [confirm, createUser, dispatch, exec, onClose]);
 
    return (
       <>

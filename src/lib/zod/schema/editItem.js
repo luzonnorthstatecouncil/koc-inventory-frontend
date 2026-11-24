@@ -1,15 +1,5 @@
 import z from "zod";
-import {
-   alphaRequired,
-   booleanRequired,
-   nameRequired,
-   numberRequired,
-   positiveNumber,
-   referenceNumberRequired,
-   referenceNumberOptional,
-   stringRequired,
-   stringOrNumberOptional,
-} from "../helpers";
+import { alphaRequired, booleanRequired, nameRequired, positiveNumber, referenceNumberRequired, referenceNumberOptional, stringRequired } from "../helpers";
 import { createItemVariantSchema } from "./createItem";
 
 export const editItemSpecificationDefaultValues = {

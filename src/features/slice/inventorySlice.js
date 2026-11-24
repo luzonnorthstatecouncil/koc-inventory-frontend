@@ -1,12 +1,4 @@
-import {
-   appendArray,
-   clearArray,
-   clearState,
-   clearStates,
-   removeArray,
-   setState,
-   updateArray,
-} from "@/helpers/sliceHelpers";
+import { clearStates, setState } from "@/helpers/sliceHelpers";
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {

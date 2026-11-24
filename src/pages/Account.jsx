@@ -8,7 +8,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ACCOUNT, HOME } from "@/constants/routes";
 import {
-   useResetPasswordMutation,
    useUpdateAccountDetailsMutation,
    useUpdatePersonalInfoMutation,
 } from "@/features/api/users";
@@ -28,8 +27,6 @@ import ICheckbox from "@/components/custom/Checkbox";
 import { UserChangePasswordModal } from "@/components/modals/user/UserChangePassword";
 import { setOpenChangePasswordModal, setSelectedUser } from "@/features/slice/userSlice";
 
-const breadcrumbItems = [{ label: HOME.title }, { label: ACCOUNT.title }];
-
 export default function Account() {
    const user = useUser();
    const exec = useCatchQuery();
@@ -38,7 +35,6 @@ export default function Account() {
    const { editableSections } = useSelector((state) => state.account);
    const { openChangePasswordModal } = useSelector((state) => state.user);
 
-   const [resetPassword] = useResetPasswordMutation();
    const [updatePersonalInfo] = useUpdatePersonalInfoMutation();
    const [updateAccountDetails] = useUpdateAccountDetailsMutation();
 
@@ -50,38 +46,6 @@ export default function Account() {
    const onOpenChangePassword = () => {
       dispatch(setSelectedUser(user));
       dispatch(setOpenChangePasswordModal(true));
-   };
-
-   const onChangePassword = async () => {
-      const confirmed = await confirm({
-         title: "Confirm Password Change",
-         confirmLabel: "Change Password",
-         message: (
-            <div>
-               <Title>Enter new password</Title>
-               <Paragraph size='sm' className='text-muted-foreground'>
-                  Choose a strong password to keep your account secure. Make sure to remember it or store it in a safe
-                  place.
-               </Paragraph>
-               <IInput type='password' placeholder='New password' wrapperClassName='mt-4' />
-               <IInput type='password' placeholder='Confirm new password' wrapperClassName='mt-2' />
-
-               <ICheckbox label='Manually enter a new password' className='mt-4' defaultChecked />
-            </div>
-         ),
-      });
-
-      if (!confirmed) return;
-
-      const id = toast.loading("Changing password...");
-      const { success, message } = await exec(resetPassword, user.id);
-
-      if (!success) {
-         toast.dismiss(id);
-         return;
-      }
-
-      toast.success(message, { id });
    };
 
    const onUpdatePersonalInfo = async (data) => {
@@ -125,7 +89,7 @@ export default function Account() {
    };
 
    return (
-      <PageLayout breadcrumbItems={breadcrumbItems} route={ACCOUNT}>
+      <PageLayout route={ACCOUNT}>
          <main className='w-full pb-8'>
             {/* ── Page Header ── */}
             <Title className='text-lg md:text-2xl! lg:text-4xl! font-bold'>Account Settings</Title>

@@ -2,7 +2,7 @@ import { useFormContext } from "react-hook-form";
 import { FORM } from "@/constants/message";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { Textarea } from "../ui/textarea";
@@ -19,6 +19,9 @@ export default function ITextarea({
    labelClassName = "",
    ...props
 }) {
+   const autoId = useId();
+   const textareaId = props.id || autoId;
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const formContext = useForm ? useFormContext() : null;
    const register = formContext?.register || (() => ({}));
    const errors = formContext?.formState?.errors || {};
@@ -36,7 +39,11 @@ export default function ITextarea({
 
    return (
       <div className={`flex flex-col gap-1 w-full ${wrapperClassName}`}>
-         {label && <Label className={labelClassName}>{label}</Label>}
+         {label && (
+            <Label htmlFor={textareaId} className={labelClassName}>
+               {label}
+            </Label>
+         )}
 
          <div className='relative w-full bg-white'>
             {prefix && (
@@ -44,6 +51,7 @@ export default function ITextarea({
             )}
 
             <Textarea
+               id={textareaId}
                {...(useForm && name ? register(name) : {})}
                {...props}
                type={isPassword && !passwordVisible ? "password" : isPassword ? "text" : props.type}

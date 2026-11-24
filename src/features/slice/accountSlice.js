@@ -8,13 +8,13 @@ const initialState = {
    },
 };
 
-const orderSlice = createSlice({
-   name: "inventory",
+const accountSlice = createSlice({
+   name: "account",
    initialState,
    reducers: {
       setEditableSection: setState("editableSections"),
    },
 });
 
-export const { setEditableSection } = orderSlice.actions;
-export default orderSlice.reducer;
+export const { setEditableSection } = accountSlice.actions;
+export default accountSlice.reducer;

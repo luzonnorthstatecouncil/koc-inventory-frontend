@@ -1,14 +1,5 @@
-import {
-   appendArray,
-   clearArray,
-   clearState,
-   clearStates,
-   removeArray,
-   setState,
-   updateArray,
-} from "@/helpers/sliceHelpers";
+import { appendArray, clearArray, clearStates, setState } from "@/helpers/sliceHelpers";
 import { createSlice } from "@reduxjs/toolkit";
-import { set } from "date-fns";
 
 const initialState = {
    cart: [],
@@ -24,13 +15,25 @@ const initialState = {
    remarks: "Internal Use",
 };
 
+/**
+ * A kit and a variant can share the same numeric id, so cart lines are
+ * identified by id + isKit together.
+ */
+export const isSameCartLine = (a, b) => a.id === b.id && Boolean(a.isKit) === Boolean(b.isKit);
+
 const cartSlice = createSlice({
-   name: "user",
+   name: "cart",
    initialState,
    reducers: {
       addCart: appendArray("cart"),
-      updateCart: updateArray("cart"),
-      removeFromCart: removeArray("cart"),
+      // payload: { id, isKit, data }
+      updateCart: (state, action) => {
+         state.cart = state.cart.map((item) => (isSameCartLine(item, action.payload) ? action.payload.data : item));
+      },
+      // payload: { id, isKit }
+      removeFromCart: (state, action) => {
+         state.cart = state.cart.filter((item) => !isSameCartLine(item, action.payload));
+      },
       clearCart: clearArray("cart"),
       setPaymentMethod: setState("paymentMethod"),
       setSearchQuery: setState("searchQuery"),

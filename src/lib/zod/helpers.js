@@ -96,8 +96,13 @@ export const alphaRequired = (field = "This field") =>
 export const nameRequired = (field = "This field") =>
    z
       .string()
+      .trim()
+      // Checked first so an empty field says "required" rather than "at least 3 characters"
+      .min(1, `${field} is required`)
       .min(3, `${field} must be at least 3 characters`)
-      .regex(/^[a-zA-Z0-9\s.,'’-]+$/, `${field} contains invalid characters`);
+      .max(255, `${field} must be at most 255 characters`)
+      // Everyday name punctuation is allowed: "Johnson & Johnson", "T-Shirt (XL)", "50/50 Raffle", "Shirt #2"
+      .regex(/^[\p{L}\p{N}\s.,'’&()/#+:-]+$/u, `${field} contains invalid characters`);
 
 export const referenceNumberRequired = (field = "This field") =>
    z

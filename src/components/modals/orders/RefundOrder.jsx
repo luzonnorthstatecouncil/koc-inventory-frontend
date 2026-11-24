@@ -3,7 +3,6 @@ import Modal from "@/components/custom/Modal";
 import { padwithZero, priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RefreshCcw } from "lucide-react";
-import { useSelector } from "react-redux";
 import OrderItem from "./ui/OrderItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ISelect from "@/components/custom/Select";
@@ -11,12 +10,11 @@ import { REFUND_REASONS_OPTIONS } from "@/constants/options";
 import ITextarea from "@/components/custom/Textarea";
 import Form from "@/components/custom/Form";
 import { refundOrderDefaultValues, refundOrderSchema } from "@/lib/zod/schema/refundOrder";
-import { useWatch } from "react-hook-form";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import IButton from "@/components/custom/Button";
+import { describeOrderItem } from "@/helpers/orderItems";
 
-export default function RefundOrder({ isOpen, onClose, onConfirm }) {
-   const { selectedOrder } = useSelector((state) => state.order);
+export default function RefundOrder({ isOpen, onClose, onConfirm, order: selectedOrder }) {
 
    return (
       <Modal
@@ -50,14 +48,18 @@ export default function RefundOrder({ isOpen, onClose, onConfirm }) {
             <div className='rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-0.5'>
                <Each
                   of={selectedOrder?.items}
-                  render={(item) => (
-                     <OrderItem
-                        key={item.id}
-                        name={`${item.product.inventory.name} - ${item.product.variant_name}`}
-                        quantity={item.quantity !== 0 ? item.quantity : null}
-                        price={item.product.inventory.price}
-                     />
-                  )}
+                  render={(item) => {
+                     const line = describeOrderItem(item);
+                     return (
+                        <OrderItem
+                           key={item.id}
+                           name={line.label}
+                           quantity={item.quantity !== 0 ? item.quantity : null}
+                           price={line.price}
+                           nameClassName={line.isKit ? "font-bold text-primary" : ""}
+                        />
+                     );
+                  }}
                />
             </div>
          </ScrollArea>
@@ -80,7 +82,8 @@ export default function RefundOrder({ isOpen, onClose, onConfirm }) {
             }}
          >
             {(form) => {
-               const formValues = useWatch(form);
+               // form.watch() re-renders the form host on change; a hook here would break hook rules
+               const formValues = form.watch();
 
                return (
                   <>

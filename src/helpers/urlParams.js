@@ -60,18 +60,20 @@ export const urlParams = (params = {}) => {
             }
             break;
 
-         case "page":
+         case "page": {
             // Always include page, default to 1 if invalid
             const pageNum = parseInt(value);
             cleanParams.page = isNaN(pageNum) || pageNum < 1 ? 1 : pageNum;
             break;
+         }
 
-         case "pageSize":
-            // Always include pageSize, default to 25 if invalid
+         case "pageSize": {
+            // Any size from 1 to 1000 (the API's cap). Dropdowns that need "all" rows ask for
+            // 1000; the old 5/10/25/50/100 whitelist silently cut those lists to 25.
             const pageSizeNum = parseInt(value);
-            const validPageSizes = [5, 10, 25, 50, 100];
-            cleanParams.pageSize = validPageSizes.includes(pageSizeNum) ? pageSizeNum : 25;
+            cleanParams.pageSize = pageSizeNum >= 1 && pageSizeNum <= 1000 ? pageSizeNum : 25;
             break;
+         }
 
          case "sortBy":
          case "sortDirection":

@@ -29,7 +29,7 @@ export default function Login() {
 
    useEffect(() => {
       if (auth) navigate("/");
-   }, [auth]);
+   }, [auth, navigate]);
 
    const onSubmit = async (data) => {
       setError(null);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { addYears, format } from "date-fns";
 import { ChevronDownIcon, Trash2 } from "lucide-react";
@@ -29,9 +29,11 @@ export default function DatePicker({
    showClear = true,
    ...props
 }) {
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const formContext = useForm ? useFormContext() : null;
    const register = formContext?.register || (() => ({}));
    const setValue = formContext?.setValue;
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const watch = formContext ? useWatch({ name }) : null;
    const errors = formContext?.formState?.errors || {};
    const error = errors?.[name]?.message;
@@ -45,7 +47,7 @@ export default function DatePicker({
       if (!useForm) {
          setLocalDate(value);
       }
-   }, [value]);
+   }, [useForm, value]);
 
    const handleSelect = useCallback((value) => {
       let formattedVal = null;
@@ -71,7 +73,7 @@ export default function DatePicker({
       }
 
       onChange?.(formattedVal);
-   }, []);
+   }, [formContext, mode, name, onChange, parseFormat, setValue, useForm]);
 
    const handleTriggerClick = (e) => {
       e.preventDefault();
@@ -94,7 +96,11 @@ export default function DatePicker({
    return (
       <div className={cn("flex flex-col gap-1", wrapperClassName)}>
          <header className='flex items-center justify-between'>
-            {label && <Label className='px-1'>{label}</Label>}
+            {label && (
+               <Label htmlFor={name || "date-range"} className='px-1'>
+                  {label}
+               </Label>
+            )}
 
             {date && showClear && (
                <span

@@ -6,7 +6,7 @@ import Title from "@/components/custom/Title";
 import ITooltip from "@/components/custom/Tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFlushExpiredStocksMutation } from "@/features/api/inventory";
-import { setOpenStocksModal, setSelectedStock } from "@/features/slice/inventorySlice";
+import { setSelectedStock } from "@/features/slice/inventorySlice";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { dateParser } from "@/helpers/parser";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
@@ -118,10 +118,6 @@ export default function ViewStocks({ item }) {
    const { confirm } = useConfirmation();
    const exec = useCatchQuery();
 
-   const onManageStock = useCallback(() => {
-      dispatch(setOpenStocksModal(true));
-   }, [dispatch]);
-
    const onFlushExpired = useCallback(async () => {
       const expiredStocks = item?.stocks?.filter((stock) => isPast(stock.expires_at));
       const totalExpiredStocks = expiredStocks?.reduce((acc, stock) => acc + stock.batch_quantity, 0) || 0;
@@ -147,7 +143,7 @@ export default function ViewStocks({ item }) {
 
       dispatch(setSelectedStock(null));
       toast.success(message);
-   }, [item]);
+   }, [confirm, dispatch, exec, flushExpired, item?.stocks]);
 
    const stockLevel = useMemo(() => {
       if (item?.current_qty <= 0)
@@ -234,7 +230,7 @@ export default function ViewStocks({ item }) {
                         variant: "outline",
                         hidden:
                            !item.stocks.some(
-                              (stock) => stock.expires_at && isPast(stock.expires_at) && !Boolean(stock.archived_at),
+                              (stock) => stock.expires_at && isPast(stock.expires_at) && !stock.archived_at,
                            ) || !item.has_expiry,
                         label: (
                            <p className='flex items-center gap-1'>

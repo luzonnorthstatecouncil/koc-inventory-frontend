@@ -1,15 +1,10 @@
 import Form from "@/components/custom/Form";
-import { createItemDefaultValues, createItemSchema } from "@/lib/zod/schema/createItem";
 import { useCallback, useEffect } from "react";
 import { useConfirmation } from "@/helpers/confirmAction";
-import {
-   useCreateNewItemMutation,
-   useCreateStockMutation,
-   useGetInventoryAsOptionsPaginatedQuery,
-} from "@/features/api/inventory";
+import { useCreateStockMutation } from "@/features/api/inventory";
 import { useGetSupplierListQuery } from "@/features/api/supplier";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
-import { optionParser, parseArray } from "@/helpers/parser";
+import { optionParser } from "@/helpers/parser";
 import { toast } from "sonner";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import IButton from "@/components/custom/Button";
@@ -28,7 +23,6 @@ import SelectAsync from "@/components/custom/SelectAsync";
 import { useUser } from "@/hooks/useUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import IInput from "@/components/custom/Input";
-import { format } from "date-fns";
 
 const chartConfig = {
    total_in: {
@@ -57,6 +51,17 @@ const CustomFooter = ({ percentage = 0, direction = "up" }) => (
       </Paragraph>
    </div>
 );
+
+/** Keeps the form's has_expiry flag in sync with the selected item (a hook can't live in the render callback). */
+function SyncHasExpiry({ form, inventory }) {
+   useEffect(() => {
+      if (inventory) {
+         form.setValue("has_expiry", Boolean(inventory.has_expiry), { shouldValidate: true });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [inventory?.id, inventory?.has_expiry]);
+   return null;
+}
 
 export default function Create({ onClose, inventoryOptions }) {
    const { confirm } = useConfirmation();
@@ -92,7 +97,7 @@ export default function Create({ onClose, inventoryOptions }) {
          toast.success(message);
          onClose();
       },
-      [confirm, createStock, exec, onClose],
+      [confirm, createStock, exec, onClose, user?.role],
    );
 
    return (
@@ -109,16 +114,9 @@ export default function Create({ onClose, inventoryOptions }) {
                const inventory = inventoryOptions.find((item) => item.id == formValues.variant_id);
                const hasPendingStockRequest = inventory?.has_pending_request;
 
-               useEffect(() => {
-                  if (inventory) {
-                     form.setValue("has_expiry", Boolean(inventory.has_expiry), {
-                        shouldValidate: true,
-                     });
-                  }
-               }, [inventory?.id, inventory?.has_expiry]);
-
                return (
                   <div className='grid grid-cols-2 gap-x-4'>
+                     <SyncHasExpiry form={form} inventory={inventory} />
                      <div>
                         {hasPendingStockRequest && (
                            <Alert className='mb-4 border border-destructive bg-red-50'>
@@ -154,7 +152,7 @@ export default function Create({ onClose, inventoryOptions }) {
                                  : "This stock does not have any stocks."
                            }
                            footer={
-                              Boolean(inventory?.line_chart_data.length) ? (
+                              inventory?.line_chart_data.length ? (
                                  <CustomFooter percentage={inventory?.trend_percentage || 0} />
                               ) : null
                            }
@@ -255,7 +253,7 @@ export default function Create({ onClose, inventoryOptions }) {
                            label="Supplier's Name"
                            name='supplier_id'
                            className='w-full mb-4'
-                           placeholder='Choose suppplier'
+                           placeholder='Choose supplier'
                            options={optionParser(supplierList?.data, "id", "name")}
                            disabled={hasPendingStockRequest}
                         />
@@ -290,7 +288,7 @@ export default function Create({ onClose, inventoryOptions }) {
                            Cancel
                         </IButtonConfirm>
                         <IButton type='submit' variant='default' disabled={hasPendingStockRequest}>
-                           Create Item
+                           Add Stock
                         </IButton>
                      </div>
                   </div>

@@ -23,7 +23,6 @@ import { toast } from "sonner";
 import { manageStockDefaultValues, manageStockSchema } from "@/lib/zod/schema/manageStock";
 import { useFormContext } from "react-hook-form";
 import { useCreateStockMutation, useRemoveStockMutation } from "@/features/api/inventory";
-import { addDays, startOfDay } from "date-fns";
 
 export default function Stocks({ item: inventoryItem, inventoryStocks, isLoading, onClose }) {
    const [tab, setTab] = useState("stock_in");
@@ -63,7 +62,7 @@ export default function Stocks({ item: inventoryItem, inventoryStocks, isLoading
          toast.success(message);
          onClose();
       },
-      [tab, inventoryStocks]
+      [inventoryStocks, confirm, isStockIn, inventoryItem?.current_qty, inventoryItem?.id, exec, createStock, removeStock, onClose]
    );
 
    if (isLoading) {
@@ -111,7 +110,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
 
       const stock = stocks?.find((stock) => stock?.id == formValues?.inventory_stock_id);
       return stock?.batch_quantity;
-   }, [formValues, stocks]);
+   }, [formValues, item.current_qty, item.max_qty_level, stocks]);
 
    const onTabChange = useCallback((value) => {
       setTab(value);
@@ -120,7 +119,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
       setValue("quantity", null);
       setValue("remarks", null);
       setValue("inventory_stock_id", null);
-   }, []);
+   }, [clearErrors, setTab, setValue]);
 
    const tabs = useMemo(
       () => [
@@ -150,7 +149,7 @@ function StocksContent({ item, onClose, tab, setTab, stocks }) {
             value: "stock_out",
          },
       ],
-      [tab]
+      [isStockIn, tab]
    );
 
    return (

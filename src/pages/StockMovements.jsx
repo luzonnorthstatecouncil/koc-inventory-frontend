@@ -17,12 +17,6 @@ import { useGetStockMovementsQuery } from "@/features/api/inventory";
 import { dateParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 
-const breadcrumbItems = [
-   { label: HOME.title },
-   { label: INVENTORY.title },
-   { label: STOCK_MOVEMENTS.title },
-];
-
 const columns = [
    {
       key: "created_at",
@@ -171,7 +165,7 @@ export default function StockMovements() {
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={STOCK_MOVEMENTS.title}
          pageDescription='Track all inventory additions, subtractions, and adjustment movements over time.'
          route={STOCK_MOVEMENTS}

@@ -7,24 +7,14 @@ import ISelect from "@/components/custom/Select";
 import ITextarea from "@/components/custom/Textarea";
 import Title from "@/components/custom/Title";
 import { useGetSupplierListQuery } from "@/features/api/supplier";
-import { setOpenStocksModal } from "@/features/slice/inventorySlice";
 import { optionParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
-import { useCallback } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
-import { useDispatch } from "react-redux";
 
 export default function ItemStocks({ isCreate = true, currentQty }) {
-   const { formState } = useFormContext();
-   const dispatch = useDispatch();
 
    const today = new Date();
    const minDateExpiry = new Date(today.setDate(today.getDate() + 1));
    const { data: supplierList = [] } = useGetSupplierListQuery({ pageSize: 1000, status: "active" });
-
-   const onManageStock = useCallback(() => {
-      dispatch(setOpenStocksModal(true));
-   }, [dispatch]);
 
    return (
       <section className='space-y-6'>
@@ -68,7 +58,7 @@ export default function ItemStocks({ isCreate = true, currentQty }) {
                   label="Supplier's Name"
                   name='supplier_id'
                   className='w-full mb-6'
-                  placeholder='Choose suppplier'
+                  placeholder='Choose supplier'
                   options={optionParser(supplierList?.data, "id", "name")}
                />
                <ITextarea

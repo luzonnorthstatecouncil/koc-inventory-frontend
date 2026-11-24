@@ -5,8 +5,6 @@ import { dateParser } from "@/helpers/parser";
 import { useGetLogsQuery } from "@/features/api/activityLog";
 import { CalendarDays, Network } from "lucide-react";
 
-const breadcrumbItems = [{ label: HOME.title }, { label: AUDIT_LOGS.title }];
-
 const ACTION_STYLES = {
    create: "bg-emerald-50 text-emerald-700",
    update: "bg-blue-50 text-blue-700",
@@ -136,7 +134,7 @@ const stockFilters = [
 export default function AuditLogs() {
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={AUDIT_LOGS.title}
          pageDescription='View and manage audit logs for tracking user activities and system events.'
          route={AUDIT_LOGS}

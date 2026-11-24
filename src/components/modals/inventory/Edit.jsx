@@ -1,19 +1,17 @@
 import ITabs from "@/components/custom/Tabs";
 import IButton from "@/components/custom/Button";
 import Form from "@/components/custom/Form";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import IButtonConfirm from "@/components/custom/ButtonConfirm";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useEditItemMutation } from "@/features/api/inventory";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
-import { arrayFromObject, parseArray } from "@/helpers/parser";
 import { toast } from "sonner";
 import ItemDetails from "./CreateEdit/Details";
 import ItemStocks from "./CreateEdit/Stocks";
 import ItemVariants from "./CreateEdit/Variants";
 import ModalSkeleton from "@/components/custom/ModalSkeleton";
 import { editItemSchema, editItemVariantDefaultValues } from "@/lib/zod/schema/editItem";
-import { current } from "@reduxjs/toolkit";
 
 export default function Edit({ item: inventoryItem, isLoading, onClose }) {
    const { confirm } = useConfirmation();
@@ -41,7 +39,7 @@ export default function Edit({ item: inventoryItem, isLoading, onClose }) {
          toast.success(message);
          onClose();
       },
-      [confirm, inventoryItem]
+      [confirm, editItem, exec, inventoryItem?.id, onClose]
    );
 
    const detailKeys = ["name", "category_id", "unit"];

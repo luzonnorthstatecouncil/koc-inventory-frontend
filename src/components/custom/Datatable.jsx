@@ -39,7 +39,6 @@ import DatePicker from "./DatePicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import ICheckbox from "./Checkbox";
 import { useUser } from "@/hooks/useUser";
-import { ro } from "date-fns/locale";
 import ITooltip from "./Tooltip";
 import { Skeleton } from "../ui/skeleton";
 
@@ -102,8 +101,6 @@ const DataTable = ({
       data: serverSideData,
       isLoading,
       isFetching,
-      isError,
-      error,
    } = query?.useQuery
       ? query.useQuery(
            {
@@ -146,6 +143,9 @@ const DataTable = ({
 
    useEffect(() => {
       if (onMount) onMount(query?.useQuery ? serverSideData : clientSideData);
+      // Report when the data changes; onMount is usually an inline function from the page and
+      // would otherwise fire this on every parent render.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [serverSideData, clientSideData]);
 
    useEffect(() => {
@@ -167,7 +167,7 @@ const DataTable = ({
          isQueryLoading: isLoading || isFetching,
          tableData: serverSide ? serverSideData?.data : paginateTableData(clientSideData),
       };
-   }, [serverSideData, isLoading, isFetching, clientSideData, paginateTableData]);
+   }, [serverSideData?.pagination, serverSideData?.data, isLoading, isFetching, serverSide, paginateTableData, clientSideData]);
 
    const handleSelectAll = useCallback(
       (checked) => {
@@ -203,10 +203,6 @@ const DataTable = ({
 
    const isAllSelected = useMemo(() => {
       return tableData?.length > 0 && selectedRows.length === tableData.length;
-   }, [tableData, selectedRows]);
-
-   const isSomeSelected = useMemo(() => {
-      return selectedRows.length > 0 && selectedRows.length < (tableData?.length || 0);
    }, [tableData, selectedRows]);
 
    const renderCellValue = useCallback(
@@ -245,7 +241,7 @@ const DataTable = ({
       }
 
       return column.footerValue || "";
-   }, []);
+   }, [getNestedValue, tableData]);
 
    const handleFilterChange = useCallback((filterKey, value) => {
       startTransition(() => {
@@ -280,7 +276,7 @@ const DataTable = ({
          total: clientSideData?.length || 0,
          pageSize: pageSizeState,
       };
-   }, [clientSideData, currentPage, pageSizeState, tableData]);
+   }, [clientSideData?.length, currentPage, pageSizeState, paginated, serverSide, tableData]);
 
    // Add actions column if actions are provided
    const columnsWithActions = useMemo(() => {

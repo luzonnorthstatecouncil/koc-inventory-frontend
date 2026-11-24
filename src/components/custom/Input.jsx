@@ -2,7 +2,7 @@ import { useFormContext } from "react-hook-form";
 import { FORM } from "@/constants/message";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import { nestedObjParser } from "@/helpers/parser";
@@ -35,6 +35,7 @@ export default function IInput({
    showError = true,
    ...props
 }) {
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const formContext = useForm ? useFormContext() : null;
    const register = formContext?.register || (() => ({}));
    const errors = formContext?.formState?.errors || {};
@@ -44,6 +45,9 @@ export default function IInput({
    const fieldErrorObj = nestedObjParser(errors, name);
    const error = fieldErrorObj?.message;
    const isPassword = props.type === "password";
+   // Links the visible label to the input (screen readers, click-to-focus)
+   const autoId = useId();
+   const inputId = props.id || autoId;
    const isLoading = useSelector((state) => state.loading.isLoading);
    const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -68,7 +72,11 @@ export default function IInput({
 
    return (
       <div className={`flex flex-col gap-1 w-full ${wrapperClassName}`}>
-         {label && <Label className={labelClassName}>{label}</Label>}
+         {label && (
+            <Label htmlFor={inputId} className={labelClassName}>
+               {label}
+            </Label>
+         )}
 
          {description && <Paragraph>{description}</Paragraph>}
 
@@ -80,6 +88,7 @@ export default function IInput({
             )}
 
             <Input
+               id={inputId}
                {...(useForm && name
                   ? register(name, {
                        valueAsNumber:

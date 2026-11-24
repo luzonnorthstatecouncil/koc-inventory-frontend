@@ -4,9 +4,11 @@ import { Label } from "../ui/label";
 import { cn } from "@/lib/utils";
 
 export default function ICheckbox({ name, label, useForm = true, checked, className, labelClassName, ...props }) {
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const formContext = useForm ? useFormContext() : null;
    const register = formContext?.register || (() => ({}));
    const setValue = formContext?.setValue;
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const watch = formContext ? useWatch({ name }) : null;
    const isChecked = useForm ? watch : checked;
 

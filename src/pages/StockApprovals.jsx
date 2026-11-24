@@ -14,7 +14,6 @@ import {
    setOpenViewStockModal,
    setSelectedStockApproval,
 } from "@/features/slice/inventorySlice";
-import { useCallback, useMemo } from "react";
 import { padwithZero } from "@/helpers/parser";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
@@ -23,8 +22,6 @@ import RejectStockApproval from "@/components/modals/inventory-stock/RejectStock
 import ViewStockApproval from "@/components/modals/inventory-stock/ViewStockApproval";
 import { STOCK_ADJUSTMENT_TYPES, STOCK_REQUEST_STATUS } from "@/constants/options";
 import { cn } from "@/lib/utils";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: STOCK_APPROVALS.title }];
 
 function nameInitials(name = "") {
    return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -160,7 +157,7 @@ export default function StockApprovals() {
 
       const id = toast.loading("Processing approval...");
 
-      const { success, result, message } = await exec(approveStockApproval, data);
+      const { success, message } = await exec(approveStockApproval, data);
 
       if (!success) {
          toast.dismiss(id);
@@ -180,7 +177,10 @@ export default function StockApprovals() {
       dispatch(setSelectedStockApproval(null));
    };
 
-   const handleRejectSubmit = async (rejectionReason) => {
+   const handleRejectSubmit = async (formData) => {
+      // The reject form submits its values object ({ id, rejection_reason }); it used to be sent
+      // as the reason itself, so the API received an object instead of text.
+      const rejectionReason = typeof formData === "string" ? formData : formData?.rejection_reason?.trim();
       const confirmed = await confirm({
          title: "Confirm Rejection",
          message: `Are you sure you want to reject the stock request for #${padwithZero(
@@ -194,15 +194,17 @@ export default function StockApprovals() {
       const id = toast.loading("Processing rejection...");
 
       const payload = {
-         ...selectedStockApproval,
+         id: selectedStockApproval.id,
          rejection_reason: rejectionReason,
       };
 
-      const { success, result, message } = await exec(rejectStockApproval, payload);
+      const { success, message } = await exec(rejectStockApproval, payload);
 
+      // The error toast is already shown by the API layer; keep the modal open so it can be retried.
+      // (Throwing here used to surface as an uncaught page error.)
       if (!success) {
          toast.dismiss(id);
-         throw new Error(message || "Failed to reject stock approval");
+         return;
       }
 
       toast.success(message || `Order #${padwithZero(selectedStockApproval.id)} rejected successfully`, { id });
@@ -219,15 +221,15 @@ export default function StockApprovals() {
       dispatch(setSelectedStockApproval(null));
    };
 
-   const actions = useMemo(
-      () => [
+   // Plain array: the handlers are re-created each render, so memoizing never cached anything
+   const actions = [
          {
             key: "approve",
             label: "Approve",
             icon: CheckIcon,
             className: "text-green-500",
             action: onApprove,
-            show: (item) => !Boolean(item.approved_at),
+            show: (item) => !item.approved_at,
          },
          {
             key: "reject",
@@ -235,7 +237,7 @@ export default function StockApprovals() {
             icon: XIcon,
             className: "text-destructive",
             action: onReject,
-            show: (item) => !Boolean(item.approved_at),
+            show: (item) => !item.approved_at,
          },
          {
             key: "view",
@@ -244,13 +246,11 @@ export default function StockApprovals() {
             action: onView,
             show: (item) => Boolean(item.approved_at),
          },
-      ],
-      [onApprove, onReject]
-   );
+   ];
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={`Stock ${STOCK_APPROVALS.title}`}
          route={STOCK_APPROVALS}
       >

@@ -47,6 +47,7 @@ const SelectAsync = ({
    pageSize = 20,
    ...props
 }) => {
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const formContext = useForm ? useFormContext() : null;
    const register = formContext?.register || (() => ({}));
    const setValue = formContext?.setValue;
@@ -73,8 +74,6 @@ const SelectAsync = ({
       data: serverData,
       isLoading,
       isFetching,
-      isError,
-      error: queryError,
    } = query?.useQuery
       ? query.useQuery(
            {

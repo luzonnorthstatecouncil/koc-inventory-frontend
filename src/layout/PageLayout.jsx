@@ -37,8 +37,6 @@ export default function PageLayout({ children, pageTitle, pageDescription, route
                   className='h-16 w-auto mx-auto -translate-x-2 hidden md:block'
                />
             </header>
-
-            {/* {breadcrumbItems && <IBreadcrumb items={breadcrumbItems} />} */}
             {pageTitle && <Title className='text-base md:text-3xl font-bold sm:mb-2 md:mb-0'>{pageTitle}</Title>}
 
             {pageDescription && <Paragraph className='text-sm md:text-base! text-muted-foreground mb-2'>{pageDescription}</Paragraph>}

@@ -1,33 +1,18 @@
 import Modal from "@/components/custom/Modal";
-import {
-   setOpenCreateModal,
-   setOpenEditModal,
-   setOpenViewModal,
-   setSelectedSupplier,
-} from "@/features/slice/supplierSlice";
-import { useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import Create from "./Create";
 import Edit from "./Edit";
 import View from "./View";
 
-export default function SupplierModals() {
-   const dispatch = useDispatch();
-   const { openViewModal, openCreateModal, openEditModal, selectedSupplier } = useSelector((state) => state.supplier);
+/** Props: modal from useModalState() in the Suppliers page. */
+export default function SupplierModals({ modal }) {
+   const openViewModal = modal.is("view");
+   const openCreateModal = modal.is("create");
+   const openEditModal = modal.is("edit");
+   const selectedSupplier = modal.item;
 
-   const onCloseView = useCallback(() => {
-      dispatch(setOpenViewModal(false));
-      dispatch(setSelectedSupplier(null));
-   }, [dispatch]);
-
-   const onCloseCreate = useCallback(() => {
-      dispatch(setOpenCreateModal(false));
-   }, [dispatch]);
-
-   const onCloseEdit = useCallback(() => {
-      dispatch(setOpenEditModal(false));
-      dispatch(setSelectedSupplier(null));
-   }, [dispatch]);
+   const onCloseView = modal.close;
+   const onCloseCreate = modal.close;
+   const onCloseEdit = modal.close;
 
    return (
       <>

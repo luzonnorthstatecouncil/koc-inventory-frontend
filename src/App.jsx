@@ -1,16 +1,7 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import getToken from "./helpers/getToken";
 import ProtectedRoute from "./components/custom/ProtectedRoute";
-
-import Login from "./pages/Login";
-import POS from "./pages/POS";
-import InventoryItems from "./pages/InventoryItems";
-import Settings from "./pages/Settings";
-import AuditLogs from "./pages/AuditLogs";
-import UserManagement from "./pages/User";
-import Reports from "./pages/Reports";
-import InvoicePage from "./pages/InvoicePage";
-import Kits from "./pages/Kits";
+import LoadingState from "./components/custom/LoadingState";
 
 import {
    ACCOUNT,
@@ -28,52 +19,63 @@ import {
    STOCK_MOVEMENTS,
    USER_MANAGEMENT,
 } from "./constants/routes";
-import InventoryStocks from "./pages/InventoryStocks";
-import Orders from "./pages/Orders";
-import Account from "./pages/Account";
-import Suppliers from "./pages/Suppliers";
-import StockApprovals from "./pages/StockApprovals";
-import StockMovements from "./pages/StockMovements";
+
+// Each page is its own chunk, downloaded the first time it is visited. Heavy libraries
+// (charts, spreadsheet/PDF export) then load only on the pages that use them.
+const Login = lazy(() => import("./pages/Login"));
+const POS = lazy(() => import("./pages/POS"));
+const Orders = lazy(() => import("./pages/Orders"));
+const InventoryItems = lazy(() => import("./pages/InventoryItems"));
+const InventoryStocks = lazy(() => import("./pages/InventoryStocks"));
+const StockApprovals = lazy(() => import("./pages/StockApprovals"));
+const Suppliers = lazy(() => import("./pages/Suppliers"));
+const Kits = lazy(() => import("./pages/Kits"));
+const StockMovements = lazy(() => import("./pages/StockMovements"));
+const UserManagement = lazy(() => import("./pages/User"));
+const Reports = lazy(() => import("./pages/Reports"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Account = lazy(() => import("./pages/Account"));
+const InvoicePage = lazy(() => import("./pages/InvoicePage"));
+
+const protectedRoutes = [
+   { path: POINT_OF_SALE.path, Page: POS },
+   { path: ORDERS.path, Page: Orders },
+   { path: INVENTORY_ITEMS.path, Page: InventoryItems },
+   { path: INVENTORY_STOCKS.path, Page: InventoryStocks },
+   { path: STOCK_APPROVALS.path, Page: StockApprovals },
+   { path: INVENTORY_SUPPLIERS.path, Page: Suppliers },
+   { path: KITS.path, Page: Kits },
+   { path: STOCK_MOVEMENTS.path, Page: StockMovements },
+   { path: USER_MANAGEMENT.path, Page: UserManagement },
+   { path: REPORTS.path, Page: Reports },
+   { path: AUDIT_LOGS.path, Page: AuditLogs },
+   { path: SETTINGS.path, Page: Settings },
+   { path: ACCOUNT.path, Page: Account },
+];
 
 export default function App() {
-   const token = getToken();
-
-   // redirect to login if no token
-   if (!token) {
-      <Navigate to={LOGIN.path} replace />;
-   }
-
-   // protected route list for easier maintenance
-   const protectedRoutes = [
-      { path: POINT_OF_SALE.path, element: <POS /> },
-      { path: ORDERS.path, element: <Orders /> },
-      { path: INVENTORY_ITEMS.path, element: <InventoryItems /> },
-      { path: INVENTORY_STOCKS.path, element: <InventoryStocks /> },
-      { path: STOCK_APPROVALS.path, element: <StockApprovals /> },
-      { path: INVENTORY_SUPPLIERS.path, element: <Suppliers /> },
-      { path: KITS.path, element: <Kits /> },
-      { path: STOCK_MOVEMENTS.path, element: <StockMovements /> },
-      { path: USER_MANAGEMENT.path, element: <UserManagement /> },
-      { path: REPORTS.path, element: <Reports /> },
-      { path: AUDIT_LOGS.path, element: <AuditLogs /> },
-      { path: SETTINGS.path, element: <Settings /> },
-      { path: ACCOUNT.path, element: <Account /> },
-   ];
-
    return (
-      <Routes>
-         {/* public route */}
-         <Route path={LOGIN.path} element={<Login />} />
-         <Route path='/invoice' element={<InvoicePage />} />
+      <Suspense
+         fallback={
+            <div className='flex items-center justify-center h-screen w-full'>
+               <LoadingState />
+            </div>
+         }
+      >
+         <Routes>
+            {/* public routes */}
+            <Route path={LOGIN.path} element={<Login />} />
+            <Route path='/invoice' element={<InvoicePage />} />
 
-         {/* redirect base paths */}
-         {/* <Route path={HOME.path} element={<Navigate to={POINT_OF_SALE.path} />} /> */}
-         <Route path='*' element={<Navigate to={POINT_OF_SALE.path} />} />
+            {/* unknown paths go to Sales (ProtectedRoute sends signed-out users to Login) */}
+            <Route path='*' element={<Navigate to={POINT_OF_SALE.path} />} />
 
-         {/* protected routes */}
-         {protectedRoutes.map(({ path, element }) => (
-            <Route key={path} path={path} element={<ProtectedRoute element={element} />} />
-         ))}
-      </Routes>
+            {/* protected routes */}
+            {protectedRoutes.map(({ path, Page }) => (
+               <Route key={path} path={path} element={<ProtectedRoute element={<Page />} />} />
+            ))}
+         </Routes>
+      </Suspense>
    );
 }

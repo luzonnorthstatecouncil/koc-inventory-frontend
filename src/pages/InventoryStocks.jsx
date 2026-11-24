@@ -24,8 +24,6 @@ import InventoryStockModals from "@/components/modals/inventory-stock/Modals";
 import { useUser } from "@/hooks/useUser";
 import { setOpenUserStockRequestsModal } from "@/features/slice/inventorySlice";
 
-const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: INVENTORY_STOCKS.title }];
-
 const columns = [
    {
       key: "id",
@@ -42,12 +40,6 @@ const columns = [
       title: "Product",
       cellClassName: "font-medium",
       render: (value, item) => {
-         const initials = (item.inventory?.name || "?")
-            .split(" ")
-            .slice(0, 2)
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase();
 
          return (
             <div className='flex items-center gap-3'>
@@ -195,7 +187,7 @@ const columns = [
 const stockFilters = [
    {
       key: "is_archived",
-      label: "Include Archired Stocks",
+      label: "Include Archived Stocks",
       type: "boolean",
    },
    {
@@ -253,15 +245,16 @@ export default function InventoryStocks() {
          const confirmed = await confirm({
             title: "Flush Expired Stocks",
             message: `Are you sure you want to flush and delete ${item.current_quantity} expired stock${
-               item.batch_quantity > 1 && "s"
-            } of ${item.reference_no} from ${item.inventory.sku}?`,
+               item.current_quantity === 1 ? "" : "s"
+            } of ${item.reference_no} from ${item.inventory?.sku}?`,
             variant: "destructive",
          });
 
          if (!confirmed) return;
 
+         // The server re-reads the batch; only its id is needed
          const payload = {
-            expired_stocks: [item],
+            expired_stocks: [{ id: item.id }],
          };
 
          const { success, message } = await exec(flushExpired, payload);
@@ -270,7 +263,7 @@ export default function InventoryStocks() {
          dispatch(setSelectedStock(null));
          toast.success(message);
       },
-      [dispatch],
+      [confirm, dispatch, exec, flushExpired],
    );
 
    const actions = useMemo(
@@ -280,14 +273,14 @@ export default function InventoryStocks() {
             label: "View Details",
             icon: EyeIcon,
             action: onViewItem,
-            show: (item) => !Boolean(item.archived_at),
+            show: (item) => !item.archived_at,
          },
          {
             key: "edit",
             label: "Adjust Stock",
             icon: EditIcon,
             action: onEdit,
-            show: (item) => !Boolean(item.archived_at),
+            show: (item) => !item.archived_at,
             roles: ["admin", "supervisor"],
          },
          {
@@ -295,11 +288,10 @@ export default function InventoryStocks() {
             icon: Shovel,
             label: "Flush & Delete",
             show: (item) =>
-               item.expires_at &&
+               Boolean(item.expires_at) &&
                isPast(item.expires_at) &&
                !item.archived_at &&
-               Boolean(item.inventory.has_expiry) &&
-               Boolean(item.archived_at),
+               Boolean(item.inventory?.has_expiry),
             className: "text-destructive",
             action: onFlush,
             roles: ["admin", "supervisor"],
@@ -308,7 +300,7 @@ export default function InventoryStocks() {
             key: "adjust_expiry",
             icon: History,
             label: "Adjust Expiration",
-            show: (item) => Boolean(item.inventory.has_expiry) && !Boolean(item.archived_at),
+            show: (item) => Boolean(item.inventory.has_expiry) && !item.archived_at,
             action: onAdjustExpiry,
             roles: ["admin"],
          },
@@ -318,7 +310,7 @@ export default function InventoryStocks() {
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={`Inventory ${INVENTORY_STOCKS.title}`}
          pageDescription='Manage the stock levels of your inventory items. View details, adjust quantities, and keep track of expiration dates all in one place.'
          route={INVENTORY_STOCKS}

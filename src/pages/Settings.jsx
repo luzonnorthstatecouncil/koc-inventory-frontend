@@ -5,16 +5,11 @@ import { HOME, SETTINGS } from "@/constants/routes";
 import { searchSchema } from "@/lib/zod/schema/search";
 import { SearchIcon } from "lucide-react";
 
-const breadcrumbItems = [
-	{ label: HOME.title },
-	{ label: SETTINGS.title },
-];
-
 export default function Settings() {
 	const onSubmit = (data) => console.log(data);
 
 	return (
-		<PageLayout breadcrumbItems={breadcrumbItems} route={SETTINGS}>
+		<PageLayout route={SETTINGS}>
 			<Form
 				onSubmit={onSubmit}
 				schema={searchSchema}

@@ -9,8 +9,8 @@ import { useResetPasswordMutation } from "@/features/api/users";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { changePasswordSchema } from "@/lib/zod/schema/editUser";
-import { is } from "date-fns/locale";
 import { useCallback } from "react";
+import { setCredentials, setShowCredentialsModal } from "@/features/slice/userSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 
@@ -45,8 +45,14 @@ export const UserChangePasswordModal = ({ isOpen, onClose }) => {
       }
 
       toast.success(message, { id });
+      // If the email couldn't be sent, the admin is the only way the user gets these credentials
+      if (responseData?.email_sent === false && responseData?.password) {
+         dispatch(setCredentials({ username: responseData.username, password: responseData.password }));
+         dispatch(setShowCredentialsModal(true));
+      }
+
       onClose();
-   }, []);
+   }, [confirm, dispatch, exec, onClose, resetPassword, selectedUser.full_name, selectedUser.id]);
 
    return (
       <Modal

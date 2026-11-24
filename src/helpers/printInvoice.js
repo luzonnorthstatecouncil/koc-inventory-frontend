@@ -23,15 +23,3 @@ export const printInvoice = (transactionData, transactionId, timestamp = new Dat
       window.open('/invoice', '_blank');
    }
 };
-
-/**
- * Generate and download invoice as PDF (alternative method)
- * This requires additional library like html2pdf.js or jsPDF
- */
-export const downloadInvoicePDF = async (transactionData, transactionId) => {
-   // This can be implemented later with libraries like:
-   // - html2pdf.js
-   // - jsPDF
-   // - react-pdf
-   console.log("PDF download feature - to be implemented");
-};

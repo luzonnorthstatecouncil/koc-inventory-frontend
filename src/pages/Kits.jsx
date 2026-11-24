@@ -4,20 +4,12 @@ import { EditIcon, EyeIcon, TrashIcon, Box } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
 import { useDeleteKitMutation, useGetKitListQuery } from "@/features/api/kit";
 import KitModals from "@/components/modals/kits/Modals";
-import { useDispatch } from "react-redux";
-import {
-   setOpenCreateModal,
-   setOpenEditModal,
-   setOpenViewModal,
-   setSelectedItem,
-} from "@/features/slice/kitSlice";
+import { useModalState } from "@/hooks/useModalState";
 import { useCallback, useMemo } from "react";
 import { useConfirmation } from "@/helpers/confirmAction";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: KITS.title }];
 
 const columns = [
    {
@@ -122,30 +114,15 @@ const kitFilters = [
 ];
 
 export default function Kits() {
-   const dispatch = useDispatch();
+   const modal = useModalState();
    const [deleteKit] = useDeleteKitMutation();
    const { confirm } = useConfirmation();
    const exec = useCatchQuery();
 
-   const onViewItem = useCallback(
-      (item) => {
-         dispatch(setOpenViewModal(true));
-         dispatch(setSelectedItem(item));
-      },
-      [dispatch],
-   );
-
-   const onCreate = useCallback(() => {
-      dispatch(setOpenCreateModal(true));
-   }, [dispatch]);
-
-   const onEdit = useCallback(
-      (item) => {
-         dispatch(setOpenEditModal(true));
-         dispatch(setSelectedItem(item));
-      },
-      [dispatch],
-   );
+   const { open: openModal } = modal;
+   const onViewItem = useCallback((item) => openModal("view", item), [openModal]);
+   const onCreate = useCallback(() => openModal("create"), [openModal]);
+   const onEdit = useCallback((item) => openModal("edit", item), [openModal]);
 
    const onDeleteItem = useCallback(
       async (item) => {
@@ -162,7 +139,7 @@ export default function Kits() {
 
          toast.success(message);
       },
-      [dispatch, confirm, deleteKit, exec],
+      [confirm, deleteKit, exec],
    );
 
    const actions = useMemo(
@@ -194,7 +171,7 @@ export default function Kits() {
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={KITS.title}
          pageDescription='Manage your item bundles. Create kits by combining multiple inventory items and track their combined availability.'
          route={KITS}
@@ -258,7 +235,7 @@ export default function Kits() {
                expandedRowClassName='bg-gray-50/50'
             />
 
-            <KitModals />
+            <KitModals modal={modal} />
          </main>
       </PageLayout>
    );

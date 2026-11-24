@@ -5,8 +5,12 @@ const InvoiceTemplate = ({ transactionData, transactionId, timestamp }) => {
    const { cart, paymentMethod, subtotal, total, amountTendered, change } = transactionData;
 
    const businessName = import.meta.env.VITE_BUSINESS_NAME || "YOUR BUSINESS NAME";
+   // Address/phone/TIN are intentionally hidden on receipts (see the commented lines below)
+   // eslint-disable-next-line no-unused-vars
    const businessAddress = import.meta.env.VITE_BUSINESS_ADDRESS || "123 Business Street, City";
+   // eslint-disable-next-line no-unused-vars
    const businessPhone = import.meta.env.VITE_BUSINESS_PHONE || "(123) 456-7890";
+   // eslint-disable-next-line no-unused-vars
    const businessTIN = import.meta.env.VITE_BUSINESS_TIN || "000-000-000-000";
 
    return (

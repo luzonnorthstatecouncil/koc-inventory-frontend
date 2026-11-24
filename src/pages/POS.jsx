@@ -7,23 +7,7 @@ import { Loader2, RefreshCcwIcon, SearchIcon, ShoppingCart, Trash2, Menu } from 
 import PointOfSaleItem from "@/components/custom/PointOfSaleItem";
 import ICard from "@/components/custom/Card";
 import { useDispatch, useSelector } from "react-redux";
-import {
-   addCart,
-   clearCart,
-   resetCheckout,
-   setPaymentMethod,
-   setSearchQuery,
-   setShowLowStock,
-   setShowProcessPayment,
-   setShowInvoiceNumberModal,
-   updateCart,
-   setCategory,
-   setAmountTendered,
-   setInvoiceNumber,
-   setIsDeduction,
-   setRemarks,
-   setCart,
-} from "@/features/slice/cartSlice";
+import { addCart, clearCart, resetCheckout, setPaymentMethod, setSearchQuery, setShowLowStock, setShowProcessPayment, setShowInvoiceNumberModal, setCategory, setIsDeduction, setRemarks, setCart, isSameCartLine } from "@/features/slice/cartSlice";
 import CartItem from "@/components/custom/CartItem";
 import Fallback from "./Fallback";
 import Title from "@/components/custom/Title";
@@ -51,13 +35,9 @@ import InvoiceNumber from "@/components/modals/pos/InvoiceNumber";
 import { useCheckoutOrderMutation } from "@/features/api/order";
 import { useCatchQuery } from "@/hooks/useCatchQuery";
 import { useEffect } from "react";
-import BarcodeScanner from "@/components/custom/BarcodeScanner";
-import { setBarcodeValue, setEnableBarcodeScanner } from "@/features/slice/barcodeSlice";
 import { printInvoice } from "@/helpers/printInvoice";
 import ISelect from "@/components/custom/Select";
 import { useGetCategoryListQuery } from "@/features/api/category";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: POINT_OF_SALE.title }];
 
 export default function POS() {
    const dispatch = useDispatch();
@@ -66,7 +46,6 @@ export default function POS() {
    const [checkourOrder] = useCheckoutOrderMutation();
    const [bulkDeduct] = useBulkDeductStocksMutation();
 
-   const { enableBarcodeScanner, barcodeValue } = useSelector((state) => state.barcode);
    const {
       searchQuery,
       cart,
@@ -80,6 +59,10 @@ export default function POS() {
       isDeduction,
       remarks,
    } = useSelector((state) => state.cart);
+
+   const role = useSelector((state) => state.user.user?.role);
+   const canDeduct = role === "admin" || role === "supervisor";
+   const deductionNeedsApproval = role === "supervisor";
 
    const DEDUCTION_REMARKS_OPTIONS = [
       { label: "Internal Use", value: "Internal Use" },
@@ -131,10 +114,6 @@ export default function POS() {
       }
    };
 
-   const handleEnableBarcodeScanner = (value) => {
-      dispatch(setEnableBarcodeScanner(value));
-   };
-
    const addItemToCard = (item) => {
       try {
          // Validate item before adding to cart
@@ -149,7 +128,7 @@ export default function POS() {
          }
 
          const existingItem = cart.find(
-            (cartItem) => cartItem.id === item.id && !!cartItem.isKit === !!item.isKit,
+            (cartItem) => isSameCartLine(cartItem, item),
          );
 
          if (existingItem) {
@@ -165,7 +144,7 @@ export default function POS() {
 
             // We need a custom update since the helper only checks id
             const updatedCart = cart.map((cartItem) =>
-               cartItem.id === item.id && !!cartItem.isKit === !!item.isKit
+               isSameCartLine(cartItem, item)
                   ? updatedItem
                   : cartItem,
             );
@@ -321,22 +300,10 @@ export default function POS() {
 
    useEffect(() => {
       dispatch(resetCheckout());
-      dispatch(setEnableBarcodeScanner(false));
-      dispatch(setBarcodeValue(""));
-   }, []);
-
-   useEffect(() => {
-      if (enableBarcodeScanner && barcodeValue) {
-         const item = inventoryItems?.find((invItem) => invItem.serial_number === barcodeValue);
-         if (item) {
-            addItemToCard(item);
-            dispatch(setBarcodeValue(""));
-         }
-      }
-   }, [barcodeValue]);
+   }, [dispatch]);
 
    return (
-      <PageLayout breadcrumbItems={breadcrumbItems} route={POINT_OF_SALE}>
+      <PageLayout route={POINT_OF_SALE}>
          <main className='flex flex-col lg:flex-row items-start gap-3 w-full h-full relative'>
             <section className='w-full h-full lg:py-6'>
                <Title className='text-lg md:text-4xl'>Sales</Title>
@@ -375,13 +342,6 @@ export default function POS() {
                      </IButton>
 
                      <div className='lg:ml-auto space-y-1'>
-                        {/* <ICheckbox
-                        name='enable_barcode_scanner'
-                        label='Enable Barcode Scanner'
-                        useForm={false}
-                        checked={enableBarcodeScanner}
-                        onChange={handleEnableBarcodeScanner}
-                     /> */}
                         <ICheckbox
                            name='low_stock'
                            label='Show Item with low stocks'
@@ -412,9 +372,9 @@ export default function POS() {
                         }
                         render={(item) => (
                            <PointOfSaleItem
-                              key={item.id}
+                              key={`${item.isKit ? "kit" : "variant"}-${item.id}`}
                               onClick={() => addItemToCard(item)}
-                              included={cart.some((cartItem) => cartItem.id === item.id)}
+                              included={cart.some((cartItem) => isSameCartLine(cartItem, item))}
                               {...item}
                            />
                         )}
@@ -443,7 +403,7 @@ export default function POS() {
                {cart.length > 0 ? (
                   <ScrollArea className='max-h-60 md:max-h-2/3 lg:max-h-[calc(100vh-26rem)] mb-2'>
                      <div className='space-y-2'>
-                        <Each of={cart} render={(item) => <CartItem key={item.id} item={item} />} />
+                        <Each of={cart} render={(item) => <CartItem key={`${item.isKit ? "kit" : "variant"}-${item.id}`} item={item} />} />
                      </div>
                   </ScrollArea>
                ) : (
@@ -479,18 +439,24 @@ export default function POS() {
                   </section>
 
                   <section className='mt-auto sm:mb-3'>
-                     <div className='flex items-center justify-between pl-3 pr-1 py-2 rounded-lg bg-white/10'>
-                        <Paragraph className='!text-xs sm:!text-sm text-primary-foreground font-medium'>
-                           Internal Deduction?
-                        </Paragraph>
-                        <ICheckbox
-                           name='is_deduction'
-                           label=''
-                           useForm={false}
-                           checked={isDeduction}
-                           onChange={handleIsDeduction}
-                        />
-                     </div>
+                     {/* Admins deduct directly; supervisors' deductions go to approval; staff can't deduct */}
+                     {canDeduct && (
+                        <div className='flex items-center justify-between pl-3 pr-1 py-2 rounded-lg bg-white/10'>
+                           <Paragraph className='!text-xs sm:!text-sm text-primary-foreground font-medium'>
+                              Internal Deduction?
+                              {deductionNeedsApproval && (
+                                 <span className='block text-[11px] font-normal opacity-80'>Needs admin approval</span>
+                              )}
+                           </Paragraph>
+                           <ICheckbox
+                              name='is_deduction'
+                              label=''
+                              useForm={false}
+                              checked={isDeduction}
+                              onChange={handleIsDeduction}
+                           />
+                        </div>
+                     )}
 
                      {isDeduction && (
                         <ISelect
@@ -535,7 +501,6 @@ export default function POS() {
                </ICard>
             </div>
 
-            {enableBarcodeScanner && <BarcodeScanner className='absolute bottom-0 left-0' />}
          </main>
 
          <InvoiceNumber

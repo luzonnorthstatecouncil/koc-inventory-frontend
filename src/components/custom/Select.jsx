@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Label } from "../ui/label";
-import { useCallback, useMemo } from "react";
+import { useCallback, useId, useMemo } from "react";
 import { nestedObjParser } from "@/helpers/parser";
 
 const ISelect = ({
@@ -35,6 +35,7 @@ const ISelect = ({
    relatedErrorKeys = [],
    ...props
 }) => {
+   // eslint-disable-next-line react-hooks/rules-of-hooks -- `useForm` is fixed for the component's lifetime, so hook order never changes
    const formContext = useForm ? useFormContext() : null;
    const register = formContext?.register || (() => ({}));
    const setValue = formContext?.setValue;
@@ -73,7 +74,7 @@ const ISelect = ({
             });
          }
       },
-      [useForm, name, setValue, onValueChange, options]
+      [options, useForm, name, setValue, formContext, relatedKeys, relatedErrorKeys, clearErrors, onValueChange]
    );
 
    // Dynamically get label for selected value
@@ -88,11 +89,13 @@ const ISelect = ({
       }
 
       return props.placeholder ?? "Select an option";
-   }, [selectedValue, options]);
+   }, [selectedValue, props.placeholder, options]);
+
+   const triggerId = useId();
 
    return (
       <div className={cn("flex flex-col gap-1", className)}>
-         {label && <Label>{label}</Label>}
+         {label && <Label htmlFor={triggerId}>{label}</Label>}
 
          <Select
             {...(useForm && name ? register(name) : {})}
@@ -102,6 +105,7 @@ const ISelect = ({
             {...props}
          >
             <SelectTrigger
+               id={triggerId}
                className={cn(
                   "w-full cursor-pointer [&>svg]:text-current border-outline bg-white",
                   arrowColor && `[&>svg]:text-${arrowColor}`,

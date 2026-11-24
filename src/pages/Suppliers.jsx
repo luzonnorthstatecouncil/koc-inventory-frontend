@@ -2,22 +2,11 @@ import PageLayout from "@/layout/PageLayout";
 import { HOME, INVENTORY, INVENTORY_SUPPLIERS } from "@/constants/routes";
 import { EditIcon, EyeIcon, TrashIcon, UserRoundCog } from "lucide-react";
 import DataTable from "@/components/custom/Datatable";
-import { useGetSupplierListQuery, useDeleteSupplierMutation } from "@/features/api/supplier";
+import { useGetSupplierListQuery } from "@/features/api/supplier";
 import SupplierModals from "@/components/modals/supplier/Modals";
-import { useDispatch } from "react-redux";
-import {
-   setOpenCreateModal,
-   setOpenEditModal,
-   setOpenViewModal,
-   setSelectedSupplier,
-} from "@/features/slice/supplierSlice";
+import { useModalState } from "@/hooks/useModalState";
 import { useCallback, useMemo } from "react";
-import { useConfirmation } from "@/helpers/confirmAction";
-import { useCatchQuery } from "@/hooks/useCatchQuery";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: INVENTORY_SUPPLIERS.title }];
 
 const AVATAR_COLORS = [
    "bg-violet-100 text-violet-700 border-violet-200",
@@ -96,47 +85,12 @@ const columns = [
 ];
 
 export default function Suppliers() {
-   const dispatch = useDispatch();
-   const { confirm } = useConfirmation();
-   const [deleteSupplier] = useDeleteSupplierMutation();
-   const exec = useCatchQuery();
+   const modal = useModalState();
 
-   const onViewSupplier = useCallback(
-      (item) => {
-         dispatch(setOpenViewModal(true));
-         dispatch(setSelectedSupplier(item));
-      },
-      [dispatch],
-   );
-
-   const onCreate = useCallback(() => {
-      dispatch(setOpenCreateModal(true));
-   }, [dispatch]);
-
-   const onEdit = useCallback(
-      (item) => {
-         dispatch(setOpenEditModal(true));
-         dispatch(setSelectedSupplier(item));
-      },
-      [dispatch],
-   );
-
-   const onDelete = useCallback(
-      async (item) => {
-         const confirmed = await confirm({
-            title: "Delete Supplier",
-            message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
-         });
-
-         if (!confirmed) return;
-
-         const { success, message } = await exec(deleteSupplier, item.id);
-         if (!success) return;
-
-         toast.success(message);
-      },
-      [confirm, deleteSupplier, exec],
-   );
+   const { open: openModal } = modal;
+   const onViewSupplier = useCallback((item) => openModal("view", item), [openModal]);
+   const onCreate = useCallback(() => openModal("create"), [openModal]);
+   const onEdit = useCallback((item) => openModal("edit", item), [openModal]);
 
    const actions = useMemo(
       () => [
@@ -152,20 +106,13 @@ export default function Suppliers() {
             icon: EditIcon,
             action: onEdit,
          },
-         // {
-         //    key: "delete",
-         //    label: "Delete Supplier",
-         //    icon: TrashIcon,
-         //    className: "text-destructive",
-         //    action: onDelete,
-         // },
       ],
-      [onViewSupplier, onEdit, onDelete],
+      [onViewSupplier, onEdit],
    );
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={`Inventory ${INVENTORY_SUPPLIERS.title}`}
          pageDescription='Manage your suppliers. View details, edit information, and keep track of your supplier relationships all in one place.'
          route={INVENTORY_SUPPLIERS}
@@ -194,7 +141,7 @@ export default function Suppliers() {
                ]}
             />
 
-            <SupplierModals />
+            <SupplierModals modal={modal} />
          </main>
       </PageLayout>
    );

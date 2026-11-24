@@ -46,7 +46,7 @@ export default function ViewDetails({ item }) {
                { icon: Info,        label: "Description",    value: item?.description },
                { icon: Tag,         label: "Category",       value: item?.category?.name },
                { icon: CalendarDays,label: "Date Added",     value: dateParser(item?.created_at) },
-               { icon: Package,     label: "Has Expiration", value: Boolean(item?.has_expiry) ? "Yes" : "No" },
+               { icon: Package,     label: "Has Expiration", value: item?.has_expiry ? "Yes" : "No" },
             ].map(({ icon: Icon, label, value }) => (
                <div key={label} className='bg-white px-4 py-3'>
                   <div className='flex items-center gap-1.5 mb-1'>

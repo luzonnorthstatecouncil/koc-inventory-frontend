@@ -4,10 +4,8 @@ import { Separator } from "@/components/ui/separator";
 import { dateParser, padwithZero, priceParser } from "@/helpers/parser";
 import { cn } from "@/lib/utils";
 import { Banknote, Barcode, CalendarDays, CreditCard, RefreshCcw, ShoppingBag } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
 import OrderItem from "./ui/OrderItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { setSelectedOrder } from "@/features/slice/orderSlice";
 import { useState } from "react";
 
 const PAYMENT_METHOD_ICONS = {
@@ -16,19 +14,18 @@ const PAYMENT_METHOD_ICONS = {
    gcash: ShoppingBag,
 };
 
-export default function ViewOrder({ isOpen, onClose }) {
-   const dispatch = useDispatch();
+// order / onSelectOrder come from the Orders page (onSelectOrder switches between a refund and its original)
+export default function ViewOrder({ isOpen, onClose, order: selectedOrder, onSelectOrder }) {
    const [tempOrder, setTempOrder] = useState(null);
-   const { selectedOrder } = useSelector((state) => state.order);
 
    const onViewRefundedOrder = () => {
       setTempOrder(selectedOrder);
-      dispatch(setSelectedOrder(selectedOrder.refundedOrder));
+      onSelectOrder(selectedOrder.refundedOrder);
    };
 
    const onViewRefundOrder = () => {
       setTempOrder(null);
-      dispatch(setSelectedOrder(tempOrder));
+      onSelectOrder(tempOrder);
    };
 
    const refundedOrder = selectedOrder.refundedOrder;
@@ -140,6 +137,14 @@ export default function ViewOrder({ isOpen, onClose }) {
                Payment Breakdown
             </p>
             <div className='rounded-xl border border-gray-100 bg-gray-50/50 p-3 space-y-1.5 mb-4'>
+               {selectedOrder?.invoice_number && (
+                  <OrderItem
+                     name='Invoice No.'
+                     parsePrice={false}
+                     price={selectedOrder.invoice_number}
+                     nameClassName='font-normal'
+                  />
+               )}
                <OrderItem
                   name='Transaction Ref'
                   parsePrice={false}

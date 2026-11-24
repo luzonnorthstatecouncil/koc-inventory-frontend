@@ -1,11 +1,8 @@
-import { KIT_TAGS } from "@/constants/redux-tags";
-import { baseQuery } from "@/lib/utils";
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { INVENTORY_TAGS, KIT_TAGS } from "@/constants/redux-tags";
+import { baseApi } from "./baseApi";
 import { urlParams } from "@/helpers/urlParams";
 
-export const kitApi = createApi({
-   reducerPath: "kitApi",
-   baseQuery: baseQuery,
+export const kitApi = baseApi.injectEndpoints({
    endpoints: (builder) => ({
       getKitList: builder.query({
          query: (params) => {
@@ -24,7 +21,7 @@ export const kitApi = createApi({
             method: "POST",
             body: data,
          }),
-         invalidatesTags: [KIT_TAGS.LIST],
+         invalidatesTags: [KIT_TAGS.LIST, INVENTORY_TAGS.LIST],
       }),
       editKit: builder.mutation({
          query: (data) => ({
@@ -32,14 +29,14 @@ export const kitApi = createApi({
             method: "PUT",
             body: data,
          }),
-         invalidatesTags: [KIT_TAGS.DETAIL, KIT_TAGS.LIST],
+         invalidatesTags: [KIT_TAGS.DETAIL, KIT_TAGS.LIST, INVENTORY_TAGS.LIST],
       }),
       deleteKit: builder.mutation({
          query: (data) => ({
             url: `/v1/kits/${data.id}`,
             method: "DELETE",
          }),
-         invalidatesTags: [KIT_TAGS.LIST],
+         invalidatesTags: [KIT_TAGS.LIST, INVENTORY_TAGS.LIST],
       }),
    }),
 });

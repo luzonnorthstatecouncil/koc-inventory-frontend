@@ -6,15 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDeleteItemMutation, useGetInventoryListQuery } from "@/features/api/inventory";
 import InventoryModals from "@/components/modals/inventory/Modals";
 import { useDispatch } from "react-redux";
-import {
-   setOpenBulkCreateModal,
-   setOpenCreateModal,
-   setOpenEditModal,
-   setOpenOrdersModal,
-   setOpenStocksModal,
-   setOpenViewModal,
-   setSelectedItem,
-} from "@/features/slice/inventorySlice";
+import { setOpenBulkCreateModal, setOpenCreateModal, setOpenEditModal, setOpenOrdersModal, setOpenViewModal, setSelectedItem } from "@/features/slice/inventorySlice";
 import { useCallback, useMemo } from "react";
 import ITooltip from "@/components/custom/Tooltip";
 import { useConfirmation } from "@/helpers/confirmAction";
@@ -22,8 +14,6 @@ import { useCatchQuery } from "@/hooks/useCatchQuery";
 import VariantsAccordion from "@/components/custom/VariantsAccordion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const breadcrumbItems = [{ label: HOME.title }, { label: INVENTORY.title }, { label: INVENTORY_ITEMS.title }];
 
 const CATEGORY_COLORS = [
    "bg-violet-100 text-violet-700 border-violet-200",
@@ -206,14 +196,6 @@ export default function InventoryItems() {
       [dispatch],
    );
 
-   const onStocks = useCallback(
-      (item) => {
-         dispatch(setOpenStocksModal(true));
-         dispatch(setSelectedItem(item));
-      },
-      [dispatch],
-   );
-
    const onViewOrders = useCallback(
       (item) => {
          dispatch(setOpenOrdersModal(true));
@@ -237,7 +219,7 @@ export default function InventoryItems() {
 
          toast.success(message);
       },
-      [dispatch],
+      [confirm, deleteItem, exec],
    );
 
    const actions = useMemo(
@@ -270,12 +252,12 @@ export default function InventoryItems() {
             action: onDeleteItem,
          },
       ],
-      [onViewItem, onEdit, onStocks],
+      [onViewItem, onEdit, onViewOrders, onDeleteItem],
    );
 
    return (
       <PageLayout
-         breadcrumbItems={breadcrumbItems}
+        
          pageTitle={`Inventory ${INVENTORY_ITEMS.title}`}
          pageDescription='Manage your inventory items. View details, adjust stock levels, and keep track of orders all in one place.'
          route={INVENTORY_ITEMS}
